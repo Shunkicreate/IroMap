@@ -82,6 +82,16 @@ prefix_rule(
 )
 
 prefix_rule(
+    pattern=["pnpm", "install"],
+    decision="allow",
+)
+
+prefix_rule(
+    pattern=["pnpm", "--dir", "web", "install"],
+    decision="allow",
+)
+
+prefix_rule(
     pattern=["pnpm", ["install", "remove", "update", "up", "dlx", "exec", "run"]],
     decision="prompt",
     justification="Package and script operations may modify lockfiles, dependencies, or generated outputs.",
