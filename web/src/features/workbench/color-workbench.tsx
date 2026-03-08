@@ -31,34 +31,37 @@ export function ColorWorkbench() {
         <p>{t("workbenchSteps")}</p>
       </div>
 
-      <section className="panel">
-        <div className="panelHeader">
-          <h2>{t("panelRgbCube")}</h2>
-          <p>FR-1 / FR-2 / FR-3</p>
+      <section className="explorationLayout">
+        <section className="panel">
+          <div className="panelHeader">
+            <h2>{t("panelRgbCube")}</h2>
+            <p>FR-1 / FR-2 / FR-3</p>
+          </div>
+          <RgbCubeCanvas
+            rotation={rotation}
+            sliceAxis={sliceAxis}
+            sliceValue={sliceValue}
+            onRotationChange={setRotation}
+            onHoverColorChange={setHoverColor}
+            onColorSelect={setSelectedColor}
+          />
+        </section>
+
+        <div className="explorationSide">
+          <SliceCanvas
+            axis={sliceAxis}
+            value={sliceValue}
+            onAxisChange={setSliceAxis}
+            onValueChange={setSliceValue}
+            onHoverColorChange={setHoverColor}
+            onColorSelect={setSelectedColor}
+          />
+          <PhotoAnalysisPanel />
         </div>
-        <RgbCubeCanvas
-          rotation={rotation}
-          sliceAxis={sliceAxis}
-          sliceValue={sliceValue}
-          onRotationChange={setRotation}
-          onHoverColorChange={setHoverColor}
-          onColorSelect={setSelectedColor}
-        />
       </section>
 
       <ColorInspector hoverColor={hoverColor} selectedColor={selectedColor} />
       <ColorCopyPanel selectedColor={selectedColor} />
-
-      <SliceCanvas
-        axis={sliceAxis}
-        value={sliceValue}
-        onAxisChange={setSliceAxis}
-        onValueChange={setSliceValue}
-        onHoverColorChange={setHoverColor}
-        onColorSelect={setSelectedColor}
-      />
-
-      <PhotoAnalysisPanel />
     </main>
   );
 }
