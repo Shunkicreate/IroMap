@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { PanelHeader } from "@/components/workbench/panel-header";
-import { rgbToHex } from "@/domain/color/color-format";
 import {
   toRgbColor,
   type ColorSpace3d,
@@ -25,14 +26,11 @@ type Rotation = {
 const defaultSliceValue = 128;
 const defaultRotation: Rotation = { x: -0.7, y: 0.6 };
 const defaultCubeSize = 520;
-const keyboardPresetColors: RgbColor[] = [
-  toRgbColor(255, 99, 71),
-  toRgbColor(72, 149, 239),
-  toRgbColor(255, 209, 102),
-  toRgbColor(6, 214, 160),
-  toRgbColor(131, 56, 236),
-  toRgbColor(17, 24, 39),
-];
+const manualChannelLabels = {
+  r: "R",
+  g: "G",
+  b: "B",
+} as const;
 const defaultSliceAxisBySpace: Record<ColorSpace3d, SliceAxis> = {
   rgb: "r",
   hsl: "h",
@@ -73,6 +71,8 @@ const mapAxisValue = (
 export function ColorWorkbench() {
   const [hoverColor, setHoverColor] = useState<RgbColor | null>(null);
   const [selectedColor, setSelectedColor] = useState<RgbColor | null>(null);
+  const [analysisSourceFile, setAnalysisSourceFile] = useState<File | null>(null);
+  const [liveMessage, setLiveMessage] = useState<string>("");
   const [sliceAxis, setSliceAxis] = useState<SliceAxis>("r");
   const [sliceValue, setSliceValue] = useState<number>(defaultSliceValue);
   const [space, setSpace] = useState<ColorSpace3d>("rgb");
@@ -80,6 +80,9 @@ export function ColorWorkbench() {
   const [isCubeSizeSliderVisible, setIsCubeSizeSliderVisible] = useState<boolean>(true);
   const [cubeSize, setCubeSize] = useState<number>(defaultCubeSize);
   const [rotation, setRotation] = useState<Rotation>(defaultRotation);
+  const [manualR, setManualR] = useState<number>(128);
+  const [manualG, setManualG] = useState<number>(128);
+  const [manualB, setManualB] = useState<number>(128);
 
   const normalizeSliceValueForAxis = (nextAxis: SliceAxis, currentValue: number): number => {
     const nextRange = getAxisRange(nextAxis);
@@ -89,8 +92,7 @@ export function ColorWorkbench() {
       return clamp(currentValue, nextRange.min, nextRange.max);
     }
 
-    const normalized = mapAxisValue(currentValue, currentRange, nextRange);
-    return clamp(normalized, nextRange.min, nextRange.max);
+    return clamp(mapAxisValue(currentValue, currentRange, nextRange), nextRange.min, nextRange.max);
   };
 
   const handleSliceAxisChange = (nextAxis: SliceAxis): void => {
@@ -109,11 +111,29 @@ export function ColorWorkbench() {
     );
   };
 
+  const applyManualColor = (): void => {
+    const nextColor = toRgbColor(
+      clamp(manualR, 0, 255),
+      clamp(manualG, 0, 255),
+      clamp(manualB, 0, 255)
+    );
+    setSelectedColor(nextColor);
+    setLiveMessage(t("workbenchManualApplied"));
+    toast.success(t("workbenchManualApplied"));
+  };
+
+  const handleStatusChange = (message: string): void => {
+    setLiveMessage(message);
+  };
+
   return (
-    <main className="workbenchRoot">
-      <div className="pageHeader">
-        <h1>{t("workbenchTitle")}</h1>
-        <p>{t("workbenchSteps")}</p>
+    <section className="workbenchRoot">
+      <div className="workbenchTopBar">
+        <div>
+          <h1>{t("workbenchTitle")}</h1>
+          <p>{t("workbenchSteps")}</p>
+        </div>
+        <ThemeToggle />
       </div>
 
       <div className="workbenchMainGrid">
@@ -138,6 +158,15 @@ export function ColorWorkbench() {
               </TabsList>
             </Tabs>
             <div className="cubeSettings">
+              <label className="fileInputInline">
+                {t("workbenchUploadLabel")}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(event) => setAnalysisSourceFile(event.target.files?.[0] ?? null)}
+                />
+                <span>{t("workbenchUploadHint")}</span>
+              </label>
               <div className="cubeToggleRow">
                 <label className="toggleLabel">
                   <input
@@ -156,6 +185,44 @@ export function ColorWorkbench() {
                   {t("cubeShowSizeSlider")}
                 </label>
               </div>
+              <div className="manualColorPicker" aria-label={t("workbenchManualPickerTitle")}>
+                <strong>{t("workbenchManualPickerTitle")}</strong>
+                <div className="manualColorInputs">
+                  <label>
+                    {manualChannelLabels.r}
+                    <input
+                      type="number"
+                      min={0}
+                      max={255}
+                      value={manualR}
+                      onChange={(event) => setManualR(Number(event.target.value))}
+                    />
+                  </label>
+                  <label>
+                    {manualChannelLabels.g}
+                    <input
+                      type="number"
+                      min={0}
+                      max={255}
+                      value={manualG}
+                      onChange={(event) => setManualG(Number(event.target.value))}
+                    />
+                  </label>
+                  <label>
+                    {manualChannelLabels.b}
+                    <input
+                      type="number"
+                      min={0}
+                      max={255}
+                      value={manualB}
+                      onChange={(event) => setManualB(Number(event.target.value))}
+                    />
+                  </label>
+                  <button type="button" onClick={applyManualColor}>
+                    {t("workbenchManualApply")}
+                  </button>
+                </div>
+              </div>
               {isCubeSizeSliderVisible ? (
                 <label>
                   {t("cubeSizeLabel", { size: cubeSize })}
@@ -169,27 +236,6 @@ export function ColorWorkbench() {
                   />
                 </label>
               ) : null}
-              <div className="keyboardPicker">
-                <p className="keyboardPickerTitle">{t("keyboardPickerTitle")}</p>
-                <p className="keyboardPickerDescription">{t("keyboardPickerDescription")}</p>
-                <div className="keyboardPresetButtons">
-                  {keyboardPresetColors.map((color, index) => {
-                    const value = rgbToHex(color);
-                    return (
-                      <button
-                        key={value}
-                        type="button"
-                        className="keyboardPresetButton"
-                        onClick={() => setSelectedColor(color)}
-                        aria-label={t("keyboardPresetLabel", { index: index + 1, value })}
-                      >
-                        <span className="keyboardPresetSwatch" style={{ background: value }} />
-                        <span>{value}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
             </div>
             <RgbCubeCanvas
               space={space}
@@ -217,12 +263,22 @@ export function ColorWorkbench() {
 
         <aside className="supportPanels">
           <ColorInspector hoverColor={hoverColor} selectedColor={selectedColor} />
-          <ColorCopyPanel selectedColor={selectedColor} onColorPasted={setSelectedColor} />
+          <PhotoAnalysisPanel
+            sourceFile={analysisSourceFile}
+            onColorInspect={setSelectedColor}
+            onStatusChange={handleStatusChange}
+          />
+          <ColorCopyPanel
+            selectedColor={selectedColor}
+            onColorPasted={setSelectedColor}
+            onStatusChange={handleStatusChange}
+          />
         </aside>
       </div>
-      <div className="analysisSection">
-        <PhotoAnalysisPanel />
-      </div>
-    </main>
+
+      <p className="srOnly" aria-live="polite">
+        {liveMessage}
+      </p>
+    </section>
   );
 }

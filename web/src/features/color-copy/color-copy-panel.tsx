@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { PanelHeader } from "@/components/workbench/panel-header";
 import {
   type CopyFormat,
@@ -17,6 +17,7 @@ import { toast } from "sonner";
 type Props = {
   selectedColor: RgbColor | null;
   onColorPasted?: (color: RgbColor) => void;
+  onStatusChange?: (message: string) => void;
 };
 
 const PLACEHOLDER = "--";
@@ -75,15 +76,9 @@ const parsePastedColor = (raw: string): RgbColor | null => {
   return null;
 };
 
-export function ColorCopyPanel({ selectedColor, onColorPasted }: Props) {
+export function ColorCopyPanel({ selectedColor, onColorPasted, onStatusChange }: Props) {
   const [format, setFormat] = useState<CopyFormat>("hex");
   const [message, setMessage] = useState<string>("");
-  const sequenceRef = useRef<number>(0);
-
-  const pushLiveMessage = (nextMessage: string): void => {
-    sequenceRef.current += 1;
-    setMessage(`${sequenceRef.current}. ${nextMessage}`);
-  };
 
   const formatted = useMemo(() => {
     if (!selectedColor) {
@@ -107,21 +102,24 @@ export function ColorCopyPanel({ selectedColor, onColorPasted }: Props) {
       } else {
         throw new Error("Clipboard API unavailable");
       }
-      const nextMessage = t("copyCopied", { value });
-      pushLiveMessage(nextMessage);
-      toast.success(t("copyToastSuccess"), { description: nextMessage });
+      const success = t("copyCopied", { value });
+      setMessage(success);
+      onStatusChange?.(success);
+      toast.success(success);
     } catch {
-      const nextMessage = t("copyFailed", { value });
-      pushLiveMessage(nextMessage);
-      toast.error(t("copyToastError"), { description: nextMessage });
+      const failed = t("copyFailed", { value });
+      setMessage(failed);
+      onStatusChange?.(failed);
+      toast.error(failed);
     }
   };
 
   const pasteFromClipboard = async (): Promise<void> => {
     if (!navigator.clipboard?.readText) {
-      const nextMessage = t("copyPasteFailed");
-      pushLiveMessage(nextMessage);
-      toast.error(t("copyToastPasteError"), { description: nextMessage });
+      const failed = t("copyPasteFailed");
+      setMessage(failed);
+      onStatusChange?.(failed);
+      toast.error(failed);
       return;
     }
 
@@ -130,20 +128,23 @@ export function ColorCopyPanel({ selectedColor, onColorPasted }: Props) {
       const parsed = parsePastedColor(text);
 
       if (!parsed) {
-        const nextMessage = t("copyPasteUnsupported", { value: text || t("copyEmptyValue") });
-        pushLiveMessage(nextMessage);
-        toast.error(t("copyToastPasteError"), { description: nextMessage });
+        const unsupported = t("copyPasteUnsupported", { value: text || "(empty)" });
+        setMessage(unsupported);
+        onStatusChange?.(unsupported);
+        toast.error(unsupported);
         return;
       }
 
       onColorPasted?.(parsed);
-      const nextMessage = t("copyPasteApplied", { value: formatColor(parsed, format) });
-      pushLiveMessage(nextMessage);
-      toast.success(t("copyToastPasteApplied"), { description: nextMessage });
+      const applied = t("copyPasteApplied", { value: formatColor(parsed, format) });
+      setMessage(applied);
+      onStatusChange?.(applied);
+      toast.success(applied);
     } catch {
-      const nextMessage = t("copyPasteFailed");
-      pushLiveMessage(nextMessage);
-      toast.error(t("copyToastPasteError"), { description: nextMessage });
+      const failed = t("copyPasteFailed");
+      setMessage(failed);
+      onStatusChange?.(failed);
+      toast.error(failed);
     }
   };
 

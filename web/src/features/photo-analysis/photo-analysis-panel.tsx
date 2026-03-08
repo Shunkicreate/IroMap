@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ColorSwatch } from "@/components/workbench/color-swatch";
 import { PanelHeader } from "@/components/workbench/panel-header";
 import { analyzePhoto, type PhotoAnalysisResult } from "@/domain/photo-analysis/photo-analysis";
 import { rgbToHex } from "@/domain/color/color-format";
 import { colorChannelLevels } from "@/domain/color/color-constants";
 import { GraphFrame } from "@/components/graph/graph-frame";
+import type { RgbColor } from "@/domain/color/color-types";
 import { t } from "@/i18n/translate";
 import { toast } from "sonner";
 
@@ -23,6 +24,12 @@ const pointRadius = 0.7;
 const pointOpacity = 0.8;
 const fileSummaryPrecision = 1;
 const histogramTooltipPrecision = 2;
+const hueDiverseThreshold = 8;
+const hueModerateThreshold = 4;
+const saturationHighThreshold = 0.55;
+const saturationLowThreshold = 0.25;
+const spreadWideThreshold = 48;
+const spreadMediumThreshold = 24;
 const ratioFormatter = new Intl.NumberFormat(undefined, {
   style: "percent",
   minimumFractionDigits: 1,
@@ -30,21 +37,38 @@ const ratioFormatter = new Intl.NumberFormat(undefined, {
 });
 
 const readFileAsImageData = async (file: File): Promise<ImageData> => {
-  const imageBitmap = await createImageBitmap(file);
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  if (!context) {
+    throw new Error("2d context unavailable");
+  }
+
   try {
-    const canvas = document.createElement("canvas");
-    canvas.width = imageBitmap.width;
-    canvas.height = imageBitmap.height;
-
-    const context = canvas.getContext("2d");
-    if (!context) {
-      throw new Error("2d context unavailable");
+    const imageBitmap = await createImageBitmap(file);
+    try {
+      canvas.width = imageBitmap.width;
+      canvas.height = imageBitmap.height;
+      context.drawImage(imageBitmap, 0, 0);
+      return context.getImageData(0, 0, canvas.width, canvas.height);
+    } finally {
+      imageBitmap.close();
     }
-
-    context.drawImage(imageBitmap, 0, 0);
-    return context.getImageData(0, 0, canvas.width, canvas.height);
-  } finally {
-    imageBitmap.close();
+  } catch {
+    const objectUrl = URL.createObjectURL(file);
+    try {
+      const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const node = new Image();
+        node.onload = () => resolve(node);
+        node.onerror = () => reject(new Error("image-load-failed"));
+        node.src = objectUrl;
+      });
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      context.drawImage(image, 0, 0);
+      return context.getImageData(0, 0, canvas.width, canvas.height);
+    } finally {
+      URL.revokeObjectURL(objectUrl);
+    }
   }
 };
 
@@ -83,17 +107,75 @@ const analyzePhotoInWorker = (imageData: ImageData): Promise<PhotoAnalysisResult
   });
 };
 
-export function PhotoAnalysisPanel() {
+type Props = {
+  sourceFile: File | null;
+  onColorInspect?: (color: RgbColor) => void;
+  onStatusChange?: (message: string) => void;
+};
+
+const getHueInsightLabel = (result: PhotoAnalysisResult): string => {
+  const activeBins = result.hueHistogram.filter((bin) => bin.count > 0).length;
+  if (activeBins >= hueDiverseThreshold) {
+    return t("photoInsightHueBalanced");
+  }
+  if (activeBins >= hueModerateThreshold) {
+    return t("photoInsightHueModerate");
+  }
+  return t("photoInsightHueNarrow");
+};
+
+const getSaturationInsightLabel = (result: PhotoAnalysisResult): string => {
+  const total = result.saturationHistogram.reduce((sum, bin) => sum + bin.count, 0);
+  if (total === 0) {
+    return t("photoInsightSatMid");
+  }
+
+  const weighted = result.saturationHistogram.reduce((sum, bin) => {
+    const mid = (bin.start + bin.end) / 2;
+    return sum + mid * bin.count;
+  }, 0);
+
+  const mean = weighted / total;
+  if (mean >= saturationHighThreshold) {
+    return t("photoInsightSatHigh");
+  }
+  if (mean <= saturationLowThreshold) {
+    return t("photoInsightSatLow");
+  }
+  return t("photoInsightSatMid");
+};
+
+const getSpreadInsightLabel = (result: PhotoAnalysisResult): string => {
+  if (result.scatter.length === 0) {
+    return t("photoInsightSpreadMedium");
+  }
+
+  let minA = Number.POSITIVE_INFINITY;
+  let maxA = Number.NEGATIVE_INFINITY;
+  let minB = Number.POSITIVE_INFINITY;
+  let maxB = Number.NEGATIVE_INFINITY;
+
+  for (const point of result.scatter) {
+    minA = Math.min(minA, point.x);
+    maxA = Math.max(maxA, point.x);
+    minB = Math.min(minB, point.y);
+    maxB = Math.max(maxB, point.y);
+  }
+
+  const spread = (maxA - minA + (maxB - minB)) / 2;
+  if (spread >= spreadWideThreshold) {
+    return t("photoInsightSpreadWide");
+  }
+  if (spread >= spreadMediumThreshold) {
+    return t("photoInsightSpreadMedium");
+  }
+  return t("photoInsightSpreadNarrow");
+};
+
+export function PhotoAnalysisPanel({ sourceFile, onColorInspect, onStatusChange }: Props) {
   const [analysis, setAnalysis] = useState<AnalysisState>(null);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [statusAnnouncement, setStatusAnnouncement] = useState<string>("");
-  const statusSequenceRef = useRef<number>(0);
-
-  const announceStatus = (statusMessage: string): void => {
-    statusSequenceRef.current += 1;
-    setStatusAnnouncement(`${statusSequenceRef.current}. ${statusMessage}`);
-  };
 
   const maxHueCount = useMemo(() => {
     return Math.max(1, ...(analysis?.result.hueHistogram.map((bin) => bin.count) ?? [1]));
@@ -103,166 +185,201 @@ export function PhotoAnalysisPanel() {
     return Math.max(1, ...(analysis?.result.saturationHistogram.map((bin) => bin.count) ?? [1]));
   }, [analysis]);
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
-    const file = event.target.files?.[0];
-    if (!file) {
+  useEffect(() => {
+    if (!sourceFile) {
       return;
     }
 
+    let isCancelled = false;
     setIsAnalyzing(true);
     setError("");
-    announceStatus(t("photoStatusStarted"));
-    toast.message(t("photoStatusStarted"));
+    const inProgress = t("photoAnalyzing");
+    onStatusChange?.(inProgress);
+    toast(inProgress);
 
-    try {
-      const imageData = await readFileAsImageData(file);
-      const result = await analyzePhotoInWorker(imageData);
-      setAnalysis({
-        fileName: file.name,
-        result,
-      });
-      announceStatus(t("photoStatusDone"));
-      toast.success(t("photoStatusDone"), {
-        description: t("photoSummary", {
-          fileName: file.name,
+    void (async () => {
+      try {
+        const imageData = await readFileAsImageData(sourceFile);
+        const result = await analyzePhotoInWorker(imageData);
+        if (isCancelled) {
+          return;
+        }
+        setAnalysis({
+          fileName: sourceFile.name,
+          result,
+        });
+        const success = t("photoSummary", {
+          fileName: sourceFile.name,
           sampledPixels: result.sampledPixels,
           elapsedMs: result.elapsedMs.toFixed(fileSummaryPrecision),
-        }),
-      });
-    } catch {
-      setError(t("photoError"));
-      setAnalysis(null);
-      announceStatus(t("photoStatusFailed"));
-      toast.error(t("photoStatusFailed"), { description: t("photoError") });
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
+        });
+        onStatusChange?.(success);
+        toast.success(success);
+      } catch {
+        if (isCancelled) {
+          return;
+        }
+        const failed = t("photoError");
+        setError(failed);
+        setAnalysis(null);
+        onStatusChange?.(failed);
+        toast.error(failed);
+      } finally {
+        if (!isCancelled) {
+          setIsAnalyzing(false);
+        }
+      }
+    })();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [onStatusChange, sourceFile]);
 
   return (
     <section className="panel">
       <PanelHeader titleKey="panelPhotoAnalysis" requirementsKey="panelPhotoAnalysisRequirements" />
-      <div className="analysisGuide">
-        <strong>{t("photoAnalysisGuideTitle")}</strong>
-        <p>{t("photoAnalysisGuideBody")}</p>
-      </div>
-
-      <label className="fileInput">
-        {t("photoUploadLabel")}
-        <input type="file" accept="image/*" onChange={handleFileChange} />
-      </label>
 
       {isAnalyzing ? <p className="muted">{t("photoAnalyzing")}</p> : null}
       {error ? <p className="errorText">{error}</p> : null}
-      <p className="muted copyStatus" aria-live="polite">
-        {statusAnnouncement}
-      </p>
+      {!sourceFile && !analysis ? <p className="muted">{t("photoUploadLabel")}</p> : null}
 
-      {analysis ? (
-        <div className="analysisGrid">
-          <article>
-            <h3>{t("photoLabScatter")}</h3>
-            <GraphFrame
-              xLabel={t("graphAxisLabA")}
-              yLabel={t("graphAxisLabB")}
-              className="analysisGraphFrame"
-            >
-              <svg
-                viewBox={`0 0 ${scatterViewboxSize} ${scatterViewboxSize}`}
-                className="scatterPlot"
-                role="img"
+      <div className="analysisGrid">
+        {analysis ? (
+          <>
+            <article>
+              <h3>{t("photoLabScatter")}</h3>
+              <GraphFrame
+                xLabel={t("graphAxisLabA")}
+                yLabel={t("graphAxisLabB")}
+                className="analysisGraphFrame"
               >
-                <rect
-                  x="0"
-                  y="0"
-                  width={scatterViewboxSize}
-                  height={scatterViewboxSize}
-                  fill="#0f172a"
-                />
-                {analysis.result.scatter.map((point, index) => (
-                  <circle
-                    key={`${index}-${point.x}-${point.y}`}
-                    cx={toScatterPosition(point.x)}
-                    cy={scatterViewboxSize - toScatterPosition(point.y)}
-                    r={pointRadius}
-                    fill={rgbToHex(point.color)}
-                    opacity={pointOpacity}
+                <svg
+                  viewBox={`0 0 ${scatterViewboxSize} ${scatterViewboxSize}`}
+                  className="scatterPlot"
+                  role="img"
+                >
+                  <rect
+                    x="0"
+                    y="0"
+                    width={scatterViewboxSize}
+                    height={scatterViewboxSize}
+                    fill="#0f172a"
                   />
+                  {analysis.result.scatter.map((point, index) => (
+                    <circle
+                      key={`${index}-${point.x}-${point.y}`}
+                      cx={toScatterPosition(point.x)}
+                      cy={scatterViewboxSize - toScatterPosition(point.y)}
+                      r={pointRadius}
+                      fill={rgbToHex(point.color)}
+                      opacity={pointOpacity}
+                    />
+                  ))}
+                </svg>
+              </GraphFrame>
+            </article>
+
+            <article>
+              <h3>{t("photoHueHistogram")}</h3>
+              <GraphFrame
+                xLabel={t("graphAxisHue")}
+                yLabel={t("graphAxisCount")}
+                className="analysisGraphFrame"
+              >
+                <div className="histogramBars">
+                  {analysis.result.hueHistogram.map((bin) => {
+                    const height = Math.max(
+                      histogramMinHeightPercent,
+                      (bin.count / maxHueCount) * histogramHeightPercent
+                    );
+                    return (
+                      <span
+                        key={`${bin.start}-${bin.end}`}
+                        style={{ height: `${height}%` }}
+                        title={`${Math.round(bin.start)}-${Math.round(bin.end)}: ${bin.count}`}
+                      />
+                    );
+                  })}
+                </div>
+              </GraphFrame>
+            </article>
+
+            <article>
+              <h3>{t("photoSaturationHistogram")}</h3>
+              <GraphFrame
+                xLabel={t("graphAxisSaturation")}
+                yLabel={t("graphAxisCount")}
+                className="analysisGraphFrame"
+              >
+                <div className="histogramBars saturationBars">
+                  {analysis.result.saturationHistogram.map((bin) => {
+                    const height = Math.max(
+                      histogramMinHeightPercent,
+                      (bin.count / maxSaturationCount) * histogramHeightPercent
+                    );
+                    return (
+                      <span
+                        key={`${bin.start}-${bin.end}`}
+                        style={{ height: `${height}%` }}
+                        title={`${bin.start.toFixed(histogramTooltipPrecision)}-${bin.end.toFixed(
+                          histogramTooltipPrecision
+                        )}: ${bin.count}`}
+                      />
+                    );
+                  })}
+                </div>
+              </GraphFrame>
+            </article>
+
+            <article>
+              <h3>{t("photoColorAreaRatio")}</h3>
+              <ul className="areaList">
+                {analysis.result.colorAreas.map((area) => (
+                  <li key={area.label}>
+                    <ColorSwatch color={area.rgb} />
+                    <span>{area.label === "others" ? t("photoOthers") : area.label}</span>
+                    <strong>{ratioFormatter.format(area.ratio / 100)}</strong>
+                    {area.label !== "others" ? (
+                      <button
+                        type="button"
+                        onClick={() => onColorInspect?.(area.rgb)}
+                        className="areaInspectButton"
+                      >
+                        {t("photoInspectOnCube")}
+                      </button>
+                    ) : null}
+                  </li>
                 ))}
-              </svg>
-            </GraphFrame>
-            <p className="analysisHint">{t("photoLabInterpretation")}</p>
-          </article>
+              </ul>
+            </article>
 
-          <article>
-            <h3>{t("photoHueHistogram")}</h3>
-            <GraphFrame
-              xLabel={t("graphAxisHue")}
-              yLabel={t("graphAxisCount")}
-              className="analysisGraphFrame"
-            >
-              <div className="histogramBars">
-                {analysis.result.hueHistogram.map((bin) => {
-                  const height = Math.max(
-                    histogramMinHeightPercent,
-                    (bin.count / maxHueCount) * histogramHeightPercent
-                  );
-                  return (
-                    <span
-                      key={`${bin.start}-${bin.end}`}
-                      style={{ height: `${height}%` }}
-                      title={`${Math.round(bin.start)}-${Math.round(bin.end)}: ${bin.count}`}
-                    />
-                  );
-                })}
-              </div>
-            </GraphFrame>
-            <p className="analysisHint">{t("photoHueInterpretation")}</p>
-          </article>
-
-          <article>
-            <h3>{t("photoSaturationHistogram")}</h3>
-            <GraphFrame
-              xLabel={t("graphAxisSaturation")}
-              yLabel={t("graphAxisCount")}
-              className="analysisGraphFrame"
-            >
-              <div className="histogramBars saturationBars">
-                {analysis.result.saturationHistogram.map((bin) => {
-                  const height = Math.max(
-                    histogramMinHeightPercent,
-                    (bin.count / maxSaturationCount) * histogramHeightPercent
-                  );
-                  return (
-                    <span
-                      key={`${bin.start}-${bin.end}`}
-                      style={{ height: `${height}%` }}
-                      title={`${bin.start.toFixed(histogramTooltipPrecision)}-${bin.end.toFixed(
-                        histogramTooltipPrecision
-                      )}: ${bin.count}`}
-                    />
-                  );
-                })}
-              </div>
-            </GraphFrame>
-            <p className="analysisHint">{t("photoSaturationInterpretation")}</p>
-          </article>
-
-          <article>
-            <h3>{t("photoColorAreaRatio")}</h3>
-            <ul className="areaList">
-              {analysis.result.colorAreas.map((area) => (
-                <li key={area.label}>
-                  <ColorSwatch color={area.rgb} />
-                  <span>{area.label === "others" ? t("photoOthers") : area.label}</span>
-                  <strong>{ratioFormatter.format(area.ratio / 100)}</strong>
+            <article>
+              <h3>{t("photoInsightTitle")}</h3>
+              <ul className="insightList">
+                <li>{t("photoInsightHue", { label: getHueInsightLabel(analysis.result) })}</li>
+                <li>
+                  {t("photoInsightSaturation", {
+                    label: getSaturationInsightLabel(analysis.result),
+                  })}
                 </li>
-              ))}
+                <li>
+                  {t("photoInsightSpread", { label: getSpreadInsightLabel(analysis.result) })}
+                </li>
+              </ul>
+            </article>
+          </>
+        ) : (
+          <article>
+            <h3>{t("photoInsightTitle")}</h3>
+            <ul className="insightList">
+              <li>{t("photoInsightHue", { label: t("photoInsightHueModerate") })}</li>
+              <li>{t("photoInsightSaturation", { label: t("photoInsightSatMid") })}</li>
+              <li>{t("photoInsightSpread", { label: t("photoInsightSpreadMedium") })}</li>
             </ul>
-            <p className="analysisHint">{t("photoAreaInterpretation")}</p>
           </article>
-        </div>
-      ) : null}
+        )}
+      </div>
 
       {analysis ? (
         <p className="muted">
