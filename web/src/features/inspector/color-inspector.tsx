@@ -23,7 +23,7 @@ export function ColorInspector({ hoverColor, selectedColor }: Props) {
     <section className="panel">
       <div className="panelHeader">
         <h2>{t("panelInspector")}</h2>
-        <p>FR-1 / FR-2 / FR-3</p>
+        <p>{t("panelInspectorRequirements")}</p>
       </div>
 
       <div className="inspectorCards">

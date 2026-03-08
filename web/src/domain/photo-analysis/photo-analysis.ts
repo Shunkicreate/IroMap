@@ -3,8 +3,6 @@ import { colorChannelMax } from "@/domain/color/color-constants";
 import { toRgbColor, type LabColor, type RgbColor } from "@/domain/color/color-types";
 
 type PixelSample = {
-  x: number;
-  y: number;
   color: RgbColor;
 };
 
@@ -95,8 +93,6 @@ const samplePixels = (imageData: ImageData, step: number, maxSamples: number): P
       }
 
       sampled.push({
-        x,
-        y,
         color: toRgbColor(data[offset], data[offset + 1], data[offset + 2]),
       });
     }

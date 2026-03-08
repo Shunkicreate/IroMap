@@ -41,7 +41,7 @@ export function ColorWorkbench() {
         <section className="panel">
           <div className="panelHeader">
             <h2>{t("panelRgbCube")}</h2>
-            <p>FR-1 / FR-2 / FR-3 / FR-4</p>
+            <p>{t("panelRgbCubeRequirements")}</p>
           </div>
           <Tabs
             value={space}

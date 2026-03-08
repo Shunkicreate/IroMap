@@ -22,17 +22,21 @@ const histogramTooltipPrecision = 2;
 
 const readFileAsImageData = async (file: File): Promise<ImageData> => {
   const imageBitmap = await createImageBitmap(file);
-  const canvas = document.createElement("canvas");
-  canvas.width = imageBitmap.width;
-  canvas.height = imageBitmap.height;
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = imageBitmap.width;
+    canvas.height = imageBitmap.height;
 
-  const context = canvas.getContext("2d");
-  if (!context) {
-    throw new Error("2d context unavailable");
+    const context = canvas.getContext("2d");
+    if (!context) {
+      throw new Error("2d context unavailable");
+    }
+
+    context.drawImage(imageBitmap, 0, 0);
+    return context.getImageData(0, 0, canvas.width, canvas.height);
+  } finally {
+    imageBitmap.close();
   }
-
-  context.drawImage(imageBitmap, 0, 0);
-  return context.getImageData(0, 0, canvas.width, canvas.height);
 };
 
 const toScatterPosition = (value: number): number => {
@@ -80,7 +84,7 @@ export function PhotoAnalysisPanel() {
     <section className="panel">
       <div className="panelHeader">
         <h2>{t("panelPhotoAnalysis")}</h2>
-        <p>FR-1 / FR-2 / FR-3 / FR-4</p>
+        <p>{t("panelPhotoAnalysisRequirements")}</p>
       </div>
 
       <label className="fileInput">

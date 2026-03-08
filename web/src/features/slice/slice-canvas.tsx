@@ -81,7 +81,9 @@ export function SliceCanvas({
     context.putImageData(imageData, 0, 0);
   }, [axis, value]);
 
-  const mapPointerToColor = (event: React.PointerEvent<HTMLCanvasElement>): RgbColor | null => {
+  const mapPointerToColor = (
+    event: React.PointerEvent<HTMLCanvasElement> | React.MouseEvent<HTMLCanvasElement>
+  ): RgbColor | null => {
     const bounds = event.currentTarget.getBoundingClientRect();
     const x = Math.round((event.clientX - bounds.left) * (colorChannelLevels / bounds.width));
     const y = Math.round((event.clientY - bounds.top) * (colorChannelLevels / bounds.height));
@@ -99,7 +101,7 @@ export function SliceCanvas({
   };
 
   const handleClick = (event: React.MouseEvent<HTMLCanvasElement>): void => {
-    const color = mapPointerToColor(event as unknown as React.PointerEvent<HTMLCanvasElement>);
+    const color = mapPointerToColor(event);
     if (color) {
       onColorSelect(color);
     }
@@ -109,7 +111,7 @@ export function SliceCanvas({
     <section className="panel">
       <div className="panelHeader">
         <h2>{t("panelSlice")}</h2>
-        <p>FR-1 / FR-2 / FR-3</p>
+        <p>{t("panelSliceRequirements")}</p>
       </div>
       <div className="sliceControls">
         <label>

@@ -51,7 +51,7 @@ export function ColorCopyPanel({ selectedColor }: Props) {
     <section className="panel">
       <div className="panelHeader">
         <h2>{t("panelColorCopy")}</h2>
-        <p>FR-1 / FR-2</p>
+        <p>{t("panelColorCopyRequirements")}</p>
       </div>
 
       {selectedColor ? (
