@@ -1,9 +1,24 @@
 import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+
+import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
+
 import "./globals.css";
 
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
-  title: "IroMap Workbench",
-  description: "Color structure workbench for RGB exploration and photo analysis",
+  title: "IroMap | Photo Color Analyzer",
+  description: "Understand the color structure of your photos",
 };
 
 export default function RootLayout({
@@ -12,8 +27,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="ja" suppressHydrationWarning>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+          <Toaster />
+        </ThemeProvider>
+      </body>
     </html>
   );
 }

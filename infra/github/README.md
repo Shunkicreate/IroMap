@@ -22,7 +22,14 @@ terraform apply
 terraform plan \
   -var="owner=Shunkicreate" \
   -var="repository=IroMap" \
-  -var="target_branch=main"
+  -var="target_branch=main" \
+  -var="required_approving_review_count=0"
 ```
+Default bypass actor is repository role ID `5` (`RepositoryRole`, admin) with `bypass_mode = "pull_request"`.
 
-`allow_admin_pull_request_bypass=true` (default) allows repository admins to bypass PR rules when needed.
+You can override role IDs as needed:
+
+```bash
+terraform plan -var='bypass_repository_role_ids=[5]'
+```
+`required_approving_review_count=0` allows solo workflow without mandatory approvals.

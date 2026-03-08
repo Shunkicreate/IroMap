@@ -21,6 +21,9 @@ Use only:
 - `git status *`
 - `git rev-parse *`
 - `cd *`
+- `pnpm --dir web install *`
+- `pnpm run setup:hooks`
+- `pnpm run setup:hooks:check`
 
 ## Inputs To Collect
 
@@ -52,6 +55,9 @@ git worktree list | grep "${WORKTREE_DIR}"
 cd "${WORKTREE_DIR}"
 git fetch origin
 git status
+pnpm --dir web install --frozen-lockfile
+pnpm run setup:hooks
+pnpm run setup:hooks:check
 ```
 
 4. If no existing worktree is found, create one.
@@ -73,6 +79,22 @@ git worktree add "${WORKTREE_DIR}" "${BRANCH_NAME}"
 ```bash
 cd "${WORKTREE_DIR}"
 git status
+pnpm --dir web install --frozen-lockfile
+pnpm run setup:hooks
+pnpm run setup:hooks:check
+```
+
+6. If `pnpm --dir web install --frozen-lockfile` fails due to lock mismatch, run:
+
+```bash
+pnpm --dir web install --no-frozen-lockfile
+```
+
+Then rerun hook setup:
+
+```bash
+pnpm run setup:hooks
+pnpm run setup:hooks:check
 ```
 
 ## Branch Conflict Handling
@@ -142,3 +164,4 @@ Always report:
 - Final worktree path
 - Final checked-out branch
 - Whether action was `created`, `reused`, `removed`, or `pruned`
+- Whether environment setup was `completed` (`pnpm install` + hooks)

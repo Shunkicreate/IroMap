@@ -22,8 +22,19 @@ variable "required_status_checks" {
   default     = ["quality-gate", "branch-name"]
 }
 
-variable "allow_admin_pull_request_bypass" {
-  type        = bool
-  description = "Allow repository admins to bypass this ruleset when handling pull requests."
-  default     = true
+variable "bypass_repository_role_ids" {
+  type        = list(number)
+  description = "Repository role IDs allowed to bypass pull request requirements."
+  default     = [5]
+}
+
+variable "required_approving_review_count" {
+  type        = number
+  description = "Number of approving reviews required before merging a pull request (0-6)."
+  default     = 0
+
+  validation {
+    condition     = var.required_approving_review_count >= 0 && var.required_approving_review_count <= 6
+    error_message = "required_approving_review_count must be between 0 and 6."
+  }
 }

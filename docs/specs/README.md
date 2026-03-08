@@ -3,15 +3,18 @@
 `docs/specs/` は機能単位の仕様セットを管理するフォルダです。
 
 ## 意図
+
 - 1 機能 = 1 ディレクトリで要求から実装計画まで追跡可能にする
 - `spec -> design -> tasks -> test-cases` の整合を維持する
 - 技術MVP（基盤）と機能MVP（ユーザー価値）を分けて管理する
 
 ## ディレクトリ命名
+
 - `YYYY-MM-<feature-name>`
 - 例: `2026-03-login`
 
 ## 各機能ディレクトリの標準構成
+
 - `spec.md`: 要求定義（What）
 - `design.md`: 実現方式（How）
 - `tasks.md`: 実装計画（Work items）
@@ -19,9 +22,11 @@
 - `notes.md`: 未決事項・補足メモ
 
 ## 推奨フォーマット
+
 以下は `2026-03-login` / `2026-03-user-registration` で使っていた書き方を統合したテンプレート。
 
 ### `spec.md`
+
 ```md
 # Feature Spec: <機能名>
 
@@ -42,6 +47,7 @@
 ```
 
 ### `design.md`
+
 ```md
 # Design: <機能名>
 
@@ -59,6 +65,7 @@
 ```
 
 ### `tasks.md`
+
 ```md
 # Tasks: <機能名>
 
@@ -79,6 +86,7 @@
 ```
 
 ### `test-cases.md`
+
 ```md
 # Test Cases: <機能名>
 
@@ -93,6 +101,7 @@
 ```
 
 ### `notes.md`
+
 ```md
 # Notes: <機能名>
 
@@ -100,6 +109,7 @@
 ```
 
 ## 書き方の意味
+
 - `spec.md` は「何を満たすか」を定義する
 - `design.md` は「どう満たすか」を定義する
 - `tasks.md` と `test-cases.md` は要求 ID に紐づける
