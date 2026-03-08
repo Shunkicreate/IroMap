@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "lint:md": "markdownlint \"**/*.md\" --ignore node_modules --ignore web/node_modules --ignore .worktree --ignore .pnpm-store",
+    "dev": "pnpm --dir web run dev",
     "setup:hooks": "./scripts/setup-git-hooks.sh",
     "setup:hooks:check": "git config --get core.hooksPath"
   },
