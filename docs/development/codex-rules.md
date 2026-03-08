@@ -23,12 +23,11 @@
 - 新規ルール追加時は、既存ルールと重複・矛盾がないか確認する
 - `prefix_rule` は以下の3層で分離する
   - `allow`: 読み取り専用（`status`, `diff`, `log` など）
-  - `prompt`: 状態変更（`push`, `gh pr create`, `pnpm install` など）
+  - `prompt`: 状態変更（`push`, `gh pr edit`, `gh pr merge` など）
   - `forbidden`: 破壊操作（`git reset --hard`, `git clean -fd`）
 - `git add` / `git commit` に加えて `git -C` も `allow` とする（破壊操作は `forbidden` を維持）
-- `pnpm` は以下で分離する
-  - `allow`: `pnpm run worktree:add`, `pnpm --dir web run lint`, `pnpm --dir web run format:check`, `pnpm --dir web run setup:hooks:check`
-  - `prompt`: `pnpm install`, `pnpm add/remove/update`, 任意の `pnpm run`
+- `pnpm` は全コマンドを `allow` とする
+- `gh pr create` は `allow` とする（PR作成を明示許可）
 - 実装・設計フロー変更があれば、`docs/development/README.md` と同時更新する
 - ルール変更を伴うPRでは、変更理由をPR本文に記載する
 
