@@ -114,6 +114,45 @@ test("T-110(color-space-3d): 上下ドラッグ回転方向補正の回帰確認
   await expect(cube).toBeVisible();
 });
 
+test("T-111(color-space-3d): HSLで軸変更してもクラッシュしない", async ({ page }) => {
+  const pageErrors: Error[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error));
+
+  await page.goto("/");
+  await page.getByRole("tab", { name: "HSL" }).click();
+
+  const slice = getPanel(page, "スライス");
+  const slider = slice.getByRole("slider");
+  await slider.fill("360");
+  await expect(slice.getByText("H 固定 = 360")).toBeVisible();
+
+  await slice.getByRole("combobox").selectOption("s");
+
+  await expect(pageErrors).toHaveLength(0);
+  await expect(slice.getByText(/^S 固定 = \d+$/)).toBeVisible();
+  await expect(slider).toHaveValue("100");
+});
+
+test("T-112(color-space-3d): HSLからLab遷移後もSliceとキューブ状態が同期する", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("tab", { name: "HSL" }).click();
+
+  const slice = getPanel(page, "スライス");
+  const slider = slice.getByRole("slider");
+  await slider.fill("360");
+  await slice.getByRole("combobox").selectOption("s");
+  await expect(slider).toHaveValue("100");
+
+  await page.getByRole("tab", { name: "Lab" }).click();
+  await expect(slice.getByRole("combobox")).toHaveValue("r");
+  await expect(slider).toHaveValue("255");
+  await expect(slice.getByText("R 固定 = 255")).toBeVisible();
+  await page.getByRole("tab", { name: "RGB" }).click();
+  await expect(slice.getByRole("combobox")).toHaveValue("r");
+  await expect(slider).toHaveValue("255");
+  await expect(slice.getByText("R 固定 = 255")).toBeVisible();
+});
+
 test("T-101(rgb-cube): 3Dキューブの初期表示を確認", async ({ page }) => {
   await page.goto("/");
   await expect(getCubeCanvas(page)).toBeVisible();
