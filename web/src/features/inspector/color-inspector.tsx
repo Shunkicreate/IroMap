@@ -1,5 +1,4 @@
 import { ColorSwatch } from "@/components/workbench/color-swatch";
-import { PanelHeader } from "@/components/workbench/panel-header";
 import { formatHsl, formatRgb, rgbToHex } from "@/domain/color/color-format";
 import type { RgbColor } from "@/domain/color/color-types";
 import { t } from "@/i18n/translate";
@@ -32,7 +31,10 @@ const renderSwatch = (color: RgbColor | null) => {
 export function ColorInspector({ hoverColor, selectedColor }: Props) {
   return (
     <section className="panel">
-      <PanelHeader titleKey="panelInspector" requirementsKey="panelInspectorRequirements" />
+      <div className="panelHeader">
+        <h2>{t("panelInspector")}</h2>
+        <p>FR-1 / FR-2 / FR-3</p>
+      </div>
 
       <div className="inspectorCards">
         <div className="inspectorCard">

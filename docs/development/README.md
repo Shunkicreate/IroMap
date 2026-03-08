@@ -102,3 +102,20 @@ pnpm run setup:hooks:check
 ```
 
 期待値は `.githooks`。
+
+## 10. UI E2E テスト（Playwright）
+
+`web/` では Playwright による E2E テストを利用できる。
+
+```bash
+pnpm --dir web run test:e2e
+```
+
+ブラウザ未インストール環境では、先に以下を実行する。
+
+```bash
+pnpm --dir web exec playwright install chromium
+```
+
+AI agent から UI テストを実行する場合は `@playwright/mcp` の利用を推奨する。  
+設定例は公式リポジトリを参照すること。

@@ -6,6 +6,7 @@ import { PanelHeader } from "@/components/workbench/panel-header";
 import { analyzePhoto, type PhotoAnalysisResult } from "@/domain/photo-analysis/photo-analysis";
 import { rgbToHex } from "@/domain/color/color-format";
 import { colorChannelLevels } from "@/domain/color/color-constants";
+import { GraphFrame } from "@/components/graph/graph-frame";
 import { t } from "@/i18n/translate";
 
 type AnalysisState = {
@@ -98,69 +99,87 @@ export function PhotoAnalysisPanel() {
         <div className="analysisGrid">
           <article>
             <h3>{t("photoLabScatter")}</h3>
-            <svg
-              viewBox={`0 0 ${scatterViewboxSize} ${scatterViewboxSize}`}
-              className="scatterPlot"
-              role="img"
+            <GraphFrame
+              xLabel={t("graphAxisLabA")}
+              yLabel={t("graphAxisLabB")}
+              className="analysisGraphFrame"
             >
-              <rect
-                x="0"
-                y="0"
-                width={scatterViewboxSize}
-                height={scatterViewboxSize}
-                fill="#0f172a"
-              />
-              {analysis.result.scatter.map((point, index) => (
-                <circle
-                  key={`${index}-${point.x}-${point.y}`}
-                  cx={toScatterPosition(point.x)}
-                  cy={scatterViewboxSize - toScatterPosition(point.y)}
-                  r={pointRadius}
-                  fill={rgbToHex(point.color)}
-                  opacity={pointOpacity}
+              <svg
+                viewBox={`0 0 ${scatterViewboxSize} ${scatterViewboxSize}`}
+                className="scatterPlot"
+                role="img"
+              >
+                <rect
+                  x="0"
+                  y="0"
+                  width={scatterViewboxSize}
+                  height={scatterViewboxSize}
+                  fill="#0f172a"
                 />
-              ))}
-            </svg>
+                {analysis.result.scatter.map((point, index) => (
+                  <circle
+                    key={`${index}-${point.x}-${point.y}`}
+                    cx={toScatterPosition(point.x)}
+                    cy={scatterViewboxSize - toScatterPosition(point.y)}
+                    r={pointRadius}
+                    fill={rgbToHex(point.color)}
+                    opacity={pointOpacity}
+                  />
+                ))}
+              </svg>
+            </GraphFrame>
           </article>
 
           <article>
             <h3>{t("photoHueHistogram")}</h3>
-            <div className="histogramBars">
-              {analysis.result.hueHistogram.map((bin) => {
-                const height = Math.max(
-                  histogramMinHeightPercent,
-                  (bin.count / maxHueCount) * histogramHeightPercent
-                );
-                return (
-                  <span
-                    key={`${bin.start}-${bin.end}`}
-                    style={{ height: `${height}%` }}
-                    title={`${Math.round(bin.start)}-${Math.round(bin.end)}: ${bin.count}`}
-                  />
-                );
-              })}
-            </div>
+            <GraphFrame
+              xLabel={t("graphAxisHue")}
+              yLabel={t("graphAxisCount")}
+              className="analysisGraphFrame"
+            >
+              <div className="histogramBars">
+                {analysis.result.hueHistogram.map((bin) => {
+                  const height = Math.max(
+                    histogramMinHeightPercent,
+                    (bin.count / maxHueCount) * histogramHeightPercent
+                  );
+                  return (
+                    <span
+                      key={`${bin.start}-${bin.end}`}
+                      style={{ height: `${height}%` }}
+                      title={`${Math.round(bin.start)}-${Math.round(bin.end)}: ${bin.count}`}
+                    />
+                  );
+                })}
+              </div>
+            </GraphFrame>
           </article>
 
           <article>
             <h3>{t("photoSaturationHistogram")}</h3>
-            <div className="histogramBars saturationBars">
-              {analysis.result.saturationHistogram.map((bin) => {
-                const height = Math.max(
-                  histogramMinHeightPercent,
-                  (bin.count / maxSaturationCount) * histogramHeightPercent
-                );
-                return (
-                  <span
-                    key={`${bin.start}-${bin.end}`}
-                    style={{ height: `${height}%` }}
-                    title={`${bin.start.toFixed(histogramTooltipPrecision)}-${bin.end.toFixed(
-                      histogramTooltipPrecision
-                    )}: ${bin.count}`}
-                  />
-                );
-              })}
-            </div>
+            <GraphFrame
+              xLabel={t("graphAxisSaturation")}
+              yLabel={t("graphAxisCount")}
+              className="analysisGraphFrame"
+            >
+              <div className="histogramBars saturationBars">
+                {analysis.result.saturationHistogram.map((bin) => {
+                  const height = Math.max(
+                    histogramMinHeightPercent,
+                    (bin.count / maxSaturationCount) * histogramHeightPercent
+                  );
+                  return (
+                    <span
+                      key={`${bin.start}-${bin.end}`}
+                      style={{ height: `${height}%` }}
+                      title={`${bin.start.toFixed(histogramTooltipPrecision)}-${bin.end.toFixed(
+                        histogramTooltipPrecision
+                      )}: ${bin.count}`}
+                    />
+                  );
+                })}
+              </div>
+            </GraphFrame>
           </article>
 
           <article>
