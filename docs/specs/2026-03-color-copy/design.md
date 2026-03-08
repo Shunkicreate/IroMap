@@ -11,4 +11,4 @@
 - 該当なし（クライアント内表示機能）
 
 ## 11. 関連ADR
-- 該当なし
+- [ADR-0002: フロントエンド基盤として Next.js（React）+ Turbopack を採用する](../../adr/0002-frontend-framework-nextjs-turbopack.md)
