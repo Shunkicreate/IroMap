@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import type { ColorSpace3d, RgbColor, SliceAxis } from "@/domain/color/color-types";
+import {
+  isHslSliceAxis,
+  type ColorSpace3d,
+  type RgbColor,
+  type SliceAxis,
+} from "@/domain/color/color-types";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ColorCopyPanel } from "@/features/color-copy/color-copy-panel";
 import { ColorInspector } from "@/features/inspector/color-inspector";
@@ -30,6 +35,25 @@ export function ColorWorkbench() {
   const [cubeSize, setCubeSize] = useState<number>(defaultCubeSize);
   const [rotation, setRotation] = useState<Rotation>(defaultRotation);
 
+  const handleSpaceChange = (nextSpace: ColorSpace3d): void => {
+    setSpace(nextSpace);
+
+    if (nextSpace === "hsl" && !isHslSliceAxis(sliceAxis)) {
+      setSliceAxis("h");
+      setSliceValue(Math.round((sliceValue / 255) * 360));
+      return;
+    }
+
+    if (nextSpace !== "hsl" && isHslSliceAxis(sliceAxis)) {
+      setSliceAxis("r");
+      if (sliceAxis === "h") {
+        setSliceValue(Math.round((sliceValue / 360) * 255));
+      } else {
+        setSliceValue(Math.round((sliceValue / 100) * 255));
+      }
+    }
+  };
+
   return (
     <main className="workbenchRoot">
       <div className="pageHeader">
@@ -45,7 +69,7 @@ export function ColorWorkbench() {
           </div>
           <Tabs
             value={space}
-            onValueChange={(value) => setSpace(value as ColorSpace3d)}
+            onValueChange={(value) => handleSpaceChange(value as ColorSpace3d)}
             className="spaceTabs"
           >
             <TabsList className="spaceTabsList">
@@ -105,6 +129,7 @@ export function ColorWorkbench() {
         </section>
 
         <SliceCanvas
+          space={space}
           axis={sliceAxis}
           value={sliceValue}
           onAxisChange={setSliceAxis}
@@ -115,7 +140,7 @@ export function ColorWorkbench() {
       </div>
 
       <ColorInspector hoverColor={hoverColor} selectedColor={selectedColor} />
-      <ColorCopyPanel selectedColor={selectedColor} />
+      <ColorCopyPanel selectedColor={selectedColor} onColorPasted={setSelectedColor} />
 
       <PhotoAnalysisPanel />
     </main>
