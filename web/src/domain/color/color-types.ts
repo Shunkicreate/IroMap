@@ -60,4 +60,14 @@ export type LabColor = {
 
 export type ColorSpace3d = "rgb" | "hsl" | "lab";
 
-export type SliceAxis = "r" | "g" | "b";
+export type RgbSliceAxis = "r" | "g" | "b";
+export type HslSliceAxis = "h" | "s" | "l";
+export type SliceAxis = RgbSliceAxis | HslSliceAxis;
+
+export const isRgbSliceAxis = (axis: SliceAxis): axis is RgbSliceAxis => {
+  return axis === "r" || axis === "g" || axis === "b";
+};
+
+export const isHslSliceAxis = (axis: SliceAxis): axis is HslSliceAxis => {
+  return axis === "h" || axis === "s" || axis === "l";
+};

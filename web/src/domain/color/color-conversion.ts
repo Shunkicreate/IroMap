@@ -105,6 +105,47 @@ export const rgbToHsl = (color: RgbColor): HslColor => {
   };
 };
 
+export const hslToRgb = (hsl: HslColor): RgbColor => {
+  const h = hsl.h / hueCircleDegrees;
+  const s = hsl.s / hslSaturationPercentage;
+  const l = hsl.l / hslSaturationPercentage;
+
+  if (s === 0) {
+    const gray = Math.round(l * colorChannelMax);
+    return toRgbColor(gray, gray, gray);
+  }
+
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = hslDoubleScale * l - q;
+
+  const hueToChannel = (tRaw: number): number => {
+    let t = tRaw;
+    if (t < 0) {
+      t += 1;
+    }
+    if (t > 1) {
+      t -= 1;
+    }
+
+    if (t < 1 / 6) {
+      return p + (q - p) * 6 * t;
+    }
+    if (t < 1 / 2) {
+      return q;
+    }
+    if (t < 2 / 3) {
+      return p + (q - p) * (2 / 3 - t) * 6;
+    }
+    return p;
+  };
+
+  const r = hueToChannel(h + 1 / 3);
+  const g = hueToChannel(h);
+  const b = hueToChannel(h - 1 / 3);
+
+  return toRgbColor(r * colorChannelMax, g * colorChannelMax, b * colorChannelMax);
+};
+
 export const rgbToLab = (color: RgbColor): LabColor => {
   const r = srgbPivot(color.r);
   const g = srgbPivot(color.g);
