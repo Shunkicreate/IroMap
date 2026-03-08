@@ -66,6 +66,14 @@ const eslintConfig = defineConfig([
         },
       ],
       "react/jsx-pascal-case": "error",
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: 'JSXOpeningElement > JSXIdentifier[name="header"]',
+          message:
+            "Do not use <header> directly. Use semantic sections with explicit component/class naming instead.",
+        },
+      ],
     },
   },
   {

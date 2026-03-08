@@ -26,10 +26,10 @@ export function ColorWorkbench() {
 
   return (
     <main className="workbenchRoot">
-      <header className="pageHeader">
+      <div className="pageHeader">
         <h1>{t("workbenchTitle")}</h1>
         <p>{t("workbenchSteps")}</p>
-      </header>
+      </div>
 
       <section className="panel">
         <div className="panelHeader">
