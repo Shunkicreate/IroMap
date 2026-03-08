@@ -10,9 +10,11 @@ IroMap のブランチ運用ルールを定義する。
 
 ## 2. 作業フロー
 
-1. `main` から `feature/*` を作成する
+1. リポジトリルートで `pnpm run worktree:add feature/<task-name>` を実行する
 2. 実装・テスト・ドキュメント更新（コード・docsの両方）を `.worktree/feature/*` で行う
 3. `feature/* -> main` の Pull Request で統合する
+
+`pnpm run worktree:add` は `git worktree add` と `pnpm` セットアップをまとめて実行する。
 
 ## 3. 禁止事項
 
