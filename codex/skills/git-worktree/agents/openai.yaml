@@ -1,0 +1,4 @@
+interface:
+  display_name: "Git Worktree"
+  short_description: "Create and manage isolated git worktrees"
+  default_prompt: "Use $git-worktree to 作業用 worktree を作成または再利用し、必要なら削除まで実行してください。"
