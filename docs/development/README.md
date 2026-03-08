@@ -4,7 +4,6 @@
 `spec.md` / `design.md` / `tasks.md` / `ADR` の標準フォーマットを定義する。
 
 ## 1. 基本原則
-- README は概要のみを扱い、機能詳細は `docs/specs/` 配下に記載する
 - 1 機能 = 1 ディレクトリ（`docs/specs/YYYY-MM-feature-name/`）
 - 要求（What）と設計（How）を分離する
 - 各タスクは要求 ID と紐づける
