@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { RgbColor, SliceAxis } from "@/domain/color/color-types";
+import type { ColorSpace3d, RgbColor, SliceAxis } from "@/domain/color/color-types";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ColorCopyPanel } from "@/features/color-copy/color-copy-panel";
 import { ColorInspector } from "@/features/inspector/color-inspector";
 import { PhotoAnalysisPanel } from "@/features/photo-analysis/photo-analysis-panel";
@@ -22,6 +23,7 @@ export function ColorWorkbench() {
   const [selectedColor, setSelectedColor] = useState<RgbColor | null>(null);
   const [sliceAxis, setSliceAxis] = useState<SliceAxis>("r");
   const [sliceValue, setSliceValue] = useState<number>(defaultSliceValue);
+  const [space, setSpace] = useState<ColorSpace3d>("rgb");
   const [rotation, setRotation] = useState<Rotation>(defaultRotation);
 
   return (
@@ -34,9 +36,21 @@ export function ColorWorkbench() {
       <section className="panel">
         <div className="panelHeader">
           <h2>{t("panelRgbCube")}</h2>
-          <p>FR-1 / FR-2 / FR-3</p>
+          <p>FR-1 / FR-2 / FR-3 / FR-4</p>
         </div>
+        <Tabs
+          value={space}
+          onValueChange={(value) => setSpace(value as ColorSpace3d)}
+          className="spaceTabs"
+        >
+          <TabsList>
+            <TabsTrigger value="rgb">{t("spaceRgb")}</TabsTrigger>
+            <TabsTrigger value="hsl">{t("spaceHsl")}</TabsTrigger>
+            <TabsTrigger value="lab">{t("spaceLab")}</TabsTrigger>
+          </TabsList>
+        </Tabs>
         <RgbCubeCanvas
+          space={space}
           rotation={rotation}
           sliceAxis={sliceAxis}
           sliceValue={sliceValue}

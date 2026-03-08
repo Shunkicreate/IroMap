@@ -164,6 +164,10 @@
   touch-action: none;
 }
 
+.spaceTabs {
+  margin-bottom: 10px;
+}
+
 .inspectorCards {
   display: grid;
   gap: 10px;
