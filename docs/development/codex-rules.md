@@ -26,7 +26,7 @@
   - `prompt`: 状態変更（`push`, `gh pr edit`, `gh pr merge` など）
   - `forbidden`: 破壊操作（`git reset --hard`, `git clean -fd`）
 - `git add` / `git commit` に加えて `git -C` も `allow` とする（破壊操作は `forbidden` を維持）
-- `pnpm` は全コマンドを `allow` とする
+- `pnpm` は用途ごとに `allow/prompt` を分離し、依存変更系（`install/add/remove/update` など）は `prompt` とする
 - `gh pr create` は `allow` とする（PR作成を明示許可）
 - 実装・設計フロー変更があれば、`docs/development/README.md` と同時更新する
 - ルール変更を伴うPRでは、変更理由をPR本文に記載する
