@@ -22,7 +22,7 @@ type Rotation = {
 
 const defaultSliceValue = 128;
 const defaultRotation: Rotation = { x: -0.7, y: 0.6 };
-const defaultCubeSize = 400;
+const defaultCubeSize = 520;
 
 const clamp = (value: number, min: number, max: number): number => {
   return Math.min(max, Math.max(min, value));
@@ -117,29 +117,31 @@ export function ColorWorkbench() {
               </TabsList>
             </Tabs>
             <div className="cubeSettings">
-              <label className="toggleLabel">
-                <input
-                  type="checkbox"
-                  checked={isAxisGuideVisible}
-                  onChange={(event) => setIsAxisGuideVisible(event.target.checked)}
-                />
-                {t("cubeShowAxisGuide")}
-              </label>
-              <label className="toggleLabel">
-                <input
-                  type="checkbox"
-                  checked={isCubeSizeSliderVisible}
-                  onChange={(event) => setIsCubeSizeSliderVisible(event.target.checked)}
-                />
-                {t("cubeShowSizeSlider")}
-              </label>
+              <div className="cubeToggleRow">
+                <label className="toggleLabel">
+                  <input
+                    type="checkbox"
+                    checked={isAxisGuideVisible}
+                    onChange={(event) => setIsAxisGuideVisible(event.target.checked)}
+                  />
+                  {t("cubeShowAxisGuide")}
+                </label>
+                <label className="toggleLabel">
+                  <input
+                    type="checkbox"
+                    checked={isCubeSizeSliderVisible}
+                    onChange={(event) => setIsCubeSizeSliderVisible(event.target.checked)}
+                  />
+                  {t("cubeShowSizeSlider")}
+                </label>
+              </div>
               {isCubeSizeSliderVisible ? (
                 <label>
                   {t("cubeSizeLabel", { size: cubeSize })}
                   <input
                     type="range"
                     min={320}
-                    max={640}
+                    max={900}
                     step={10}
                     value={cubeSize}
                     onChange={(event) => setCubeSize(Number(event.target.value))}
