@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd "$(git rev-parse --show-toplevel)/web"
+repo_root="$(git rev-parse --show-toplevel)"
+
+cd "${repo_root}"
+pnpm run lint:md
+
+cd "${repo_root}/web"
 pnpm run lint
 pnpm run format:check
