@@ -24,7 +24,15 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: web/pnpm-lock.yaml
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            web/pnpm-lock.yaml
+
+      - name: Install root dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Markdown lint
+        run: pnpm run lint:md
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
