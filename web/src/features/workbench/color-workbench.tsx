@@ -7,6 +7,7 @@ import { ColorInspector } from "@/features/inspector/color-inspector";
 import { PhotoAnalysisPanel } from "@/features/photo-analysis/photo-analysis-panel";
 import { RgbCubeCanvas } from "@/features/rgb-cube/rgb-cube-canvas";
 import { SliceCanvas } from "@/features/slice/slice-canvas";
+import { t } from "@/i18n/translate";
 
 type Rotation = {
   x: number;
@@ -26,13 +27,13 @@ export function ColorWorkbench() {
   return (
     <main className="workbenchRoot">
       <header className="pageHeader">
-        <h1>IroMap Workbench</h1>
-        <p>Step1 RGB cube, Step2 Inspector, Step3 Copy, Step4 Slice, Step5 Photo Analysis</p>
+        <h1>{t("workbenchTitle")}</h1>
+        <p>{t("workbenchSteps")}</p>
       </header>
 
       <section className="panel">
         <div className="panelHeader">
-          <h2>RGB Cube</h2>
+          <h2>{t("panelRgbCube")}</h2>
           <p>FR-1 / FR-2 / FR-3</p>
         </div>
         <RgbCubeCanvas

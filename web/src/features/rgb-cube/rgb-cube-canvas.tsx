@@ -9,6 +9,7 @@ import {
   colorChannelMidpoint,
   colorChannelMin,
 } from "@/domain/color/color-constants";
+import { t } from "@/i18n/translate";
 
 type Rotation = {
   x: number;
@@ -256,12 +257,12 @@ export function RgbCubeCanvas({
     context.fillStyle = rgbaFromGray(colorChannelMax, textAlpha);
     context.font = "12px monospace";
     context.fillText(
-      `Resolution: ${colorChannelLevels} fixed`,
+      t("cubeResolutionOverlay", { levels: colorChannelLevels }),
       overlayTextLeft,
       resolutionTextTop
     );
     context.fillText(
-      `Slice: ${sliceAxis.toUpperCase()}=${sliceValue}`,
+      t("cubeSliceOverlay", { axis: sliceAxis.toUpperCase(), value: sliceValue }),
       overlayTextLeft,
       sliceTextTop
     );

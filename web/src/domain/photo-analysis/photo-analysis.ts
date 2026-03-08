@@ -188,7 +188,7 @@ const calculateColorAreas = (samples: PixelSample[]): ColorArea[] => {
   const summed = top.reduce((current, area) => current + area.ratio, 0);
   if (summed < ratioTolerance && sorted.length > topAreaCount) {
     top.push({
-      label: "Others",
+      label: "others",
       ratio: ratioPercent - summed,
       rgb: { r: othersColorValue, g: othersColorValue, b: othersColorValue },
     });

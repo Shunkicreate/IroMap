@@ -9,6 +9,7 @@ import {
   rgbToHex,
 } from "@/domain/color/color-format";
 import type { RgbColor } from "@/domain/color/color-types";
+import { t } from "@/i18n/translate";
 
 type Props = {
   selectedColor: RgbColor | null;
@@ -40,16 +41,16 @@ export function ColorCopyPanel({ selectedColor }: Props) {
       } else {
         throw new Error("Clipboard API unavailable");
       }
-      setMessage(`Copied: ${value}`);
+      setMessage(t("copyCopied", { value }));
     } catch {
-      setMessage(`Copy failed. Value: ${value}`);
+      setMessage(t("copyFailed", { value }));
     }
   };
 
   return (
     <section className="panel">
       <div className="panelHeader">
-        <h2>Color Copy</h2>
+        <h2>{t("panelColorCopy")}</h2>
         <p>FR-1 / FR-2</p>
       </div>
 
@@ -57,7 +58,7 @@ export function ColorCopyPanel({ selectedColor }: Props) {
         <>
           <div className="copyFormats">
             <label>
-              Format
+              {t("copyFormatLabel")}
               <select
                 value={format}
                 onChange={(event) => setFormat(event.target.value as CopyFormat)}
@@ -68,7 +69,7 @@ export function ColorCopyPanel({ selectedColor }: Props) {
               </select>
             </label>
             <button type="button" onClick={copyToClipboard} disabled={!canCopy}>
-              Copy
+              {t("copyButton")}
             </button>
           </div>
 
@@ -81,7 +82,7 @@ export function ColorCopyPanel({ selectedColor }: Props) {
           </div>
         </>
       ) : (
-        <p className="muted">Select a color on RGB cube or slice first.</p>
+        <p className="muted">{t("copyNeedSelection")}</p>
       )}
 
       {message ? <p className="muted">{message}</p> : null}
