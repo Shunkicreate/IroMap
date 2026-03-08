@@ -1,0 +1,10 @@
+﻿# Data Model
+
+## 主要エンティティ
+- User
+- Session
+- ColorSample
+- ViewPreference
+
+## 補足
+正規化ルール、インデックス方針、スキーマ変更手順は機能ごとの `design.md` から参照する。
