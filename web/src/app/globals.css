@@ -106,10 +106,10 @@
 }
 
 .workbenchRoot {
-  width: min(1100px, calc(100% - 32px));
-  margin: 24px auto 60px;
+  width: min(1440px, calc(100% - 32px));
+  margin: 12px auto 24px;
   display: grid;
-  gap: 16px;
+  gap: 10px;
   color: var(--workbench-text);
 }
 
@@ -139,9 +139,26 @@
 
 .visualizationGrid {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
   align-items: start;
+}
+
+.workbenchMainGrid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 3fr) minmax(320px, 1fr);
+  align-items: start;
+}
+
+.supportPanels {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.analysisSection {
+  width: 100%;
 }
 
 .panelHeader {
@@ -176,20 +193,41 @@
 }
 
 .spaceTabsList {
-  background: #0f1c2f;
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #0c1727, #0a1523);
   border: 1px solid #2d4263;
 }
 
 .spaceTabTrigger {
-  color: var(--workbench-muted);
+  min-height: 34px;
+  color: #8ea4c4;
   border: 1px solid transparent;
+  border-radius: 9px;
+  letter-spacing: 0.02em;
+  transition:
+    color 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
 }
 
 .spaceTabTrigger[data-state="active"] {
   color: var(--workbench-text);
-  background: linear-gradient(180deg, #243f67, #1c3352);
-  border-color: #4f7ab0;
-  box-shadow: 0 0 0 1px #4f7ab055;
+  background: linear-gradient(180deg, #2b4a78, #20395d);
+  border-color: #6a95cb;
+  box-shadow:
+    inset 0 1px 0 #8eb4de44,
+    0 0 0 1px #6a95cb33;
+}
+
+.spaceTabTrigger:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #6a95cb66;
 }
 
 .cubeSettings {
@@ -299,7 +337,9 @@
 }
 
 .sliceCanvas {
-  width: min(100%, 512px);
+  width: 100%;
+  display: block;
+  aspect-ratio: 1 / 1;
   image-rendering: pixelated;
   border-radius: 10px;
   border: 1px solid #2a3d5d;
@@ -307,8 +347,9 @@
 
 .sliceCanvasWrap {
   position: relative;
-  width: fit-content;
-  padding: 18px 14px 28px 32px;
+  width: 100%;
+  max-width: 520px;
+  padding-top: 18px;
 }
 
 .sliceAxisBadge {
@@ -317,25 +358,6 @@
   left: 32px;
   font-size: 0.8rem;
   color: #d6e2f6;
-}
-
-.sliceAxisXLabel {
-  position: absolute;
-  bottom: 2px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 0.8rem;
-  color: var(--workbench-muted);
-}
-
-.sliceAxisYLabel {
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%) rotate(-90deg);
-  transform-origin: left top;
-  font-size: 0.8rem;
-  color: var(--workbench-muted);
 }
 
 .fileInput {
@@ -363,15 +385,18 @@
 
 .scatterPlot {
   width: 100%;
+  height: auto;
   border: 1px solid #304766;
   border-radius: 8px;
+  display: block;
 }
 
 .histogramBars {
-  height: 120px;
+  height: 160px;
   display: flex;
   align-items: end;
   gap: 2px;
+  width: 100%;
 }
 
 .histogramBars span {
@@ -403,21 +428,94 @@
   color: var(--workbench-muted);
 }
 
+.graphFrame {
+  position: relative;
+  width: 100%;
+  padding: 8px 8px 28px 30px;
+}
+
+.graphPlot {
+  width: 100%;
+}
+
+.graphAxisXLabel {
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.78rem;
+  color: var(--workbench-muted);
+  white-space: nowrap;
+}
+
+.graphAxisYLabel {
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  transform: translateY(-50%) rotate(-90deg);
+  transform-origin: left top;
+  font-size: 0.78rem;
+  color: var(--workbench-muted);
+  white-space: nowrap;
+}
+
+.analysisGraphFrame {
+  padding-top: 4px;
+}
+
 .errorText {
   color: var(--destructive);
 }
 
 @media (max-width: 640px) {
+  .pageHeader p {
+    display: none;
+  }
+
+  .panelHeader p {
+    display: none;
+  }
+
+  .workbenchSteps,
+  .analysisSection {
+    display: none;
+  }
+
+  .workbenchMainGrid,
   .visualizationGrid {
     grid-template-columns: 1fr;
   }
 
+  .supportPanels {
+    gap: 8px;
+  }
+
   .workbenchRoot {
     width: calc(100% - 20px);
-    margin: 10px auto 20px;
+    margin: 10px auto 16px;
+    gap: 8px;
   }
 
   .cubeCanvas {
     height: 320px;
+  }
+}
+
+@media (min-width: 1200px) and (min-height: 760px) {
+  .workbenchRoot {
+    height: calc(100vh - 20px);
+    max-height: calc(100vh - 20px);
+    overflow: hidden;
+  }
+
+  .workbenchMainGrid {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .supportPanels,
+  .analysisSection {
+    min-height: 0;
+    overflow: auto;
   }
 }

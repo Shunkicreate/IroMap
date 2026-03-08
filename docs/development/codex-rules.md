@@ -10,6 +10,7 @@
 - TUI で許可した内容はユーザーレイヤ（`~/.codex/rules/default.rules`）へ保存される。
 
 ## 2. このリポジトリ方針
+
 - `codex/rules/*.md` は開発ルール参照入口として維持する。
 - 実際のコマンド承認制御は `codex/rules/40-permissions.rules` で管理する。
 - 公式仕様どおり、複数ルールがマッチした場合は最も厳しい判定（`forbidden > prompt > allow`）を優先する前提で設計する。
@@ -41,6 +42,7 @@
 - `codex/rules/40-permissions.rules`: コマンド承認ポリシー（実行制御本体）
 
 ## 5. 動作確認コマンド
+
 ルール追加・変更後は、必ず `execpolicy` で判定を確認する。
 
 ```bash

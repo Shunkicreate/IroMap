@@ -25,6 +25,7 @@ terraform plan \
   -var="target_branch=main" \
   -var="required_approving_review_count=0"
 ```
+
 Default bypass actor is repository role ID `5` (`RepositoryRole`, admin) with `bypass_mode = "pull_request"`.
 
 You can override role IDs as needed:
@@ -32,4 +33,5 @@ You can override role IDs as needed:
 ```bash
 terraform plan -var='bypass_repository_role_ids=[5]'
 ```
+
 `required_approving_review_count=0` allows solo workflow without mandatory approvals.
