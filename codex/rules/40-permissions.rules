@@ -42,6 +42,11 @@ prefix_rule(
 )
 
 prefix_rule(
+    pattern=["pnpm", "run", "worktree:add"],
+    decision="allow",
+)
+
+prefix_rule(
     pattern=["pnpm", ["-v", "--version"]],
     decision="allow",
 )
@@ -73,21 +78,6 @@ prefix_rule(
 # State-changing pnpm commands
 prefix_rule(
     pattern=["pnpm", "add", "-D", "markdownlint-cli"],
-    decision="allow",
-)
-
-prefix_rule(
-    pattern=["pnpm", "run", "worktree:add"],
-    decision="allow",
-)
-
-prefix_rule(
-    pattern=["pnpm", "install"],
-    decision="allow",
-)
-
-prefix_rule(
-    pattern=["pnpm", "--dir", "web", "install"],
     decision="allow",
 )
 

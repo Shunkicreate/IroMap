@@ -10,7 +10,6 @@
 - TUI で許可した内容はユーザーレイヤ（`~/.codex/rules/default.rules`）へ保存される。
 
 ## 2. このリポジトリ方針
-
 - `codex/rules/*.md` は開発ルール参照入口として維持する。
 - 実際のコマンド承認制御は `codex/rules/40-permissions.rules` で管理する。
 - 公式仕様どおり、複数ルールがマッチした場合は最も厳しい判定（`forbidden > prompt > allow`）を優先する前提で設計する。
@@ -28,7 +27,7 @@
   - `forbidden`: 破壊操作（`git reset --hard`, `git clean -fd`）
 - `git add` / `git commit` に加えて `git -C` も `allow` とする（破壊操作は `forbidden` を維持）
 - `pnpm` は以下で分離する
-  - `allow`: `pnpm --dir web run lint`, `pnpm --dir web run format:check`, `pnpm --dir web run setup:hooks:check`
+  - `allow`: `pnpm run worktree:add`, `pnpm --dir web run lint`, `pnpm --dir web run format:check`, `pnpm --dir web run setup:hooks:check`
   - `prompt`: `pnpm install`, `pnpm add/remove/update`, 任意の `pnpm run`
 - 実装・設計フロー変更があれば、`docs/development/README.md` と同時更新する
 - ルール変更を伴うPRでは、変更理由をPR本文に記載する
@@ -42,7 +41,6 @@
 - `codex/rules/40-permissions.rules`: コマンド承認ポリシー（実行制御本体）
 
 ## 5. 動作確認コマンド
-
 ルール追加・変更後は、必ず `execpolicy` で判定を確認する。
 
 ```bash
