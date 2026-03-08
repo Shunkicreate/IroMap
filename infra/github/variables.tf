@@ -21,9 +21,3 @@ variable "required_status_checks" {
   description = "Required status checks for pull requests."
   default     = ["quality-gate", "branch-name"]
 }
-
-variable "bypass_repository_role_ids" {
-  type        = list(number)
-  description = "Repository role IDs allowed to bypass pull request requirements."
-  default     = [5]
-}

@@ -24,10 +24,3 @@ terraform plan \
   -var="repository=IroMap" \
   -var="target_branch=main"
 ```
-Default bypass actor is repository role ID `5` (`RepositoryRole`, admin) with `bypass_mode = "pull_request"`.
-
-You can override role IDs as needed:
-
-```bash
-terraform plan -var='bypass_repository_role_ids=[5]'
-```
