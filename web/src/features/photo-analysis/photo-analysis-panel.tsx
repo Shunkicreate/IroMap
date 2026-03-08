@@ -84,10 +84,7 @@ export function PhotoAnalysisPanel() {
 
   return (
     <section className="panel">
-      <PanelHeader
-        titleKey="panelPhotoAnalysis"
-        requirementsKey="panelPhotoAnalysisRequirements"
-      />
+      <PanelHeader titleKey="panelPhotoAnalysis" requirementsKey="panelPhotoAnalysisRequirements" />
 
       <label className="fileInput">
         {t("photoUploadLabel")}
