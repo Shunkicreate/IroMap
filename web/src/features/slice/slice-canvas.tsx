@@ -39,6 +39,10 @@ const toScaledValue = (value: number, max: number): number => {
   return Math.round((value / colorChannelMax) * max);
 };
 
+const clamp = (value: number, min: number, max: number): number => {
+  return Math.min(max, Math.max(min, value));
+};
+
 const getAxisRange = (axis: SliceAxis): { min: number; max: number } => {
   if (axis === "h") {
     return { min: 0, max: 360 };
@@ -61,23 +65,26 @@ const buildColorFromPixel = (axis: SliceAxis, value: number, x: number, y: numbe
   }
 
   if (axis === "h") {
+    const safeHue = clamp(value, 0, 360);
     return hslToRgb({
-      h: toHueDegree(value),
+      h: toHueDegree(safeHue),
       s: toPercentage(toScaledValue(x, 100)),
       l: toPercentage(toScaledValue(colorChannelMax - y, 100)),
     });
   }
   if (axis === "s") {
+    const safeSaturation = clamp(value, 0, 100);
     return hslToRgb({
       h: toHueDegree(toScaledValue(x, 360)),
-      s: toPercentage(value),
+      s: toPercentage(safeSaturation),
       l: toPercentage(toScaledValue(colorChannelMax - y, 100)),
     });
   }
+  const safeLightness = clamp(value, 0, 100);
   return hslToRgb({
     h: toHueDegree(toScaledValue(x, 360)),
     s: toPercentage(toScaledValue(colorChannelMax - y, 100)),
-    l: toPercentage(value),
+    l: toPercentage(safeLightness),
   });
 };
 

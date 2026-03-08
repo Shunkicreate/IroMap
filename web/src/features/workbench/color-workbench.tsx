@@ -23,7 +23,25 @@ type Rotation = {
 
 const defaultSliceValue = 128;
 const defaultRotation: Rotation = { x: -0.7, y: 0.6 };
-const defaultCubeSize = 400;
+const defaultCubeSize = 520;
+
+const clamp = (value: number, min: number, max: number): number => {
+  return Math.min(max, Math.max(min, value));
+};
+
+const toRange = (value: number, sourceMax: number, targetMax: number): number => {
+  return Math.round((value / sourceMax) * targetMax);
+};
+
+const getAxisMax = (axis: SliceAxis): number => {
+  if (axis === "h") {
+    return 360;
+  }
+  if (axis === "s" || axis === "l") {
+    return 100;
+  }
+  return 255;
+};
 
 export function ColorWorkbench() {
   const [hoverColor, setHoverColor] = useState<RgbColor | null>(null);
@@ -36,22 +54,35 @@ export function ColorWorkbench() {
   const [cubeSize, setCubeSize] = useState<number>(defaultCubeSize);
   const [rotation, setRotation] = useState<Rotation>(defaultRotation);
 
+  const normalizeSliceValueForAxis = (nextAxis: SliceAxis, currentValue: number): number => {
+    const nextMax = getAxisMax(nextAxis);
+    const currentMax = getAxisMax(sliceAxis);
+
+    if (sliceAxis === nextAxis) {
+      return clamp(currentValue, 0, nextMax);
+    }
+
+    return clamp(toRange(currentValue, currentMax, nextMax), 0, nextMax);
+  };
+
+  const handleSliceAxisChange = (nextAxis: SliceAxis): void => {
+    setSliceAxis(nextAxis);
+    setSliceValue(normalizeSliceValueForAxis(nextAxis, sliceValue));
+  };
+
   const handleSpaceChange = (nextSpace: ColorSpace3d): void => {
     setSpace(nextSpace);
 
     if (nextSpace === "hsl" && !isHslSliceAxis(sliceAxis)) {
       setSliceAxis("h");
-      setSliceValue(Math.round((sliceValue / 255) * 360));
+      setSliceValue(clamp(toRange(sliceValue, 255, 360), 0, 360));
       return;
     }
 
     if (nextSpace !== "hsl" && isHslSliceAxis(sliceAxis)) {
       setSliceAxis("r");
-      if (sliceAxis === "h") {
-        setSliceValue(Math.round((sliceValue / 360) * 255));
-      } else {
-        setSliceValue(Math.round((sliceValue / 100) * 255));
-      }
+      const sourceMax = sliceAxis === "h" ? 360 : 100;
+      setSliceValue(clamp(toRange(sliceValue, sourceMax, 255), 0, 255));
     }
   };
 
@@ -84,29 +115,31 @@ export function ColorWorkbench() {
               </TabsList>
             </Tabs>
             <div className="cubeSettings">
-              <label className="toggleLabel">
-                <input
-                  type="checkbox"
-                  checked={isAxisGuideVisible}
-                  onChange={(event) => setIsAxisGuideVisible(event.target.checked)}
-                />
-                {t("cubeShowAxisGuide")}
-              </label>
-              <label className="toggleLabel">
-                <input
-                  type="checkbox"
-                  checked={isCubeSizeSliderVisible}
-                  onChange={(event) => setIsCubeSizeSliderVisible(event.target.checked)}
-                />
-                {t("cubeShowSizeSlider")}
-              </label>
+              <div className="cubeToggleRow">
+                <label className="toggleLabel">
+                  <input
+                    type="checkbox"
+                    checked={isAxisGuideVisible}
+                    onChange={(event) => setIsAxisGuideVisible(event.target.checked)}
+                  />
+                  {t("cubeShowAxisGuide")}
+                </label>
+                <label className="toggleLabel">
+                  <input
+                    type="checkbox"
+                    checked={isCubeSizeSliderVisible}
+                    onChange={(event) => setIsCubeSizeSliderVisible(event.target.checked)}
+                  />
+                  {t("cubeShowSizeSlider")}
+                </label>
+              </div>
               {isCubeSizeSliderVisible ? (
                 <label>
                   {t("cubeSizeLabel", { size: cubeSize })}
                   <input
                     type="range"
                     min={320}
-                    max={640}
+                    max={900}
                     step={10}
                     value={cubeSize}
                     onChange={(event) => setCubeSize(Number(event.target.value))}
@@ -131,7 +164,7 @@ export function ColorWorkbench() {
             space={space}
             axis={sliceAxis}
             value={sliceValue}
-            onAxisChange={setSliceAxis}
+            onAxisChange={handleSliceAxisChange}
             onValueChange={setSliceValue}
             onHoverColorChange={setHoverColor}
             onColorSelect={setSelectedColor}
