@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { PanelHeader } from "@/components/workbench/panel-header";
 import {
   type CopyFormat,
@@ -12,6 +12,7 @@ import {
 import { hslToRgb } from "@/domain/color/color-conversion";
 import { toHueDegree, toPercentage, toRgbColor, type RgbColor } from "@/domain/color/color-types";
 import { t } from "@/i18n/translate";
+import { toast } from "sonner";
 
 type Props = {
   selectedColor: RgbColor | null;
@@ -77,6 +78,12 @@ const parsePastedColor = (raw: string): RgbColor | null => {
 export function ColorCopyPanel({ selectedColor, onColorPasted }: Props) {
   const [format, setFormat] = useState<CopyFormat>("hex");
   const [message, setMessage] = useState<string>("");
+  const sequenceRef = useRef<number>(0);
+
+  const pushLiveMessage = (nextMessage: string): void => {
+    sequenceRef.current += 1;
+    setMessage(`${sequenceRef.current}. ${nextMessage}`);
+  };
 
   const formatted = useMemo(() => {
     if (!selectedColor) {
@@ -100,15 +107,21 @@ export function ColorCopyPanel({ selectedColor, onColorPasted }: Props) {
       } else {
         throw new Error("Clipboard API unavailable");
       }
-      setMessage(t("copyCopied", { value }));
+      const nextMessage = t("copyCopied", { value });
+      pushLiveMessage(nextMessage);
+      toast.success(t("copyToastSuccess"), { description: nextMessage });
     } catch {
-      setMessage(t("copyFailed", { value }));
+      const nextMessage = t("copyFailed", { value });
+      pushLiveMessage(nextMessage);
+      toast.error(t("copyToastError"), { description: nextMessage });
     }
   };
 
   const pasteFromClipboard = async (): Promise<void> => {
     if (!navigator.clipboard?.readText) {
-      setMessage(t("copyPasteFailed"));
+      const nextMessage = t("copyPasteFailed");
+      pushLiveMessage(nextMessage);
+      toast.error(t("copyToastPasteError"), { description: nextMessage });
       return;
     }
 
@@ -117,14 +130,20 @@ export function ColorCopyPanel({ selectedColor, onColorPasted }: Props) {
       const parsed = parsePastedColor(text);
 
       if (!parsed) {
-        setMessage(t("copyPasteUnsupported", { value: text || "(empty)" }));
+        const nextMessage = t("copyPasteUnsupported", { value: text || t("copyEmptyValue") });
+        pushLiveMessage(nextMessage);
+        toast.error(t("copyToastPasteError"), { description: nextMessage });
         return;
       }
 
       onColorPasted?.(parsed);
-      setMessage(t("copyPasteApplied", { value: formatColor(parsed, format) }));
+      const nextMessage = t("copyPasteApplied", { value: formatColor(parsed, format) });
+      pushLiveMessage(nextMessage);
+      toast.success(t("copyToastPasteApplied"), { description: nextMessage });
     } catch {
-      setMessage(t("copyPasteFailed"));
+      const nextMessage = t("copyPasteFailed");
+      pushLiveMessage(nextMessage);
+      toast.error(t("copyToastPasteError"), { description: nextMessage });
     }
   };
 
