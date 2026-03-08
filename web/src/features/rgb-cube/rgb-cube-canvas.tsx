@@ -38,6 +38,15 @@ const defaultAlpha = 0.5;
 const planeFillAlpha = 0.05;
 const planeStrokeAlpha = 0.45;
 const textAlpha = 0.85;
+const perspectiveOffset = 3;
+const scaleRatio = 0.43;
+const markerRadius = 2;
+const fullCircleRadians = Math.PI * 2;
+const nearestDistanceThresholdSquared = 64;
+const rotationSensitivity = 0.01;
+const overlayTextLeft = 14;
+const resolutionTextTop = 22;
+const sliceTextTop = 40;
 
 const levels = Array.from({ length: colorSampleSteps }, (_, index) =>
   Math.round(index * colorSampleStepSize)
@@ -71,8 +80,8 @@ const projectColor = (
   const y2 = baseY * cx - z1 * sx;
   const z2 = baseY * sx + z1 * cx;
 
-  const perspective = 1 / (z2 + 3);
-  const scale = Math.min(width, height) * 0.43;
+  const perspective = 1 / (z2 + perspectiveOffset);
+  const scale = Math.min(width, height) * scaleRatio;
 
   return {
     x: width / 2 + x1 * scale * perspective,
@@ -240,14 +249,22 @@ export function RgbCubeCanvas({
     for (const point of projected) {
       context.fillStyle = `rgb(${point.color.r}, ${point.color.g}, ${point.color.b})`;
       context.beginPath();
-      context.arc(point.x, point.y, 2, 0, Math.PI * 2);
+      context.arc(point.x, point.y, markerRadius, 0, fullCircleRadians);
       context.fill();
     }
 
     context.fillStyle = rgbaFromGray(colorChannelMax, textAlpha);
     context.font = "12px monospace";
-    context.fillText(`Resolution: ${colorChannelLevels} fixed`, 14, 22);
-    context.fillText(`Slice: ${sliceAxis.toUpperCase()}=${sliceValue}`, 14, 40);
+    context.fillText(
+      `Resolution: ${colorChannelLevels} fixed`,
+      overlayTextLeft,
+      resolutionTextTop
+    );
+    context.fillText(
+      `Slice: ${sliceAxis.toUpperCase()}=${sliceValue}`,
+      overlayTextLeft,
+      sliceTextTop
+    );
   }, [rotation, sampledColors, sliceAxis, sliceValue]);
 
   const findNearestColor = (offsetX: number, offsetY: number): RgbColor | null => {
@@ -264,7 +281,7 @@ export function RgbCubeCanvas({
       }
     }
 
-    if (bestDistance > 64) {
+    if (bestDistance > nearestDistanceThresholdSquared) {
       return null;
     }
 
@@ -301,8 +318,8 @@ export function RgbCubeCanvas({
     dragRef.current.y = pointer.y;
 
     onRotationChange({
-      x: rotation.x + deltaY * 0.01,
-      y: rotation.y + deltaX * 0.01,
+      x: rotation.x + deltaY * rotationSensitivity,
+      y: rotation.y + deltaX * rotationSensitivity,
     });
   };
 

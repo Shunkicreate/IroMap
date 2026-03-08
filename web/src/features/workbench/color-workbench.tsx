@@ -13,12 +13,15 @@ type Rotation = {
   y: number;
 };
 
+const defaultSliceValue = 128;
+const defaultRotation: Rotation = { x: -0.7, y: 0.6 };
+
 export function ColorWorkbench() {
   const [hoverColor, setHoverColor] = useState<RgbColor | null>(null);
   const [selectedColor, setSelectedColor] = useState<RgbColor | null>(null);
   const [sliceAxis, setSliceAxis] = useState<SliceAxis>("r");
-  const [sliceValue, setSliceValue] = useState<number>(128);
-  const [rotation, setRotation] = useState<Rotation>({ x: -0.7, y: 0.6 });
+  const [sliceValue, setSliceValue] = useState<number>(defaultSliceValue);
+  const [rotation, setRotation] = useState<Rotation>(defaultRotation);
 
   return (
     <main className="workbenchRoot">

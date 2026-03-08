@@ -4,19 +4,40 @@ import {
   colorChannelMin,
 } from "@/domain/color/color-constants";
 
+const srgbLinearThreshold = 0.04045;
+const srgbLinearDivisor = 12.92;
+const srgbOffset = 0.055;
+const srgbGammaDivisor = 1.055;
+const srgbGammaPower = 2.4;
+const xyzThreshold = 0.008856;
+const xyzLinearScale = 7.787;
+const xyzOffsetNumerator = 16;
+const xyzOffsetDenominator = 116;
+const hueCircleDegrees = 360;
+const hueSectorDegrees = 60;
+const hueSectorCount = 6;
+const hslSaturationPercentage = 100;
+const xyzWhitePointX = 0.95047;
+const xyzWhitePointY = 1;
+const xyzWhitePointZ = 1.08883;
+const labLightnessScale = 116;
+const labLightnessOffset = 16;
+const labAChannelScale = 500;
+const labBChannelScale = 200;
+
 const srgbPivot = (value: number): number => {
   const normalized = value / colorChannelMax;
-  if (normalized <= 0.04045) {
-    return normalized / 12.92;
+  if (normalized <= srgbLinearThreshold) {
+    return normalized / srgbLinearDivisor;
   }
-  return ((normalized + 0.055) / 1.055) ** 2.4;
+  return ((normalized + srgbOffset) / srgbGammaDivisor) ** srgbGammaPower;
 };
 
 const xyzPivot = (value: number): number => {
-  if (value > 0.008856) {
+  if (value > xyzThreshold) {
     return value ** (1 / 3);
   }
-  return 7.787 * value + 16 / 116;
+  return xyzLinearScale * value + xyzOffsetNumerator / xyzOffsetDenominator;
 };
 
 export const clampRgb = (color: RgbColor): RgbColor => {
@@ -44,22 +65,22 @@ export const rgbToHsl = (color: RgbColor): HslColor => {
     s = delta / (1 - Math.abs(2 * l - 1));
 
     if (max === r) {
-      h = 60 * (((g - b) / delta) % 6);
+      h = hueSectorDegrees * (((g - b) / delta) % hueSectorCount);
     } else if (max === g) {
-      h = 60 * ((b - r) / delta + 2);
+      h = hueSectorDegrees * ((b - r) / delta + 2);
     } else {
-      h = 60 * ((r - g) / delta + 4);
+      h = hueSectorDegrees * ((r - g) / delta + 4);
     }
   }
 
-  if (h < 0) {
-    h += 360;
+  if (h < colorChannelMin) {
+    h += hueCircleDegrees;
   }
 
   return {
     h: Math.round(h),
-    s: Math.round(s * 100),
-    l: Math.round(l * 100),
+    s: Math.round(s * hslSaturationPercentage),
+    l: Math.round(l * hslSaturationPercentage),
   };
 };
 
@@ -68,18 +89,18 @@ export const rgbToLab = (color: RgbColor): LabColor => {
   const g = srgbPivot(color.g);
   const b = srgbPivot(color.b);
 
-  const x = (r * 0.4124 + g * 0.3576 + b * 0.1805) / 0.95047;
-  const y = (r * 0.2126 + g * 0.7152 + b * 0.0722) / 1.0;
-  const z = (r * 0.0193 + g * 0.1192 + b * 0.9505) / 1.08883;
+  const x = (r * 0.4124 + g * 0.3576 + b * 0.1805) / xyzWhitePointX;
+  const y = (r * 0.2126 + g * 0.7152 + b * 0.0722) / xyzWhitePointY;
+  const z = (r * 0.0193 + g * 0.1192 + b * 0.9505) / xyzWhitePointZ;
 
   const fx = xyzPivot(x);
   const fy = xyzPivot(y);
   const fz = xyzPivot(z);
 
   return {
-    l: 116 * fy - 16,
-    a: 500 * (fx - fy),
-    b: 200 * (fy - fz),
+    l: labLightnessScale * fy - labLightnessOffset,
+    a: labAChannelScale * (fx - fy),
+    b: labBChannelScale * (fy - fz),
   };
 };
 
@@ -87,6 +108,6 @@ export const rgbToHueAndSaturation = (color: RgbColor): { hue: number; saturatio
   const hsl = rgbToHsl(color);
   return {
     hue: hsl.h,
-    saturation: hsl.s / 100,
+    saturation: hsl.s / hslSaturationPercentage,
   };
 };
