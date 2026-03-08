@@ -9,10 +9,10 @@ resource "github_repository_ruleset" "branch_protection" {
   enforcement = "active"
 
   dynamic "bypass_actors" {
-    for_each = var.allow_admin_pull_request_bypass ? [1] : []
+    for_each = toset(var.bypass_repository_role_ids)
     content {
       actor_type  = "RepositoryRole"
-      actor_id    = 5
+      actor_id    = bypass_actors.value
       bypass_mode = "pull_request"
     }
   }
