@@ -8,6 +8,21 @@ import { Button } from "@/components/ui/button";
 
 export function ThemeToggle() {
   const { setTheme, resolvedTheme } = useTheme();
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return (
+      <Button type="button" variant="outline" size="sm" className="gap-2" disabled>
+        <Moon className="size-4" />
+        Dark
+      </Button>
+    );
+  }
+
   const isDark = resolvedTheme === "dark";
 
   return (
