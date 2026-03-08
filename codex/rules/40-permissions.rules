@@ -35,22 +35,6 @@ prefix_rule(
     decision="allow",
 )
 
-# Read-only quality checks with pnpm
-prefix_rule(
-    pattern=["pnpm", "--dir", "web", "run", ["lint", "format:check", "setup:hooks:check"]],
-    decision="allow",
-)
-
-prefix_rule(
-    pattern=["pnpm", "run", "worktree:add"],
-    decision="allow",
-)
-
-prefix_rule(
-    pattern=["pnpm", ["-v", "--version"]],
-    decision="allow",
-)
-
 # State-changing git commands
 prefix_rule(
     pattern=["git", ["add", "commit"]],
@@ -82,8 +66,41 @@ prefix_rule(
 
 # pnpm commands
 prefix_rule(
-    pattern=["pnpm"],
+    pattern=["pnpm", ["-v", "--version"]],
     decision="allow",
+)
+
+prefix_rule(
+    pattern=["pnpm", "run", ["lint:md", "setup:hooks", "setup:hooks:check"]],
+    decision="allow",
+)
+
+prefix_rule(
+    pattern=["pnpm", "run", "worktree:add"],
+    decision="allow",
+)
+
+prefix_rule(
+    pattern=["pnpm", "--dir", "web", "run", ["lint", "format:check", "check", "build", "test:e2e"]],
+    decision="allow",
+)
+
+prefix_rule(
+    pattern=["pnpm", ["install", "add", "remove", "up", "update"]],
+    decision="prompt",
+    justification="Dependency changes should be explicitly confirmed.",
+)
+
+prefix_rule(
+    pattern=["pnpm", "--dir", "web", ["install", "add", "remove", "up", "update"]],
+    decision="prompt",
+    justification="Dependency changes should be explicitly confirmed.",
+)
+
+prefix_rule(
+    pattern=["pnpm", "dlx"],
+    decision="prompt",
+    justification="Temporary package execution should be explicitly confirmed.",
 )
 
 prefix_rule(

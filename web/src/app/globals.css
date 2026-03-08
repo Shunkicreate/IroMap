@@ -719,8 +719,7 @@
     display: none;
   }
 
-  .workbenchSteps,
-  .analysisSection {
+  .workbenchSteps {
     display: none;
   }
 
