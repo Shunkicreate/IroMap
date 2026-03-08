@@ -88,6 +88,27 @@ const eslintConfig = defineConfig([
     },
   },
   {
+    files: ["src/app/**/*.tsx", "src/features/**/*.tsx"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: 'JSXOpeningElement > JSXIdentifier[name="header"]',
+          message:
+            "Do not use <header> directly. Use semantic sections with explicit component/class naming instead.",
+        },
+        {
+          selector: "JSXText[value=/\\S+/]",
+          message: "Do not hardcode UI text in JSX. Use i18n key via t().",
+        },
+        {
+          selector: "JSXExpressionContainer > Literal[value=/\\S+/]",
+          message: "Do not hardcode UI text in JSX. Use i18n key via t().",
+        },
+      ],
+    },
+  },
+  {
     files: ["src/components/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": [

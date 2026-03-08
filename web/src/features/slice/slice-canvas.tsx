@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
+import { PanelHeader } from "@/components/workbench/panel-header";
 import {
   toHueDegree,
   toPercentage,
@@ -15,8 +16,8 @@ import {
   colorChannelMax,
   colorChannelMin,
 } from "@/domain/color/color-constants";
-import { GraphFrame } from "@/components/graph/graph-frame";
 import { t } from "@/i18n/translate";
+import { GraphFrame } from "@/components/graph/graph-frame";
 
 type Props = {
   space: ColorSpace3d;
@@ -138,7 +139,9 @@ export function SliceCanvas({
     context.putImageData(imageData, 0, 0);
   }, [axis, value]);
 
-  const mapPointerToColor = (event: React.PointerEvent<HTMLCanvasElement>): RgbColor | null => {
+  const mapPointerToColor = (
+    event: React.PointerEvent<HTMLCanvasElement> | React.MouseEvent<HTMLCanvasElement>
+  ): RgbColor | null => {
     const bounds = event.currentTarget.getBoundingClientRect();
     const x = Math.floor((event.clientX - bounds.left) * (colorChannelLevels / bounds.width));
     const y = Math.floor((event.clientY - bounds.top) * (colorChannelLevels / bounds.height));
@@ -156,7 +159,7 @@ export function SliceCanvas({
   };
 
   const handleClick = (event: React.MouseEvent<HTMLCanvasElement>): void => {
-    const color = mapPointerToColor(event as unknown as React.PointerEvent<HTMLCanvasElement>);
+    const color = mapPointerToColor(event);
     if (color) {
       onColorSelect(color);
     }
@@ -164,10 +167,7 @@ export function SliceCanvas({
 
   return (
     <section className="panel">
-      <div className="panelHeader">
-        <h2>{t("panelSlice")}</h2>
-        <p>FR-1 / FR-2 / FR-3</p>
-      </div>
+      <PanelHeader titleKey="panelSlice" requirementsKey="panelSliceRequirements" />
       <div className="sliceControls">
         <label>
           {t("sliceAxisLabel")}
