@@ -9,4 +9,5 @@ alwaysApply: true
   - `docs/development/README.md`
   - `docs/development/coding-rules.md`
   - `docs/development/branch-rules.md`
+  - `docs/development/codex-rules.md`
 - このファイルは参照入口のみを持ち、個別ルール本文は `docs/` 側で管理する。
