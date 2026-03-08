@@ -1,57 +1,62 @@
 import { ColorWorkbench } from "@/features/workbench/color-workbench";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { t } from "@/i18n/translate";
 
 export default function Home() {
   return (
     <main className="landingPage">
       <section className="landingHero">
-        <p className="landingEyebrow">Photo Color Analyzer</p>
-        <h1>IroMap</h1>
-        <p className="landingLead">写真の色構造を、1ページで可視化・診断する。</p>
+        <div className="landingHeroTopBar">
+          <p className="landingEyebrow">{t("landingEyebrow")}</p>
+          <ThemeToggle />
+        </div>
+        <h1>{t("landingTitle")}</h1>
+        <p className="landingLead">{t("landingLead")}</p>
         <a href="#workbench-preview" className="landingCta">
-          ワークベンチを試す
+          {t("landingCta")}
         </a>
       </section>
 
       <section id="workbench-preview" className="landingSection">
-        <header className="landingSectionHeader">
-          <h2>Workbench Preview</h2>
-          <p>RGBキューブ、スライス、分析パネルを同一画面で操作できます。</p>
-        </header>
+        <div className="landingSectionHeader">
+          <h2>{t("landingWorkbenchTitle")}</h2>
+          <p>{t("landingWorkbenchDescription")}</p>
+        </div>
         <ColorWorkbench />
       </section>
 
       <section className="landingSection">
-        <header className="landingSectionHeader">
-          <h2>Feature Cards</h2>
-        </header>
+        <div className="landingSectionHeader">
+          <h2>{t("landingFeaturesTitle")}</h2>
+        </div>
         <div className="featureCards">
           <article className="featureCard">
-            <h3>3D Color Space</h3>
-            <p>RGB / HSL / Lab を切り替えながら色分布を立体的に探索。</p>
+            <h3>{t("landingFeature1Title")}</h3>
+            <p>{t("landingFeature1Description")}</p>
           </article>
           <article className="featureCard">
-            <h3>Slice + Inspector</h3>
-            <p>断面表示と数値インスペクタで、色の位置と値を同時確認。</p>
+            <h3>{t("landingFeature2Title")}</h3>
+            <p>{t("landingFeature2Description")}</p>
           </article>
           <article className="featureCard">
-            <h3>Photo Analysis</h3>
-            <p>Lab散布図・ヒストグラム・面積比で写真全体の傾向を要約。</p>
+            <h3>{t("landingFeature3Title")}</h3>
+            <p>{t("landingFeature3Description")}</p>
           </article>
         </div>
       </section>
 
       <section className="landingSection">
-        <header className="landingSectionHeader">
-          <h2>Docs</h2>
-          <p>仕様・設計・開発ルールは docs に集約しています。</p>
-        </header>
+        <div className="landingSectionHeader">
+          <h2>{t("landingDocsTitle")}</h2>
+          <p>{t("landingDocsDescription")}</p>
+        </div>
         <a
           href="https://github.com/Shunkicreate/IroMap/tree/main/docs"
           target="_blank"
           rel="noreferrer"
           className="landingDocsLink"
         >
-          ドキュメントを見る
+          {t("landingDocsLink")}
         </a>
       </section>
     </main>
