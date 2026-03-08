@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { RgbColor, SliceAxis } from "@/domain/color/color-types";
+import { toRgbColor, type RgbColor, type SliceAxis } from "@/domain/color/color-types";
 import {
   colorChannelLevels,
   colorChannelMax,
@@ -26,24 +26,12 @@ const alphaOffset = 3;
 
 const buildColorFromPixel = (axis: SliceAxis, value: number, x: number, y: number): RgbColor => {
   if (axis === "r") {
-    return {
-      r: value,
-      g: x,
-      b: colorChannelMax - y,
-    };
+    return toRgbColor(value, x, colorChannelMax - y);
   }
   if (axis === "g") {
-    return {
-      r: x,
-      g: value,
-      b: colorChannelMax - y,
-    };
+    return toRgbColor(x, value, colorChannelMax - y);
   }
-  return {
-    r: x,
-    g: colorChannelMax - y,
-    b: value,
-  };
+  return toRgbColor(x, colorChannelMax - y, value);
 };
 
 export function SliceCanvas({

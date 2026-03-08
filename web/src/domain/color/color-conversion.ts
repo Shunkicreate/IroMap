@@ -1,4 +1,11 @@
-import type { HslColor, LabColor, RgbColor } from "@/domain/color/color-types";
+import {
+  toHueDegree,
+  toPercentage,
+  toRgbColor,
+  type HslColor,
+  type LabColor,
+  type RgbColor,
+} from "@/domain/color/color-types";
 import { colorChannelMax, colorChannelMin } from "@/domain/color/color-constants";
 
 const srgbLinearThreshold = 0.04045;
@@ -55,11 +62,11 @@ const xyzPivot = (value: number): number => {
 };
 
 export const clampRgb = (color: RgbColor): RgbColor => {
-  return {
-    r: Math.max(colorChannelMin, Math.min(colorChannelMax, Math.round(color.r))),
-    g: Math.max(colorChannelMin, Math.min(colorChannelMax, Math.round(color.g))),
-    b: Math.max(colorChannelMin, Math.min(colorChannelMax, Math.round(color.b))),
-  };
+  return toRgbColor(
+    Math.max(colorChannelMin, Math.min(colorChannelMax, Math.round(color.r))),
+    Math.max(colorChannelMin, Math.min(colorChannelMax, Math.round(color.g))),
+    Math.max(colorChannelMin, Math.min(colorChannelMax, Math.round(color.b)))
+  );
 };
 
 export const rgbToHsl = (color: RgbColor): HslColor => {
@@ -92,9 +99,9 @@ export const rgbToHsl = (color: RgbColor): HslColor => {
   }
 
   return {
-    h: Math.round(h),
-    s: Math.round(s * hslSaturationPercentage),
-    l: Math.round(l * hslSaturationPercentage),
+    h: toHueDegree(h),
+    s: toPercentage(s * hslSaturationPercentage),
+    l: toPercentage(l * hslSaturationPercentage),
   };
 };
 

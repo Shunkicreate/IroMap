@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import type { RgbColor, SliceAxis } from "@/domain/color/color-types";
+import { toRgbColor, type RgbColor, type SliceAxis } from "@/domain/color/color-types";
 import { clampRgb } from "@/domain/color/color-conversion";
 import {
   colorChannelLevels,
@@ -99,14 +99,14 @@ const drawGuideCube = (
   height: number
 ): void => {
   const corners: RgbColor[] = [
-    { r: colorChannelMin, g: colorChannelMin, b: colorChannelMin },
-    { r: colorChannelMax, g: colorChannelMin, b: colorChannelMin },
-    { r: colorChannelMin, g: colorChannelMax, b: colorChannelMin },
-    { r: colorChannelMax, g: colorChannelMax, b: colorChannelMin },
-    { r: colorChannelMin, g: colorChannelMin, b: colorChannelMax },
-    { r: colorChannelMax, g: colorChannelMin, b: colorChannelMax },
-    { r: colorChannelMin, g: colorChannelMax, b: colorChannelMax },
-    { r: colorChannelMax, g: colorChannelMax, b: colorChannelMax },
+    toRgbColor(colorChannelMin, colorChannelMin, colorChannelMin),
+    toRgbColor(colorChannelMax, colorChannelMin, colorChannelMin),
+    toRgbColor(colorChannelMin, colorChannelMax, colorChannelMin),
+    toRgbColor(colorChannelMax, colorChannelMax, colorChannelMin),
+    toRgbColor(colorChannelMin, colorChannelMin, colorChannelMax),
+    toRgbColor(colorChannelMax, colorChannelMin, colorChannelMax),
+    toRgbColor(colorChannelMin, colorChannelMax, colorChannelMax),
+    toRgbColor(colorChannelMax, colorChannelMax, colorChannelMax),
   ];
 
   const projected = corners.map((color) => projectColor(color, rotation, width, height));
@@ -141,25 +141,25 @@ const drawGuideCube = (
 const getPlaneCorners = (axis: SliceAxis, value: number): RgbColor[] => {
   if (axis === "r") {
     return [
-      { r: value, g: 0, b: 0 },
-      { r: value, g: colorChannelMax, b: colorChannelMin },
-      { r: value, g: colorChannelMax, b: colorChannelMax },
-      { r: value, g: colorChannelMin, b: colorChannelMax },
+      toRgbColor(value, colorChannelMin, colorChannelMin),
+      toRgbColor(value, colorChannelMax, colorChannelMin),
+      toRgbColor(value, colorChannelMax, colorChannelMax),
+      toRgbColor(value, colorChannelMin, colorChannelMax),
     ];
   }
   if (axis === "g") {
     return [
-      { r: colorChannelMin, g: value, b: colorChannelMin },
-      { r: colorChannelMax, g: value, b: colorChannelMin },
-      { r: colorChannelMax, g: value, b: colorChannelMax },
-      { r: colorChannelMin, g: value, b: colorChannelMax },
+      toRgbColor(colorChannelMin, value, colorChannelMin),
+      toRgbColor(colorChannelMax, value, colorChannelMin),
+      toRgbColor(colorChannelMax, value, colorChannelMax),
+      toRgbColor(colorChannelMin, value, colorChannelMax),
     ];
   }
   return [
-    { r: colorChannelMin, g: colorChannelMin, b: value },
-    { r: colorChannelMax, g: colorChannelMin, b: value },
-    { r: colorChannelMax, g: colorChannelMax, b: value },
-    { r: colorChannelMin, g: colorChannelMax, b: value },
+    toRgbColor(colorChannelMin, colorChannelMin, value),
+    toRgbColor(colorChannelMax, colorChannelMin, value),
+    toRgbColor(colorChannelMax, colorChannelMax, value),
+    toRgbColor(colorChannelMin, colorChannelMax, value),
   ];
 };
 
@@ -209,7 +209,7 @@ export function RgbCubeCanvas({
     for (const r of levels) {
       for (const g of levels) {
         for (const b of levels) {
-          colors.push({ r, g, b });
+          colors.push(toRgbColor(r, g, b));
         }
       }
     }

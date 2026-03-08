@@ -1,6 +1,6 @@
 import { rgbToHueAndSaturation, rgbToLab } from "@/domain/color/color-conversion";
 import { colorChannelMax } from "@/domain/color/color-constants";
-import type { LabColor, RgbColor } from "@/domain/color/color-types";
+import { toRgbColor, type LabColor, type RgbColor } from "@/domain/color/color-types";
 
 type PixelSample = {
   x: number;
@@ -97,11 +97,7 @@ const samplePixels = (imageData: ImageData, step: number, maxSamples: number): P
       sampled.push({
         x,
         y,
-        color: {
-          r: data[offset],
-          g: data[offset + 1],
-          b: data[offset + 2],
-        },
+        color: toRgbColor(data[offset], data[offset + 1], data[offset + 2]),
       });
     }
   }
@@ -157,11 +153,11 @@ const calculateColorAreas = (samples: PixelSample[]): ColorArea[] => {
   const bucketCounts = new Map<string, number>();
 
   for (const sample of samples) {
-    const bucketColor = {
-      r: quantizeComponent(sample.color.r),
-      g: quantizeComponent(sample.color.g),
-      b: quantizeComponent(sample.color.b),
-    };
+    const bucketColor = toRgbColor(
+      quantizeComponent(sample.color.r),
+      quantizeComponent(sample.color.g),
+      quantizeComponent(sample.color.b)
+    );
     const key = `${bucketColor.r}-${bucketColor.g}-${bucketColor.b}`;
     const count = bucketCounts.get(key) ?? 0;
     bucketCounts.set(key, count + 1);
@@ -172,11 +168,7 @@ const calculateColorAreas = (samples: PixelSample[]): ColorArea[] => {
 
   const top = sorted.slice(0, topAreaCount).map(([key, count]) => {
     const [rText, gText, bText] = key.split("-");
-    const rgb = {
-      r: Number(rText),
-      g: Number(gText),
-      b: Number(bText),
-    };
+    const rgb = toRgbColor(Number(rText), Number(gText), Number(bText));
 
     return {
       label: buildAreaLabel(rgb),
@@ -190,7 +182,7 @@ const calculateColorAreas = (samples: PixelSample[]): ColorArea[] => {
     top.push({
       label: "others",
       ratio: ratioPercent - summed,
-      rgb: { r: othersColorValue, g: othersColorValue, b: othersColorValue },
+      rgb: toRgbColor(othersColorValue, othersColorValue, othersColorValue),
     });
   }
 
