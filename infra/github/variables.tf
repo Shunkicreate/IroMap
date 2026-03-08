@@ -21,3 +21,9 @@ variable "required_status_checks" {
   description = "Required status checks for pull requests."
   default     = ["quality-gate", "branch-name"]
 }
+
+variable "allow_admin_pull_request_bypass" {
+  type        = bool
+  description = "Allow repository admins to bypass this ruleset when handling pull requests."
+  default     = true
+}

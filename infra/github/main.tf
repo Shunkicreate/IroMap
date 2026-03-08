@@ -8,6 +8,15 @@ resource "github_repository_ruleset" "branch_protection" {
   target      = "branch"
   enforcement = "active"
 
+  dynamic "bypass_actors" {
+    for_each = var.allow_admin_pull_request_bypass ? [1] : []
+    content {
+      actor_type  = "RepositoryRole"
+      actor_id    = 5
+      bypass_mode = "pull_request"
+    }
+  }
+
   conditions {
     ref_name {
       include = ["refs/heads/${var.target_branch}"]

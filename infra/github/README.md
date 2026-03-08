@@ -24,3 +24,5 @@ terraform plan \
   -var="repository=IroMap" \
   -var="target_branch=main"
 ```
+
+`allow_admin_pull_request_bypass=true` (default) allows repository admins to bypass PR rules when needed.
