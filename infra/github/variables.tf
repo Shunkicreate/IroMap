@@ -27,3 +27,14 @@ variable "bypass_repository_role_ids" {
   description = "Repository role IDs allowed to bypass pull request requirements."
   default     = [5]
 }
+
+variable "required_approving_review_count" {
+  type        = number
+  description = "Number of approving reviews required before merging a pull request (0-6)."
+  default     = 0
+
+  validation {
+    condition     = var.required_approving_review_count >= 0 && var.required_approving_review_count <= 6
+    error_message = "required_approving_review_count must be between 0 and 6."
+  }
+}
