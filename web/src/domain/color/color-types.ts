@@ -58,4 +58,6 @@ export type LabColor = {
   b: number;
 };
 
+export type ColorSpace3d = "rgb" | "hsl" | "lab";
+
 export type SliceAxis = "r" | "g" | "b";

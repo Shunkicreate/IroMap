@@ -1,8 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import { toRgbColor, type RgbColor, type SliceAxis } from "@/domain/color/color-types";
-import { clampRgb } from "@/domain/color/color-conversion";
+import {
+  toRgbColor,
+  type ColorSpace3d,
+  type RgbColor,
+  type SliceAxis,
+} from "@/domain/color/color-types";
+import { clampRgb, rgbToHsl, rgbToLab } from "@/domain/color/color-conversion";
 import {
   colorChannelLevels,
   colorChannelMax,
@@ -16,6 +21,12 @@ type Rotation = {
   y: number;
 };
 
+type SpacePoint = {
+  x: number;
+  y: number;
+  z: number;
+};
+
 type ProjectedPoint = {
   x: number;
   y: number;
@@ -24,6 +35,7 @@ type ProjectedPoint = {
 };
 
 type Props = {
+  space: ColorSpace3d;
   rotation: Rotation;
   sliceAxis: SliceAxis;
   sliceValue: number;
@@ -47,7 +59,9 @@ const nearestDistanceThresholdSquared = 64;
 const rotationSensitivity = 0.01;
 const overlayTextLeft = 14;
 const resolutionTextTop = 22;
-const sliceTextTop = 40;
+const secondOverlayTextTop = 40;
+const hslGuideSegments = 12;
+const labAxisRange = 128;
 
 const levels = Array.from({ length: colorSampleSteps }, (_, index) =>
   Math.round(index * colorSampleStepSize)
@@ -57,59 +71,120 @@ const toSpace = (value: number): number => {
   return value / colorChannelMidpoint - 1;
 };
 
+const clampUnit = (value: number): number => {
+  return Math.max(-1, Math.min(1, value));
+};
+
 const rgbaFromGray = (gray: number, alpha: number): string => {
   return `rgba(${gray}, ${gray}, ${gray}, ${alpha})`;
 };
 
-const projectColor = (
-  color: RgbColor,
-  rotation: Rotation,
-  width: number,
-  height: number
-): ProjectedPoint => {
-  const baseX = toSpace(color.r);
-  const baseY = toSpace(color.g);
-  const baseZ = toSpace(color.b);
-
+const rotatePoint = (point: SpacePoint, rotation: Rotation): SpacePoint => {
   const cy = Math.cos(rotation.y);
   const sy = Math.sin(rotation.y);
   const cx = Math.cos(rotation.x);
   const sx = Math.sin(rotation.x);
 
-  const x1 = baseX * cy + baseZ * sy;
-  const z1 = -baseX * sy + baseZ * cy;
-  const y2 = baseY * cx - z1 * sx;
-  const z2 = baseY * sx + z1 * cx;
+  const x1 = point.x * cy + point.z * sy;
+  const z1 = -point.x * sy + point.z * cy;
+  const y2 = point.y * cx - z1 * sx;
+  const z2 = point.y * sx + z1 * cx;
 
-  const perspective = 1 / (z2 + perspectiveOffset);
+  return { x: x1, y: y2, z: z2 };
+};
+
+const projectSpacePoint = (
+  point: SpacePoint,
+  rotation: Rotation,
+  width: number,
+  height: number
+): { x: number; y: number; depth: number } => {
+  const rotated = rotatePoint(point, rotation);
+  const perspective = 1 / (rotated.z + perspectiveOffset);
   const scale = Math.min(width, height) * scaleRatio;
 
   return {
-    x: width / 2 + x1 * scale * perspective,
-    y: height / 2 - y2 * scale * perspective,
-    depth: z2,
+    x: width / 2 + rotated.x * scale * perspective,
+    y: height / 2 - rotated.y * scale * perspective,
+    depth: rotated.z,
+  };
+};
+
+const toSpacePoint = (color: RgbColor, space: ColorSpace3d): SpacePoint => {
+  if (space === "rgb") {
+    return {
+      x: toSpace(color.r),
+      y: toSpace(color.g),
+      z: toSpace(color.b),
+    };
+  }
+
+  if (space === "hsl") {
+    const hsl = rgbToHsl(color);
+    const radian = (hsl.h / 180) * Math.PI;
+    const radius = hsl.s / 100;
+    return {
+      x: radius * Math.cos(radian),
+      y: hsl.l / 50 - 1,
+      z: radius * Math.sin(radian),
+    };
+  }
+
+  const lab = rgbToLab(color);
+  return {
+    x: clampUnit(lab.a / labAxisRange),
+    y: clampUnit(lab.l / 50 - 1),
+    z: clampUnit(lab.b / labAxisRange),
+  };
+};
+
+const projectColor = (
+  color: RgbColor,
+  space: ColorSpace3d,
+  rotation: Rotation,
+  width: number,
+  height: number
+): ProjectedPoint => {
+  const point = toSpacePoint(color, space);
+  const projected = projectSpacePoint(point, rotation, width, height);
+
+  return {
+    x: projected.x,
+    y: projected.y,
+    depth: projected.depth,
     color,
   };
 };
 
-const drawGuideCube = (
+const drawLine = (
+  context: CanvasRenderingContext2D,
+  from: { x: number; y: number },
+  to: { x: number; y: number }
+): void => {
+  context.beginPath();
+  context.moveTo(from.x, from.y);
+  context.lineTo(to.x, to.y);
+  context.stroke();
+};
+
+const drawGuideRgb = (
   context: CanvasRenderingContext2D,
   rotation: Rotation,
   width: number,
   height: number
 ): void => {
-  const corners: RgbColor[] = [
-    toRgbColor(colorChannelMin, colorChannelMin, colorChannelMin),
-    toRgbColor(colorChannelMax, colorChannelMin, colorChannelMin),
-    toRgbColor(colorChannelMin, colorChannelMax, colorChannelMin),
-    toRgbColor(colorChannelMax, colorChannelMax, colorChannelMin),
-    toRgbColor(colorChannelMin, colorChannelMin, colorChannelMax),
-    toRgbColor(colorChannelMax, colorChannelMin, colorChannelMax),
-    toRgbColor(colorChannelMin, colorChannelMax, colorChannelMax),
-    toRgbColor(colorChannelMax, colorChannelMax, colorChannelMax),
+  const corners: SpacePoint[] = [
+    { x: -1, y: -1, z: -1 },
+    { x: 1, y: -1, z: -1 },
+    { x: -1, y: 1, z: -1 },
+    { x: 1, y: 1, z: -1 },
+    { x: -1, y: -1, z: 1 },
+    { x: 1, y: -1, z: 1 },
+    { x: -1, y: 1, z: 1 },
+    { x: 1, y: 1, z: 1 },
   ];
 
-  const projected = corners.map((color) => projectColor(color, rotation, width, height));
+  const projected = corners.map((point) => projectSpacePoint(point, rotation, width, height));
   const edgePairs = [
     [0, 1],
     [0, 2],
@@ -129,13 +204,55 @@ const drawGuideCube = (
   context.strokeStyle = rgbaFromGray(neutralGray, defaultAlpha);
 
   for (const [from, to] of edgePairs) {
-    const start = projected[from];
-    const end = projected[to];
-    context.beginPath();
-    context.moveTo(start.x, start.y);
-    context.lineTo(end.x, end.y);
-    context.stroke();
+    drawLine(context, projected[from], projected[to]);
   }
+};
+
+const drawGuideHsl = (
+  context: CanvasRenderingContext2D,
+  rotation: Rotation,
+  width: number,
+  height: number
+): void => {
+  context.lineWidth = 1;
+  context.strokeStyle = rgbaFromGray(neutralGray, defaultAlpha);
+
+  const topRing: { x: number; y: number }[] = [];
+  const bottomRing: { x: number; y: number }[] = [];
+
+  for (let index = 0; index <= hslGuideSegments; index += 1) {
+    const ratio = index / hslGuideSegments;
+    const radian = ratio * fullCircleRadians;
+    const cos = Math.cos(radian);
+    const sin = Math.sin(radian);
+    const top = projectSpacePoint({ x: cos, y: 1, z: sin }, rotation, width, height);
+    const bottom = projectSpacePoint({ x: cos, y: -1, z: sin }, rotation, width, height);
+    topRing.push(top);
+    bottomRing.push(bottom);
+
+    if (index > 0) {
+      drawLine(context, topRing[index - 1], top);
+      drawLine(context, bottomRing[index - 1], bottom);
+    }
+  }
+
+  const axisRadians = [0, Math.PI / 2, Math.PI, (Math.PI * 3) / 2];
+  for (const radian of axisRadians) {
+    const cos = Math.cos(radian);
+    const sin = Math.sin(radian);
+    const top = projectSpacePoint({ x: cos, y: 1, z: sin }, rotation, width, height);
+    const bottom = projectSpacePoint({ x: cos, y: -1, z: sin }, rotation, width, height);
+    drawLine(context, bottom, top);
+  }
+};
+
+const drawGuideLab = (
+  context: CanvasRenderingContext2D,
+  rotation: Rotation,
+  width: number,
+  height: number
+): void => {
+  drawGuideRgb(context, rotation, width, height);
 };
 
 const getPlaneCorners = (axis: SliceAxis, value: number): RgbColor[] => {
@@ -172,7 +289,7 @@ const drawSlicePlane = (
   value: number
 ): void => {
   const planeCorners = getPlaneCorners(axis, value).map((color) =>
-    projectColor(color, rotation, width, height)
+    projectSpacePoint(toSpacePoint(color, "rgb"), rotation, width, height)
   );
 
   context.beginPath();
@@ -188,7 +305,36 @@ const drawSlicePlane = (
   context.stroke();
 };
 
+const drawGuide = (
+  context: CanvasRenderingContext2D,
+  space: ColorSpace3d,
+  rotation: Rotation,
+  width: number,
+  height: number
+): void => {
+  if (space === "rgb") {
+    drawGuideRgb(context, rotation, width, height);
+    return;
+  }
+  if (space === "hsl") {
+    drawGuideHsl(context, rotation, width, height);
+    return;
+  }
+  drawGuideLab(context, rotation, width, height);
+};
+
+const getSpaceLabel = (space: ColorSpace3d): string => {
+  if (space === "rgb") {
+    return t("spaceRgb");
+  }
+  if (space === "hsl") {
+    return t("spaceHsl");
+  }
+  return t("spaceLab");
+};
+
 export function RgbCubeCanvas({
+  space,
   rotation,
   sliceAxis,
   sliceValue,
@@ -238,11 +384,13 @@ export function RgbCubeCanvas({
     context.fillStyle = "#0e1118";
     context.fillRect(0, 0, width, height);
 
-    drawGuideCube(context, rotation, width, height);
-    drawSlicePlane(context, rotation, width, height, sliceAxis, sliceValue);
+    drawGuide(context, space, rotation, width, height);
+    if (space === "rgb") {
+      drawSlicePlane(context, rotation, width, height, sliceAxis, sliceValue);
+    }
 
     const projected = sampledColors
-      .map((color) => projectColor(color, rotation, width, height))
+      .map((color) => projectColor(color, space, rotation, width, height))
       .sort((left, right) => left.depth - right.depth);
 
     projectedPointsRef.current = projected;
@@ -261,12 +409,20 @@ export function RgbCubeCanvas({
       overlayTextLeft,
       resolutionTextTop
     );
-    context.fillText(
-      t("cubeSliceOverlay", { axis: sliceAxis.toUpperCase(), value: sliceValue }),
-      overlayTextLeft,
-      sliceTextTop
-    );
-  }, [rotation, sampledColors, sliceAxis, sliceValue]);
+    if (space === "rgb") {
+      context.fillText(
+        t("cubeSliceOverlay", { axis: sliceAxis.toUpperCase(), value: sliceValue }),
+        overlayTextLeft,
+        secondOverlayTextTop
+      );
+    } else {
+      context.fillText(
+        t("cubeSpaceOverlay", { space: getSpaceLabel(space) }),
+        overlayTextLeft,
+        secondOverlayTextTop
+      );
+    }
+  }, [rotation, sampledColors, sliceAxis, sliceValue, space]);
 
   const findNearestColor = (offsetX: number, offsetY: number): RgbColor | null => {
     let bestDistance = Number.POSITIVE_INFINITY;
