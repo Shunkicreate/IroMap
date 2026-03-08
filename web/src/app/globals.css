@@ -98,6 +98,99 @@
 }
 
 :root {
+  --landing-surface: color-mix(in oklab, var(--card) 90%, var(--primary) 10%);
+  --landing-border: color-mix(in oklab, var(--border) 80%, var(--primary) 20%);
+}
+
+.landingPage {
+  width: min(1440px, calc(100% - 32px));
+  margin: 14px auto 24px;
+  display: grid;
+  gap: 14px;
+}
+
+.landingHero,
+.landingSection {
+  border: 1px solid var(--landing-border);
+  border-radius: 16px;
+  padding: clamp(14px, 2vw, 22px);
+  background: var(--landing-surface);
+}
+
+.landingHero h1 {
+  margin: 8px 0 0;
+  font-size: clamp(2rem, 4.4vw, 3.1rem);
+  line-height: 1.05;
+}
+
+.landingEyebrow {
+  margin: 0;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.landingLead {
+  margin: 8px 0 16px;
+  color: var(--muted-foreground);
+}
+
+.landingCta,
+.landingDocsLink {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid color-mix(in oklab, var(--primary) 68%, black 32%);
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--primary) 84%, white 16%),
+    color-mix(in oklab, var(--primary) 64%, black 36%)
+  );
+  color: var(--primary-foreground);
+  text-decoration: none;
+  padding: 8px 12px;
+  font-weight: 600;
+}
+
+.landingSectionHeader h2 {
+  margin: 0;
+  font-size: clamp(1.1rem, 2.2vw, 1.45rem);
+}
+
+.landingSectionHeader p {
+  margin: 6px 0 0;
+  color: var(--muted-foreground);
+}
+
+.featureCards {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.featureCard {
+  border: 1px solid var(--landing-border);
+  border-radius: 12px;
+  padding: 12px;
+  background: color-mix(in oklab, var(--card) 92%, var(--background) 8%);
+}
+
+.featureCard h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.featureCard p {
+  margin: 6px 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.92rem;
+}
+
+:root {
   --workbench-surface: #132033;
   --workbench-surface-border: #2a3b57;
   --workbench-text: #e8edf5;
@@ -514,6 +607,16 @@
 }
 
 @media (max-width: 640px) {
+  .landingPage {
+    width: calc(100% - 20px);
+    margin: 10px auto 16px;
+    gap: 10px;
+  }
+
+  .landingHero h1 {
+    font-size: 2rem;
+  }
+
   .pageHeader p {
     display: none;
   }
