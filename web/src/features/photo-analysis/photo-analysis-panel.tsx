@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { ColorSwatch } from "@/components/workbench/color-swatch";
 import { PanelHeader } from "@/components/workbench/panel-header";
 import { analyzePhoto, type PhotoAnalysisResult } from "@/domain/photo-analysis/photo-analysis";
@@ -8,6 +8,7 @@ import { rgbToHex } from "@/domain/color/color-format";
 import { colorChannelLevels } from "@/domain/color/color-constants";
 import { GraphFrame } from "@/components/graph/graph-frame";
 import { t } from "@/i18n/translate";
+import { toast } from "sonner";
 
 type AnalysisState = {
   fileName: string;
@@ -86,6 +87,13 @@ export function PhotoAnalysisPanel() {
   const [analysis, setAnalysis] = useState<AnalysisState>(null);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const [statusAnnouncement, setStatusAnnouncement] = useState<string>("");
+  const statusSequenceRef = useRef<number>(0);
+
+  const announceStatus = (statusMessage: string): void => {
+    statusSequenceRef.current += 1;
+    setStatusAnnouncement(`${statusSequenceRef.current}. ${statusMessage}`);
+  };
 
   const maxHueCount = useMemo(() => {
     return Math.max(1, ...(analysis?.result.hueHistogram.map((bin) => bin.count) ?? [1]));
@@ -103,6 +111,8 @@ export function PhotoAnalysisPanel() {
 
     setIsAnalyzing(true);
     setError("");
+    announceStatus(t("photoStatusStarted"));
+    toast.message(t("photoStatusStarted"));
 
     try {
       const imageData = await readFileAsImageData(file);
@@ -111,9 +121,19 @@ export function PhotoAnalysisPanel() {
         fileName: file.name,
         result,
       });
+      announceStatus(t("photoStatusDone"));
+      toast.success(t("photoStatusDone"), {
+        description: t("photoSummary", {
+          fileName: file.name,
+          sampledPixels: result.sampledPixels,
+          elapsedMs: result.elapsedMs.toFixed(fileSummaryPrecision),
+        }),
+      });
     } catch {
       setError(t("photoError"));
       setAnalysis(null);
+      announceStatus(t("photoStatusFailed"));
+      toast.error(t("photoStatusFailed"), { description: t("photoError") });
     } finally {
       setIsAnalyzing(false);
     }
@@ -122,6 +142,10 @@ export function PhotoAnalysisPanel() {
   return (
     <section className="panel">
       <PanelHeader titleKey="panelPhotoAnalysis" requirementsKey="panelPhotoAnalysisRequirements" />
+      <div className="analysisGuide">
+        <strong>{t("photoAnalysisGuideTitle")}</strong>
+        <p>{t("photoAnalysisGuideBody")}</p>
+      </div>
 
       <label className="fileInput">
         {t("photoUploadLabel")}
@@ -130,6 +154,9 @@ export function PhotoAnalysisPanel() {
 
       {isAnalyzing ? <p className="muted">{t("photoAnalyzing")}</p> : null}
       {error ? <p className="errorText">{error}</p> : null}
+      <p className="muted copyStatus" aria-live="polite">
+        {statusAnnouncement}
+      </p>
 
       {analysis ? (
         <div className="analysisGrid">
@@ -164,6 +191,7 @@ export function PhotoAnalysisPanel() {
                 ))}
               </svg>
             </GraphFrame>
+            <p className="analysisHint">{t("photoLabInterpretation")}</p>
           </article>
 
           <article>
@@ -189,6 +217,7 @@ export function PhotoAnalysisPanel() {
                 })}
               </div>
             </GraphFrame>
+            <p className="analysisHint">{t("photoHueInterpretation")}</p>
           </article>
 
           <article>
@@ -216,6 +245,7 @@ export function PhotoAnalysisPanel() {
                 })}
               </div>
             </GraphFrame>
+            <p className="analysisHint">{t("photoSaturationInterpretation")}</p>
           </article>
 
           <article>
@@ -229,6 +259,7 @@ export function PhotoAnalysisPanel() {
                 </li>
               ))}
             </ul>
+            <p className="analysisHint">{t("photoAreaInterpretation")}</p>
           </article>
         </div>
       ) : null}

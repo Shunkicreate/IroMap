@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { PanelHeader } from "@/components/workbench/panel-header";
+import { rgbToHex } from "@/domain/color/color-format";
 import {
   isHslSliceAxis,
+  toRgbColor,
   type ColorSpace3d,
   type RgbColor,
   type SliceAxis,
@@ -24,6 +26,14 @@ type Rotation = {
 const defaultSliceValue = 128;
 const defaultRotation: Rotation = { x: -0.7, y: 0.6 };
 const defaultCubeSize = 520;
+const keyboardPresetColors: RgbColor[] = [
+  toRgbColor(255, 99, 71),
+  toRgbColor(72, 149, 239),
+  toRgbColor(255, 209, 102),
+  toRgbColor(6, 214, 160),
+  toRgbColor(131, 56, 236),
+  toRgbColor(17, 24, 39),
+];
 
 const clamp = (value: number, min: number, max: number): number => {
   return Math.min(max, Math.max(min, value));
@@ -146,6 +156,27 @@ export function ColorWorkbench() {
                   />
                 </label>
               ) : null}
+              <div className="keyboardPicker">
+                <p className="keyboardPickerTitle">{t("keyboardPickerTitle")}</p>
+                <p className="keyboardPickerDescription">{t("keyboardPickerDescription")}</p>
+                <div className="keyboardPresetButtons">
+                  {keyboardPresetColors.map((color, index) => {
+                    const value = rgbToHex(color);
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        className="keyboardPresetButton"
+                        onClick={() => setSelectedColor(color)}
+                        aria-label={t("keyboardPresetLabel", { index: index + 1, value })}
+                      >
+                        <span className="keyboardPresetSwatch" style={{ background: value }} />
+                        <span>{value}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
             <RgbCubeCanvas
               space={space}

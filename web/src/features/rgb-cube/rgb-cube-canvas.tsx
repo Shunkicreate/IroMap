@@ -217,6 +217,8 @@ export function RgbCubeCanvas({
       ref={canvasRef}
       className="cubeCanvas"
       style={{ height: `${cubeSize}px` }}
+      tabIndex={0}
+      aria-label={t("cubeCanvasAriaLabel")}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}

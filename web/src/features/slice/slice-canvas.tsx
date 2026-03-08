@@ -219,6 +219,8 @@ export function SliceCanvas({
             width={colorChannelLevels}
             height={colorChannelLevels}
             className="sliceCanvas"
+            tabIndex={0}
+            aria-label={t("sliceCanvasAriaLabel")}
             onPointerMove={handlePointerMove}
             onPointerLeave={() => onHoverColorChange(null)}
             onClick={handleClick}
