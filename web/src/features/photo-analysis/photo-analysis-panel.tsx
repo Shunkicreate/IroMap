@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { ColorSwatch } from "@/components/workbench/color-swatch";
+import { PanelHeader } from "@/components/workbench/panel-header";
 import { analyzePhoto, type PhotoAnalysisResult } from "@/domain/photo-analysis/photo-analysis";
 import { rgbToHex } from "@/domain/color/color-format";
 import { colorChannelLevels } from "@/domain/color/color-constants";
@@ -23,17 +25,21 @@ const histogramTooltipPrecision = 2;
 
 const readFileAsImageData = async (file: File): Promise<ImageData> => {
   const imageBitmap = await createImageBitmap(file);
-  const canvas = document.createElement("canvas");
-  canvas.width = imageBitmap.width;
-  canvas.height = imageBitmap.height;
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = imageBitmap.width;
+    canvas.height = imageBitmap.height;
 
-  const context = canvas.getContext("2d");
-  if (!context) {
-    throw new Error("2d context unavailable");
+    const context = canvas.getContext("2d");
+    if (!context) {
+      throw new Error("2d context unavailable");
+    }
+
+    context.drawImage(imageBitmap, 0, 0);
+    return context.getImageData(0, 0, canvas.width, canvas.height);
+  } finally {
+    imageBitmap.close();
   }
-
-  context.drawImage(imageBitmap, 0, 0);
-  return context.getImageData(0, 0, canvas.width, canvas.height);
 };
 
 const toScatterPosition = (value: number): number => {
@@ -79,10 +85,7 @@ export function PhotoAnalysisPanel() {
 
   return (
     <section className="panel">
-      <div className="panelHeader">
-        <h2>{t("panelPhotoAnalysis")}</h2>
-        <p>FR-1 / FR-2 / FR-3 / FR-4</p>
-      </div>
+      <PanelHeader titleKey="panelPhotoAnalysis" requirementsKey="panelPhotoAnalysisRequirements" />
 
       <label className="fileInput">
         {t("photoUploadLabel")}
@@ -184,12 +187,7 @@ export function PhotoAnalysisPanel() {
             <ul className="areaList">
               {analysis.result.colorAreas.map((area) => (
                 <li key={area.label}>
-                  <span
-                    className="swatch"
-                    style={{
-                      backgroundColor: `rgb(${area.rgb.r}, ${area.rgb.g}, ${area.rgb.b})`,
-                    }}
-                  />
+                  <ColorSwatch color={area.rgb} />
                   <span>{area.label === "others" ? t("photoOthers") : area.label}</span>
                   <strong>{area.ratio.toFixed(1)}%</strong>
                 </li>

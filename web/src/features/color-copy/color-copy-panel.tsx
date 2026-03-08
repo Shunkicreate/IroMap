@@ -17,6 +17,7 @@ type Props = {
   onColorPasted?: (color: RgbColor) => void;
 };
 
+const PLACEHOLDER = "--";
 const hexRegex = /^#?([\da-f]{3}|[\da-f]{6})$/i;
 const rgbRegex = /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/i;
 const hslRegex = /^hsl\(\s*(\d{1,3})\s*,\s*(\d{1,3})%\s*,\s*(\d{1,3})%\s*\)$/i;
@@ -78,7 +79,7 @@ export function ColorCopyPanel({ selectedColor, onColorPasted }: Props) {
 
   const formatted = useMemo(() => {
     if (!selectedColor) {
-      return "";
+      return PLACEHOLDER;
     }
     return formatColor(selectedColor, format);
   }, [format, selectedColor]);
@@ -133,7 +134,7 @@ export function ColorCopyPanel({ selectedColor, onColorPasted }: Props) {
         <p>FR-1 / FR-2</p>
       </div>
 
-      <div className="copyFormats">
+      <div className="copyFormats copyFormatsCompact">
         <label>
           {t("copyFormatLabel")}
           <select value={format} onChange={(event) => setFormat(event.target.value as CopyFormat)}>
@@ -150,21 +151,17 @@ export function ColorCopyPanel({ selectedColor, onColorPasted }: Props) {
         </button>
       </div>
 
-      {selectedColor ? (
-        <>
-          <code className="copyValue">{formatted}</code>
+      <code className="copyValue">{formatted}</code>
 
-          <div className="copyAllFormats">
-            <span>{rgbToHex(selectedColor)}</span>
-            <span>{formatRgb(selectedColor)}</span>
-            <span>{formatHsl(selectedColor)}</span>
-          </div>
-        </>
-      ) : (
-        <p className="muted">{t("copyNeedSelection")}</p>
-      )}
+      <div className="copyAllFormats copyAllFormatsCompact">
+        <span>{selectedColor ? rgbToHex(selectedColor) : PLACEHOLDER}</span>
+        <span>{selectedColor ? formatRgb(selectedColor) : PLACEHOLDER}</span>
+        <span>{selectedColor ? formatHsl(selectedColor) : PLACEHOLDER}</span>
+      </div>
 
-      {message ? <p className="muted">{message}</p> : null}
+      <p className="muted copyStatus" aria-live="polite">
+        {message || (!canCopy ? t("copyNeedSelection") : "")}
+      </p>
     </section>
   );
 }
