@@ -119,14 +119,24 @@
 .inspectorCard {
   border: 1px solid #283952;
   border-radius: 10px;
-  padding: 10px;
+  padding: 8px;
   display: grid;
-  gap: 8px;
+  gap: 6px;
+}
+
+.inspectorCard strong {
+  font-size: 0.88rem;
+  color: var(--workbench-muted);
 }
 
 .colorRow {
   display: grid;
-  gap: 6px;
+  gap: 4px;
+}
+
+.colorRow span {
+  font-size: 0.76rem;
+  color: var(--workbench-muted);
 }
 
 .workbenchRoot code {
@@ -140,10 +150,16 @@
 
 .swatch {
   display: inline-block;
-  width: 40px;
-  height: 20px;
+  width: 28px;
+  height: 14px;
   border: 1px solid #d6e2ff66;
-  border-radius: 6px;
+  border-radius: 4px;
+}
+
+.swatchEmpty {
+  background: #0b1627;
+  border-style: dashed;
+  opacity: 0.8;
 }
 
 .copyFormats {
@@ -182,14 +198,44 @@
 
 .copyValue {
   display: inline-block;
-  margin-top: 8px;
+  margin-top: 6px;
+  min-width: 180px;
+  text-align: center;
 }
 
 .copyAllFormats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.copyFormatsCompact {
   gap: 8px;
-  margin-top: 10px;
+}
+
+.copyFormatsCompact label {
+  gap: 4px;
+  font-size: 0.82rem;
+}
+
+.copyFormatsCompact select,
+.copyFormatsCompact button {
+  padding: 4px 8px;
+  font-size: 0.84rem;
+  line-height: 1.2;
+}
+
+.copyAllFormatsCompact span {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.78rem;
+  color: var(--workbench-muted);
+}
+
+.copyStatus {
+  min-height: 1.2em;
+  margin: 8px 0 0;
+  font-size: 0.78rem;
 }
 
 .sliceControls {
