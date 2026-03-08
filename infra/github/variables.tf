@@ -19,7 +19,7 @@ variable "target_branch" {
 variable "required_status_checks" {
   type        = list(string)
   description = "Required status checks for pull requests."
-  default     = ["quality-gate", "branch-name"]
+  default     = ["lint-and-format", "validate-branch-name"]
 }
 
 variable "bypass_repository_role_ids" {
