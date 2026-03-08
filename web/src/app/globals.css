@@ -78,6 +78,7 @@
 @layer base {
   * {
     @apply border-border;
+    box-sizing: border-box;
   }
 
   body {
@@ -94,6 +95,7 @@
         transparent 22%
       );
     min-height: 100vh;
+    overflow-x: clip;
   }
 }
 
@@ -766,6 +768,10 @@
 
   .cubeCanvas {
     height: 320px;
+  }
+
+  .graphAxisYLabel {
+    display: none;
   }
 }
 
