@@ -16,13 +16,15 @@ type Props = {
   selectedColor: RgbColor | null;
 };
 
+const PLACEHOLDER = "--";
+
 export function ColorCopyPanel({ selectedColor }: Props) {
   const [format, setFormat] = useState<CopyFormat>("hex");
   const [message, setMessage] = useState<string>("");
 
   const formatted = useMemo(() => {
     if (!selectedColor) {
-      return "";
+      return PLACEHOLDER;
     }
     return formatColor(selectedColor, format);
   }, [format, selectedColor]);
@@ -52,38 +54,31 @@ export function ColorCopyPanel({ selectedColor }: Props) {
     <section className="panel">
       <PanelHeader titleKey="panelColorCopy" requirementsKey="panelColorCopyRequirements" />
 
-      {selectedColor ? (
-        <>
-          <div className="copyFormats">
-            <label>
-              {t("copyFormatLabel")}
-              <select
-                value={format}
-                onChange={(event) => setFormat(event.target.value as CopyFormat)}
-              >
-                <option value="hex">HEX</option>
-                <option value="rgb">rgb()</option>
-                <option value="hsl">hsl()</option>
-              </select>
-            </label>
-            <button type="button" onClick={copyToClipboard} disabled={!canCopy}>
-              {t("copyButton")}
-            </button>
-          </div>
+      <div className="copyFormats copyFormatsCompact">
+        <label>
+          {t("copyFormatLabel")}
+          <select value={format} onChange={(event) => setFormat(event.target.value as CopyFormat)}>
+            <option value="hex">HEX</option>
+            <option value="rgb">rgb()</option>
+            <option value="hsl">hsl()</option>
+          </select>
+        </label>
+        <button type="button" onClick={copyToClipboard} disabled={!canCopy}>
+          {t("copyButton")}
+        </button>
+      </div>
 
-          <code className="copyValue">{formatted}</code>
+      <code className="copyValue">{formatted}</code>
 
-          <div className="copyAllFormats">
-            <span>{rgbToHex(selectedColor)}</span>
-            <span>{formatRgb(selectedColor)}</span>
-            <span>{formatHsl(selectedColor)}</span>
-          </div>
-        </>
-      ) : (
-        <p className="muted">{t("copyNeedSelection")}</p>
-      )}
+      <div className="copyAllFormats copyAllFormatsCompact">
+        <span>{selectedColor ? rgbToHex(selectedColor) : PLACEHOLDER}</span>
+        <span>{selectedColor ? formatRgb(selectedColor) : PLACEHOLDER}</span>
+        <span>{selectedColor ? formatHsl(selectedColor) : PLACEHOLDER}</span>
+      </div>
 
-      {message ? <p className="muted">{message}</p> : null}
+      <p className="muted copyStatus" aria-live="polite">
+        {message || (!canCopy ? t("copyNeedSelection") : "")}
+      </p>
     </section>
   );
 }
