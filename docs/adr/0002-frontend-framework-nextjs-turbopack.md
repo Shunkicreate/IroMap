@@ -1,9 +1,11 @@
 # ADR-0002: フロントエンド基盤として Next.js（React）+ Turbopack を採用する
 
 ## Status
+
 Accepted
 
 ## Context
+
 - IroMap は RGB 色空間の 3D/2D 可視化を中心とした Web フロントエンドである。
 - 可視化機能の継続的な追加（Inspector、Slice、将来の色空間拡張）を想定しており、長期運用しやすい基盤が必要である。
 - 選定では以下を重視する。
@@ -15,23 +17,28 @@ Accepted
 - 3D 描画は別 ADR（ADR-0001）で Three.js を採用しており、React 連携のしやすさが基盤選定にも影響する。
 
 ## Decision
+
 - フロントエンドフレームワークとして Next.js（React）を採用する。
 - ビルド/開発基盤は Next.js 標準の Turbopack を採用する。
 - フロントエンド実装言語は TypeScript を前提とする。
 
 ## Consequences
+
 ### Positive
+
 - React エコシステム上で UI と可視化機能を統一できる。
 - Three.js / React Three Fiber 周辺ライブラリと組み合わせやすい。
 - 開発サーバー起動・再ビルド・HMR の体験を改善しやすい。
 - 将来的な機能拡張で、Next.js のルーティング/サーバー機能を段階的に活用できる。
 
 ### Negative
+
 - Next.js の規約やランタイム境界（Server/Client）を理解した設計が必要になる。
 - フレームワーク依存が高まり、将来の移行コストが増える可能性がある。
 - Turbopack の仕様差分により、一部ツール/プラグイン選定で制約が出る可能性がある。
 
 ## Alternatives Considered
+
 - Vite + React:
   - 長所: 軽量で高速、構成の自由度が高い。
   - 非採用理由: フレームワーク機能を別途組み合わせる設計・運用コストが増える。
@@ -46,5 +53,6 @@ Accepted
   - 非採用理由: 長期運用でのエコシステム規模と採用実績を優先し、今回は見送る。
 
 ## Notes
+
 - 3D/2D 描画ライブラリの決定は ADR-0001 を参照する。
 - 具体的な実装パラメータや受け入れ基準は各 feature の `spec.md` / `design.md` / `test-cases.md` で管理する。

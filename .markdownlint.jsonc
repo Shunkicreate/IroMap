@@ -1,7 +1,8 @@
 {
-  "default": false,
-  "MD001": true,
+  "default": true,
   "MD003": { "style": "atx" },
+  "MD013": false,
   "MD024": { "siblings_only": true },
-  "MD025": { "front_matter_title": "" }
+  "MD025": { "front_matter_title": "" },
+  "MD029": { "style": "ordered" }
 }
