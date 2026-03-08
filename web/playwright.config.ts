@@ -19,7 +19,7 @@ export default defineConfig({
   webServer: hasExternalBaseUrl
     ? undefined
     : {
-        command: `pnpm dev -- --hostname 127.0.0.1 --port ${playwrightPort}`,
+        command: `pnpm exec next dev --hostname 127.0.0.1 --port ${playwrightPort}`,
         url: localBaseUrl,
         timeout: 120_000,
         reuseExistingServer: !isCI,
