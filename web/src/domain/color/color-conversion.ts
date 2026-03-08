@@ -1,8 +1,5 @@
 import type { HslColor, LabColor, RgbColor } from "@/domain/color/color-types";
-import {
-  colorChannelMax,
-  colorChannelMin,
-} from "@/domain/color/color-constants";
+import { colorChannelMax, colorChannelMin } from "@/domain/color/color-constants";
 
 const srgbLinearThreshold = 0.04045;
 const srgbLinearDivisor = 12.92;

@@ -84,12 +84,8 @@ export function SliceCanvas({
 
   const mapPointerToColor = (event: React.PointerEvent<HTMLCanvasElement>): RgbColor | null => {
     const bounds = event.currentTarget.getBoundingClientRect();
-    const x = Math.round(
-      (event.clientX - bounds.left) * (colorChannelLevels / bounds.width)
-    );
-    const y = Math.round(
-      (event.clientY - bounds.top) * (colorChannelLevels / bounds.height)
-    );
+    const x = Math.round((event.clientX - bounds.left) * (colorChannelLevels / bounds.width));
+    const y = Math.round((event.clientY - bounds.top) * (colorChannelLevels / bounds.height));
 
     if (x < colorChannelMin || x > colorChannelMax || y < colorChannelMin || y > colorChannelMax) {
       return null;

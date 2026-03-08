@@ -36,8 +36,7 @@ export const i18nMessages = {
     photoSaturationHistogram: "彩度ヒストグラム",
     photoColorAreaRatio: "色面積比",
     photoOthers: "その他",
-    photoSummary:
-      "file={fileName} | sampled={sampledPixels} | elapsed={elapsedMs}ms",
+    photoSummary: "file={fileName} | sampled={sampledPixels} | elapsed={elapsedMs}ms",
     cubeResolutionOverlay: "解像度: {levels} 固定",
     cubeSliceOverlay: "スライス: {axis}={value}",
   },
@@ -74,8 +73,7 @@ export const i18nMessages = {
     photoSaturationHistogram: "Saturation histogram",
     photoColorAreaRatio: "Color area ratio",
     photoOthers: "Others",
-    photoSummary:
-      "file={fileName} | sampled={sampledPixels} | elapsed={elapsedMs}ms",
+    photoSummary: "file={fileName} | sampled={sampledPixels} | elapsed={elapsedMs}ms",
     cubeResolutionOverlay: "Resolution: {levels} fixed",
     cubeSliceOverlay: "Slice: {axis}={value}",
   },
