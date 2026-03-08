@@ -12,4 +12,4 @@
 - 該当なし（クライアント内表示機能）
 
 ## 11. 関連ADR
-- 該当なし
+- [ADR-0001: 描画スタックとして Three.js + Canvas を採用する](../../adr/0001-rendering-stack-threejs-canvas.md)

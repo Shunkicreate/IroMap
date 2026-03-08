@@ -31,5 +31,8 @@
 - 2D断面の位置が3D表示上に反映される
 - 断面変更時に3D表示も更新される
 
-## 10. 未決事項
+## 10. 関連ADR
+- [ADR-0001: 描画スタックとして Three.js + Canvas を採用する](../../adr/0001-rendering-stack-threejs-canvas.md)
+
+## 11. 未決事項
 - なし
