@@ -9,15 +9,24 @@ type Props = {
   selectedColor: RgbColor | null;
 };
 
-const renderColorRow = (label: string, color: RgbColor) => {
+const PLACEHOLDER = "--";
+
+const renderColorRow = (label: string, color: RgbColor | null) => {
   return (
     <div className="colorRow">
       <span>{label}</span>
-      <code>{rgbToHex(color)}</code>
-      <code>{formatRgb(color)}</code>
-      <code>{formatHsl(color)}</code>
+      <code>{color ? rgbToHex(color) : PLACEHOLDER}</code>
+      <code>{color ? formatRgb(color) : PLACEHOLDER}</code>
+      <code>{color ? formatHsl(color) : PLACEHOLDER}</code>
     </div>
   );
+};
+
+const renderSwatch = (color: RgbColor | null) => {
+  if (!color) {
+    return <span className="swatch swatchEmpty" aria-hidden="true" />;
+  }
+  return <ColorSwatch color={color} />;
 };
 
 export function ColorInspector({ hoverColor, selectedColor }: Props) {
@@ -28,26 +37,14 @@ export function ColorInspector({ hoverColor, selectedColor }: Props) {
       <div className="inspectorCards">
         <div className="inspectorCard">
           <strong>{t("inspectorPreview")}</strong>
-          {hoverColor ? (
-            <>
-              <ColorSwatch color={hoverColor} />
-              {renderColorRow(t("inspectorHoverLabel"), hoverColor)}
-            </>
-          ) : (
-            <p className="muted">{t("inspectorNoHover")}</p>
-          )}
+          {renderSwatch(hoverColor)}
+          {renderColorRow(t("inspectorHoverLabel"), hoverColor)}
         </div>
 
         <div className="inspectorCard">
           <strong>{t("inspectorSelected")}</strong>
-          {selectedColor ? (
-            <>
-              <ColorSwatch color={selectedColor} />
-              {renderColorRow(t("inspectorSelectedLabel"), selectedColor)}
-            </>
-          ) : (
-            <p className="muted">{t("inspectorNoSelected")}</p>
-          )}
+          {renderSwatch(selectedColor)}
+          {renderColorRow(t("inspectorSelectedLabel"), selectedColor)}
         </div>
       </div>
     </section>
