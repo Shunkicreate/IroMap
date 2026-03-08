@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { PanelHeader } from "@/components/workbench/panel-header";
 import {
   type CopyFormat,
   formatColor,
@@ -129,18 +130,15 @@ export function ColorCopyPanel({ selectedColor, onColorPasted }: Props) {
 
   return (
     <section className="panel">
-      <div className="panelHeader">
-        <h2>{t("panelColorCopy")}</h2>
-        <p>FR-1 / FR-2</p>
-      </div>
+      <PanelHeader titleKey="panelColorCopy" requirementsKey="panelColorCopyRequirements" />
 
       <div className="copyFormats copyFormatsCompact">
         <label>
           {t("copyFormatLabel")}
           <select value={format} onChange={(event) => setFormat(event.target.value as CopyFormat)}>
-            <option value="hex">HEX</option>
-            <option value="rgb">rgb()</option>
-            <option value="hsl">hsl()</option>
+            <option value="hex">{t("copyFormatHex")}</option>
+            <option value="rgb">{t("copyFormatRgb")}</option>
+            <option value="hsl">{t("copyFormatHsl")}</option>
           </select>
         </label>
         <button type="button" onClick={copyToClipboard} disabled={!canCopy}>

@@ -22,6 +22,11 @@ const pointRadius = 0.7;
 const pointOpacity = 0.8;
 const fileSummaryPrecision = 1;
 const histogramTooltipPrecision = 2;
+const ratioFormatter = new Intl.NumberFormat(undefined, {
+  style: "percent",
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+});
 
 const readFileAsImageData = async (file: File): Promise<ImageData> => {
   const imageBitmap = await createImageBitmap(file);
@@ -44,6 +49,37 @@ const readFileAsImageData = async (file: File): Promise<ImageData> => {
 
 const toScatterPosition = (value: number): number => {
   return ((value + maxScatterRange) / (maxScatterRange * 2)) * scatterViewboxSize;
+};
+
+const analyzePhotoInWorker = (imageData: ImageData): Promise<PhotoAnalysisResult> => {
+  return new Promise((resolve, reject) => {
+    if (typeof window === "undefined" || typeof Worker === "undefined") {
+      resolve(analyzePhoto(imageData));
+      return;
+    }
+
+    const worker = new Worker(new URL("./photo-analysis-worker.ts", import.meta.url), {
+      type: "module",
+    });
+
+    worker.onmessage = (event: MessageEvent<{ result?: PhotoAnalysisResult; error?: string }>) => {
+      const { result, error } = event.data;
+      worker.terminate();
+
+      if (error || !result) {
+        reject(new Error(error ?? "photo-analysis-failed"));
+        return;
+      }
+      resolve(result);
+    };
+
+    worker.onerror = () => {
+      worker.terminate();
+      reject(new Error("photo-analysis-worker-error"));
+    };
+
+    worker.postMessage({ imageData });
+  });
 };
 
 export function PhotoAnalysisPanel() {
@@ -70,7 +106,7 @@ export function PhotoAnalysisPanel() {
 
     try {
       const imageData = await readFileAsImageData(file);
-      const result = analyzePhoto(imageData);
+      const result = await analyzePhotoInWorker(imageData);
       setAnalysis({
         fileName: file.name,
         result,
@@ -189,7 +225,7 @@ export function PhotoAnalysisPanel() {
                 <li key={area.label}>
                   <ColorSwatch color={area.rgb} />
                   <span>{area.label === "others" ? t("photoOthers") : area.label}</span>
-                  <strong>{area.ratio.toFixed(1)}%</strong>
+                  <strong>{ratioFormatter.format(area.ratio / 100)}</strong>
                 </li>
               ))}
             </ul>
