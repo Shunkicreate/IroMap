@@ -72,7 +72,12 @@ prefix_rule(
 
 # State-changing pnpm commands
 prefix_rule(
-    pattern=["pnpm", ["install", "add", "remove", "update", "up", "dlx", "exec", "run"]],
+    pattern=["pnpm", "add", "-D", "markdownlint-cli"],
+    decision="allow",
+)
+
+prefix_rule(
+    pattern=["pnpm", ["install", "remove", "update", "up", "dlx", "exec", "run"]],
     decision="prompt",
     justification="Package and script operations may modify lockfiles, dependencies, or generated outputs.",
 )

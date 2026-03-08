@@ -74,6 +74,19 @@
 - リポジトリルート（`/Users/shunki.tada/VSCode/IroMap`）での直接修正は禁止する
 - `main` ブランチでの修正（commit/push）は禁止する
 
+worktree の作成と `pnpm` セットアップは、必ず以下のコマンドで実行する。
+
+```bash
+pnpm run worktree:add feature/<task-name>
+```
+
+このコマンドは以下を自動実行する。
+
+- `.worktree/feature/<task-name>` の作成（`git worktree add`）
+- 新規 branch 作成（未作成時のみ、base は `main`）
+- `pnpm install`（worktree ルート）
+- `pnpm --dir web install`（worktree の `web/`）
+
 ## 9. Git Hooks セットアップ
 
 コミット前・push前の品質ゲートを有効化するため、リポジトリルートで以下を実行する。
