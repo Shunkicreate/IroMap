@@ -4,7 +4,6 @@ import { useState } from "react";
 import { PanelHeader } from "@/components/workbench/panel-header";
 import { rgbToHex } from "@/domain/color/color-format";
 import {
-  isHslSliceAxis,
   toRgbColor,
   type ColorSpace3d,
   type RgbColor,
@@ -34,23 +33,41 @@ const keyboardPresetColors: RgbColor[] = [
   toRgbColor(131, 56, 236),
   toRgbColor(17, 24, 39),
 ];
+const defaultSliceAxisBySpace: Record<ColorSpace3d, SliceAxis> = {
+  rgb: "r",
+  hsl: "h",
+  lab: "lab-l",
+};
 
 const clamp = (value: number, min: number, max: number): number => {
   return Math.min(max, Math.max(min, value));
 };
 
-const toRange = (value: number, sourceMax: number, targetMax: number): number => {
-  return Math.round((value / sourceMax) * targetMax);
+const getAxisRange = (axis: SliceAxis): { min: number; max: number } => {
+  if (axis === "h") {
+    return { min: 0, max: 360 };
+  }
+  if (axis === "s" || axis === "l" || axis === "lab-l") {
+    return { min: 0, max: 100 };
+  }
+  if (axis === "lab-a" || axis === "lab-b") {
+    return { min: -128, max: 127 };
+  }
+  return { min: 0, max: 255 };
 };
 
-const getAxisMax = (axis: SliceAxis): number => {
-  if (axis === "h") {
-    return 360;
+const mapAxisValue = (
+  value: number,
+  sourceRange: { min: number; max: number },
+  targetRange: { min: number; max: number }
+): number => {
+  const sourceSpan = sourceRange.max - sourceRange.min;
+  const targetSpan = targetRange.max - targetRange.min;
+  if (sourceSpan === 0) {
+    return targetRange.min;
   }
-  if (axis === "s" || axis === "l") {
-    return 100;
-  }
-  return 255;
+  const ratio = (value - sourceRange.min) / sourceSpan;
+  return Math.round(targetRange.min + ratio * targetSpan);
 };
 
 export function ColorWorkbench() {
@@ -65,14 +82,15 @@ export function ColorWorkbench() {
   const [rotation, setRotation] = useState<Rotation>(defaultRotation);
 
   const normalizeSliceValueForAxis = (nextAxis: SliceAxis, currentValue: number): number => {
-    const nextMax = getAxisMax(nextAxis);
-    const currentMax = getAxisMax(sliceAxis);
+    const nextRange = getAxisRange(nextAxis);
+    const currentRange = getAxisRange(sliceAxis);
 
     if (sliceAxis === nextAxis) {
-      return clamp(currentValue, 0, nextMax);
+      return clamp(currentValue, nextRange.min, nextRange.max);
     }
 
-    return clamp(toRange(currentValue, currentMax, nextMax), 0, nextMax);
+    const normalized = mapAxisValue(currentValue, currentRange, nextRange);
+    return clamp(normalized, nextRange.min, nextRange.max);
   };
 
   const handleSliceAxisChange = (nextAxis: SliceAxis): void => {
@@ -82,18 +100,13 @@ export function ColorWorkbench() {
 
   const handleSpaceChange = (nextSpace: ColorSpace3d): void => {
     setSpace(nextSpace);
-
-    if (nextSpace === "hsl" && !isHslSliceAxis(sliceAxis)) {
-      setSliceAxis("h");
-      setSliceValue(clamp(toRange(sliceValue, 255, 360), 0, 360));
-      return;
-    }
-
-    if (nextSpace !== "hsl" && isHslSliceAxis(sliceAxis)) {
-      setSliceAxis("r");
-      const sourceMax = sliceAxis === "h" ? 360 : 100;
-      setSliceValue(clamp(toRange(sliceValue, sourceMax, 255), 0, 255));
-    }
+    const nextAxis = defaultSliceAxisBySpace[nextSpace];
+    const sourceRange = getAxisRange(sliceAxis);
+    const targetRange = getAxisRange(nextAxis);
+    setSliceAxis(nextAxis);
+    setSliceValue(
+      clamp(mapAxisValue(sliceValue, sourceRange, targetRange), targetRange.min, targetRange.max)
+    );
   };
 
   return (
