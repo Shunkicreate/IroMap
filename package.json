@@ -5,7 +5,11 @@
     "lint:md": "markdownlint \"**/*.md\" --ignore node_modules --ignore web/node_modules --ignore .worktree --ignore .pnpm-store",
     "lint:md:fix": "pnpm run lint:md --fix",
     "dev": "pnpm --dir web run dev",
+    "worktree:add": "./scripts/worktree-add.sh",
     "setup:hooks": "./scripts/setup-git-hooks.sh",
     "setup:hooks:check": "git config --get core.hooksPath"
+  },
+  "devDependencies": {
+    "markdownlint-cli": "^0.48.0"
   }
 }
