@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { PanelHeader } from "@/components/workbench/panel-header";
 import {
   isHslSliceAxis,
+  toRgbColor,
   type ColorSpace3d,
   type RgbColor,
   type SliceAxis,
@@ -24,6 +27,11 @@ type Rotation = {
 const defaultSliceValue = 128;
 const defaultRotation: Rotation = { x: -0.7, y: 0.6 };
 const defaultCubeSize = 520;
+const manualChannelLabels = {
+  r: "R",
+  g: "G",
+  b: "B",
+} as const;
 
 const clamp = (value: number, min: number, max: number): number => {
   return Math.min(max, Math.max(min, value));
@@ -46,6 +54,8 @@ const getAxisMax = (axis: SliceAxis): number => {
 export function ColorWorkbench() {
   const [hoverColor, setHoverColor] = useState<RgbColor | null>(null);
   const [selectedColor, setSelectedColor] = useState<RgbColor | null>(null);
+  const [analysisSourceFile, setAnalysisSourceFile] = useState<File | null>(null);
+  const [liveMessage, setLiveMessage] = useState<string>("");
   const [sliceAxis, setSliceAxis] = useState<SliceAxis>("r");
   const [sliceValue, setSliceValue] = useState<number>(defaultSliceValue);
   const [space, setSpace] = useState<ColorSpace3d>("rgb");
@@ -53,6 +63,9 @@ export function ColorWorkbench() {
   const [isCubeSizeSliderVisible, setIsCubeSizeSliderVisible] = useState<boolean>(true);
   const [cubeSize, setCubeSize] = useState<number>(defaultCubeSize);
   const [rotation, setRotation] = useState<Rotation>(defaultRotation);
+  const [manualR, setManualR] = useState<number>(128);
+  const [manualG, setManualG] = useState<number>(128);
+  const [manualB, setManualB] = useState<number>(128);
 
   const normalizeSliceValueForAxis = (nextAxis: SliceAxis, currentValue: number): number => {
     const nextMax = getAxisMax(nextAxis);
@@ -86,11 +99,29 @@ export function ColorWorkbench() {
     }
   };
 
+  const applyManualColor = (): void => {
+    const nextColor = toRgbColor(
+      clamp(manualR, 0, 255),
+      clamp(manualG, 0, 255),
+      clamp(manualB, 0, 255)
+    );
+    setSelectedColor(nextColor);
+    setLiveMessage(t("workbenchManualApplied"));
+    toast.success(t("workbenchManualApplied"));
+  };
+
+  const handleStatusChange = (message: string): void => {
+    setLiveMessage(message);
+  };
+
   return (
-    <main className="workbenchRoot">
-      <div className="pageHeader">
-        <h1>{t("workbenchTitle")}</h1>
-        <p>{t("workbenchSteps")}</p>
+    <section className="workbenchRoot">
+      <div className="workbenchTopBar">
+        <div>
+          <h1>{t("workbenchTitle")}</h1>
+          <p>{t("workbenchSteps")}</p>
+        </div>
+        <ThemeToggle />
       </div>
 
       <div className="workbenchMainGrid">
@@ -115,6 +146,15 @@ export function ColorWorkbench() {
               </TabsList>
             </Tabs>
             <div className="cubeSettings">
+              <label className="fileInputInline">
+                {t("workbenchUploadLabel")}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(event) => setAnalysisSourceFile(event.target.files?.[0] ?? null)}
+                />
+                <span>{t("workbenchUploadHint")}</span>
+              </label>
               <div className="cubeToggleRow">
                 <label className="toggleLabel">
                   <input
@@ -132,6 +172,44 @@ export function ColorWorkbench() {
                   />
                   {t("cubeShowSizeSlider")}
                 </label>
+              </div>
+              <div className="manualColorPicker" aria-label={t("workbenchManualPickerTitle")}>
+                <strong>{t("workbenchManualPickerTitle")}</strong>
+                <div className="manualColorInputs">
+                  <label>
+                    {manualChannelLabels.r}
+                    <input
+                      type="number"
+                      min={0}
+                      max={255}
+                      value={manualR}
+                      onChange={(event) => setManualR(Number(event.target.value))}
+                    />
+                  </label>
+                  <label>
+                    {manualChannelLabels.g}
+                    <input
+                      type="number"
+                      min={0}
+                      max={255}
+                      value={manualG}
+                      onChange={(event) => setManualG(Number(event.target.value))}
+                    />
+                  </label>
+                  <label>
+                    {manualChannelLabels.b}
+                    <input
+                      type="number"
+                      min={0}
+                      max={255}
+                      value={manualB}
+                      onChange={(event) => setManualB(Number(event.target.value))}
+                    />
+                  </label>
+                  <button type="button" onClick={applyManualColor}>
+                    {t("workbenchManualApply")}
+                  </button>
+                </div>
               </div>
               {isCubeSizeSliderVisible ? (
                 <label>
@@ -173,12 +251,22 @@ export function ColorWorkbench() {
 
         <aside className="supportPanels">
           <ColorInspector hoverColor={hoverColor} selectedColor={selectedColor} />
-          <ColorCopyPanel selectedColor={selectedColor} onColorPasted={setSelectedColor} />
+          <PhotoAnalysisPanel
+            sourceFile={analysisSourceFile}
+            onColorInspect={setSelectedColor}
+            onStatusChange={handleStatusChange}
+          />
+          <ColorCopyPanel
+            selectedColor={selectedColor}
+            onColorPasted={setSelectedColor}
+            onStatusChange={handleStatusChange}
+          />
         </aside>
       </div>
-      <div className="analysisSection">
-        <PhotoAnalysisPanel />
-      </div>
-    </main>
+
+      <p className="srOnly" aria-live="polite">
+        {liveMessage}
+      </p>
+    </section>
   );
 }
