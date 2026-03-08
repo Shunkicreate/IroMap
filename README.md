@@ -1,19 +1,21 @@
 ﻿# IroMap
 
-IroMap は、色空間を理解するための学習・検証向けプロジェクトです。  
+IroMap は、写真の色構造を可視化・診断する **Photo Color Analyzer** です。  
 README は概要のみを扱い、機能要件や設計詳細は `docs/` に分離して管理します。
 
-## 目的
+## プロダクト定義
 
-- 色空間の可視化と変換ロジックを、仕様駆動で継続的に整理する
-- 仕様 (`spec`) と設計 (`design`) と実装タスク (`tasks`) を明確に分ける
-- ADR により技術判断の根拠を追跡可能にする
+> Understand the color structure of your photos
+
+- 主目的: 写真の色構造（分布・面積比・多様性）を分析する
+- 技術MVP: Three.js による RGB 可視化基盤を安定化する
+- 機能MVP: Lab散布図 / Hue・Saturationヒストグラム / 色面積比を提供する
 
 ## ドキュメント構成
 
 ```text
 docs/
-  product/         # プロダクト方針
+  product/         # プロダクト方針・ロードマップ
   architecture/    # アーキテクチャ全体
   adr/             # 技術意思決定記録
   specs/           # 機能ごとの SDD 一式
@@ -33,6 +35,14 @@ docs/
 - `spec.md` で要求を定義し、`design.md` で設計に落とす
 - `tasks.md` と `test-cases.md` を更新して実装と受け入れを同期する
 - 検討中事項は `notes.md` に残し、確定後に関連ドキュメントへ反映する
+
+## 現在の優先順位
+
+1. RGB visualization（技術MVP）
+2. Lab a-b scatter（分析コア）
+3. Hue / Saturation histogram
+4. Color area ratio
+5. Colorfulness / cluster analysis
 
 ## ライセンス
 

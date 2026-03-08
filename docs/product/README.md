@@ -10,6 +10,7 @@
 - `vision.md`: 目指す状態と非目標
 - `constraints.md`: 技術/運用制約
 - `glossary.md`: 用語定義
+- `roadmap.md`: 技術MVPと機能MVPの段階計画
 
 ## 推奨フォーマット
 ```md
@@ -28,4 +29,3 @@
 ## 書き方の意味
 - ここには「機能実装の詳細」は書かない
 - 仕様詳細は `docs/specs/`、技術判断は `docs/adr/` に分離する
-
