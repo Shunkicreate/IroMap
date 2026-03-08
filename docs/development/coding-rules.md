@@ -60,3 +60,25 @@
 ## 10. ドキュメント同期
 - 設計判断が発生したら ADR を追加し、関連 `design.md` から参照する
 - 実装が仕様から逸脱する場合は、先に `spec.md` / `design.md` を更新する
+
+## 11. 自動チェックで強制する項目
+以下は `web/eslint.config.mjs` と `prettier`、`git hooks` で強制する。
+
+- 命名規則
+  - ファイル名: `kebab-case`（`web/scripts/check-file-names.mjs`）
+  - 型・インターフェース: `PascalCase`（`@typescript-eslint/naming-convention`）
+  - 変数・関数: `camelCase`（`@typescript-eslint/naming-convention`）
+  - 真偽値: `is` / `has` / `can` 接頭辞（`@typescript-eslint/naming-convention`）
+- 型安全
+  - `any` の利用禁止（`@typescript-eslint/no-explicit-any`）
+- React
+  - JSX コンポーネント名は `PascalCase`（`react/jsx-pascal-case`）
+- 依存制約（import）
+  - `domain/` は `react` / `next` / `app` / `features` へ依存禁止
+  - `components/` から `features/` への直接依存禁止
+  - `features/` から `app/` への逆依存禁止
+  - `rendering/` / `lib/` から `app/` / `features/` への依存禁止
+- 形式統一
+  - `prettier` による整形を強制（`pre-commit` / `pre-push` / GitHub Actions）
+
+なお、責務設計やライフサイクル分離などのアーキテクチャ判断は静的解析だけでは完全保証できないため、レビューで補完する。

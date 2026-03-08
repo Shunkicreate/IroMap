@@ -8,6 +8,7 @@
 - `docs/adr/README.md`: ADR の命名規則と標準フォーマット
 - `docs/architecture/`: 全体アーキテクチャと品質属性
 - `docs/development/coding-rules.md`: コーディング規約と依存ルール
+- `docs/development/branch-rules.md`: ブランチ運用ルールと GitHub 品質ゲート
 
 ## 2. 基本原則
 - 1 機能 = 1 ディレクトリ（`docs/specs/YYYY-MM-feature-name/`）
@@ -59,3 +60,18 @@
 ## 8. 作業場所
 - すべての作業は `.worktree` 配下の作業ツリーで行う
 - 機能ごとに作業ディレクトリを分け、並行作業時の衝突を避ける
+
+## 9. Git Hooks セットアップ
+コミット前・push前の品質ゲートを有効化するため、リポジトリルートで以下を実行する。
+
+```bash
+pnpm run setup:hooks
+```
+
+設定確認:
+
+```bash
+pnpm run setup:hooks:check
+```
+
+期待値は `.githooks`。

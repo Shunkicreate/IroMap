@@ -1,0 +1,8 @@
+{
+  "name": "iromap",
+  "private": true,
+  "scripts": {
+    "setup:hooks": "./scripts/setup-git-hooks.sh",
+    "setup:hooks:check": "git config --get core.hooksPath"
+  }
+}
