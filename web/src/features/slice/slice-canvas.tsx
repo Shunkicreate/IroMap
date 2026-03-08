@@ -2,6 +2,11 @@
 
 import { useEffect, useRef } from "react";
 import type { RgbColor, SliceAxis } from "@/domain/color/color-types";
+import {
+  colorChannelLevels,
+  colorChannelMax,
+  colorChannelMin,
+} from "@/domain/color/color-constants";
 
 type Props = {
   axis: SliceAxis;
@@ -17,19 +22,19 @@ const buildColorFromPixel = (axis: SliceAxis, value: number, x: number, y: numbe
     return {
       r: value,
       g: x,
-      b: 255 - y,
+      b: colorChannelMax - y,
     };
   }
   if (axis === "g") {
     return {
       r: x,
       g: value,
-      b: 255 - y,
+      b: colorChannelMax - y,
     };
   }
   return {
     r: x,
-    g: 255 - y,
+    g: colorChannelMax - y,
     b: value,
   };
 };
@@ -55,15 +60,15 @@ export function SliceCanvas({
       return;
     }
 
-    const imageData = context.createImageData(256, 256);
-    for (let y = 0; y < 256; y += 1) {
-      for (let x = 0; x < 256; x += 1) {
+    const imageData = context.createImageData(colorChannelLevels, colorChannelLevels);
+    for (let y = colorChannelMin; y < colorChannelLevels; y += 1) {
+      for (let x = colorChannelMin; x < colorChannelLevels; x += 1) {
         const color = buildColorFromPixel(axis, value, x, y);
-        const offset = (y * 256 + x) * 4;
+        const offset = (y * colorChannelLevels + x) * 4;
         imageData.data[offset] = color.r;
         imageData.data[offset + 1] = color.g;
         imageData.data[offset + 2] = color.b;
-        imageData.data[offset + 3] = 255;
+        imageData.data[offset + 3] = colorChannelMax;
       }
     }
 
@@ -72,10 +77,14 @@ export function SliceCanvas({
 
   const mapPointerToColor = (event: React.PointerEvent<HTMLCanvasElement>): RgbColor | null => {
     const bounds = event.currentTarget.getBoundingClientRect();
-    const x = Math.round((event.clientX - bounds.left) * (256 / bounds.width));
-    const y = Math.round((event.clientY - bounds.top) * (256 / bounds.height));
+    const x = Math.round(
+      (event.clientX - bounds.left) * (colorChannelLevels / bounds.width)
+    );
+    const y = Math.round(
+      (event.clientY - bounds.top) * (colorChannelLevels / bounds.height)
+    );
 
-    if (x < 0 || x > 255 || y < 0 || y > 255) {
+    if (x < colorChannelMin || x > colorChannelMax || y < colorChannelMin || y > colorChannelMax) {
       return null;
     }
 
@@ -113,8 +122,8 @@ export function SliceCanvas({
           Value: {value}
           <input
             type="range"
-            min={0}
-            max={255}
+            min={colorChannelMin}
+            max={colorChannelMax}
             value={value}
             onChange={(event) => onValueChange(Number(event.target.value))}
           />
@@ -122,8 +131,8 @@ export function SliceCanvas({
       </div>
       <canvas
         ref={canvasRef}
-        width={256}
-        height={256}
+        width={colorChannelLevels}
+        height={colorChannelLevels}
         className="sliceCanvas"
         onPointerMove={handlePointerMove}
         onPointerLeave={() => onHoverColorChange(null)}

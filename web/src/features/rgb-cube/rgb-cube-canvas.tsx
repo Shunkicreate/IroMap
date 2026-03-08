@@ -3,6 +3,12 @@
 import { useEffect, useMemo, useRef } from "react";
 import type { RgbColor, SliceAxis } from "@/domain/color/color-types";
 import { clampRgb } from "@/domain/color/color-conversion";
+import {
+  colorChannelLevels,
+  colorChannelMax,
+  colorChannelMidpoint,
+  colorChannelMin,
+} from "@/domain/color/color-constants";
 
 type Rotation = {
   x: number;
@@ -25,10 +31,24 @@ type Props = {
   onColorSelect: (color: RgbColor) => void;
 };
 
-const levels = Array.from({ length: 16 }, (_, index) => index * 17);
+const colorSampleSteps = 16;
+const colorSampleStepSize = colorChannelMax / (colorSampleSteps - 1);
+const neutralGray = 220;
+const defaultAlpha = 0.5;
+const planeFillAlpha = 0.05;
+const planeStrokeAlpha = 0.45;
+const textAlpha = 0.85;
+
+const levels = Array.from({ length: colorSampleSteps }, (_, index) =>
+  Math.round(index * colorSampleStepSize)
+);
 
 const toSpace = (value: number): number => {
-  return value / 127.5 - 1;
+  return value / colorChannelMidpoint - 1;
+};
+
+const rgbaFromGray = (gray: number, alpha: number): string => {
+  return `rgba(${gray}, ${gray}, ${gray}, ${alpha})`;
 };
 
 const projectColor = (
@@ -69,14 +89,14 @@ const drawGuideCube = (
   height: number
 ): void => {
   const corners: RgbColor[] = [
-    { r: 0, g: 0, b: 0 },
-    { r: 255, g: 0, b: 0 },
-    { r: 0, g: 255, b: 0 },
-    { r: 255, g: 255, b: 0 },
-    { r: 0, g: 0, b: 255 },
-    { r: 255, g: 0, b: 255 },
-    { r: 0, g: 255, b: 255 },
-    { r: 255, g: 255, b: 255 },
+    { r: colorChannelMin, g: colorChannelMin, b: colorChannelMin },
+    { r: colorChannelMax, g: colorChannelMin, b: colorChannelMin },
+    { r: colorChannelMin, g: colorChannelMax, b: colorChannelMin },
+    { r: colorChannelMax, g: colorChannelMax, b: colorChannelMin },
+    { r: colorChannelMin, g: colorChannelMin, b: colorChannelMax },
+    { r: colorChannelMax, g: colorChannelMin, b: colorChannelMax },
+    { r: colorChannelMin, g: colorChannelMax, b: colorChannelMax },
+    { r: colorChannelMax, g: colorChannelMax, b: colorChannelMax },
   ];
 
   const projected = corners.map((color) => projectColor(color, rotation, width, height));
@@ -96,7 +116,7 @@ const drawGuideCube = (
   ];
 
   context.lineWidth = 1;
-  context.strokeStyle = "rgba(220, 220, 220, 0.5)";
+  context.strokeStyle = rgbaFromGray(neutralGray, defaultAlpha);
 
   for (const [from, to] of edgePairs) {
     const start = projected[from];
@@ -112,24 +132,24 @@ const getPlaneCorners = (axis: SliceAxis, value: number): RgbColor[] => {
   if (axis === "r") {
     return [
       { r: value, g: 0, b: 0 },
-      { r: value, g: 255, b: 0 },
-      { r: value, g: 255, b: 255 },
-      { r: value, g: 0, b: 255 },
+      { r: value, g: colorChannelMax, b: colorChannelMin },
+      { r: value, g: colorChannelMax, b: colorChannelMax },
+      { r: value, g: colorChannelMin, b: colorChannelMax },
     ];
   }
   if (axis === "g") {
     return [
-      { r: 0, g: value, b: 0 },
-      { r: 255, g: value, b: 0 },
-      { r: 255, g: value, b: 255 },
-      { r: 0, g: value, b: 255 },
+      { r: colorChannelMin, g: value, b: colorChannelMin },
+      { r: colorChannelMax, g: value, b: colorChannelMin },
+      { r: colorChannelMax, g: value, b: colorChannelMax },
+      { r: colorChannelMin, g: value, b: colorChannelMax },
     ];
   }
   return [
-    { r: 0, g: 0, b: value },
-    { r: 255, g: 0, b: value },
-    { r: 255, g: 255, b: value },
-    { r: 0, g: 255, b: value },
+    { r: colorChannelMin, g: colorChannelMin, b: value },
+    { r: colorChannelMax, g: colorChannelMin, b: value },
+    { r: colorChannelMax, g: colorChannelMax, b: value },
+    { r: colorChannelMin, g: colorChannelMax, b: value },
   ];
 };
 
@@ -151,8 +171,8 @@ const drawSlicePlane = (
   context.lineTo(planeCorners[3].x, planeCorners[3].y);
   context.lineTo(planeCorners[2].x, planeCorners[2].y);
   context.closePath();
-  context.fillStyle = "rgba(255, 255, 255, 0.05)";
-  context.strokeStyle = "rgba(255, 255, 255, 0.45)";
+  context.fillStyle = rgbaFromGray(colorChannelMax, planeFillAlpha);
+  context.strokeStyle = rgbaFromGray(colorChannelMax, planeStrokeAlpha);
   context.lineWidth = 1.5;
   context.fill();
   context.stroke();
@@ -224,9 +244,9 @@ export function RgbCubeCanvas({
       context.fill();
     }
 
-    context.fillStyle = "rgba(255, 255, 255, 0.85)";
+    context.fillStyle = rgbaFromGray(colorChannelMax, textAlpha);
     context.font = "12px monospace";
-    context.fillText(`Resolution: 256 fixed`, 14, 22);
+    context.fillText(`Resolution: ${colorChannelLevels} fixed`, 14, 22);
     context.fillText(`Slice: ${sliceAxis.toUpperCase()}=${sliceValue}`, 14, 40);
   }, [rotation, sampledColors, sliceAxis, sliceValue]);
 

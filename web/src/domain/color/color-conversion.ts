@@ -1,7 +1,11 @@
 import type { HslColor, LabColor, RgbColor } from "@/domain/color/color-types";
+import {
+  colorChannelMax,
+  colorChannelMin,
+} from "@/domain/color/color-constants";
 
 const srgbPivot = (value: number): number => {
-  const normalized = value / 255;
+  const normalized = value / colorChannelMax;
   if (normalized <= 0.04045) {
     return normalized / 12.92;
   }
@@ -17,16 +21,16 @@ const xyzPivot = (value: number): number => {
 
 export const clampRgb = (color: RgbColor): RgbColor => {
   return {
-    r: Math.max(0, Math.min(255, Math.round(color.r))),
-    g: Math.max(0, Math.min(255, Math.round(color.g))),
-    b: Math.max(0, Math.min(255, Math.round(color.b))),
+    r: Math.max(colorChannelMin, Math.min(colorChannelMax, Math.round(color.r))),
+    g: Math.max(colorChannelMin, Math.min(colorChannelMax, Math.round(color.g))),
+    b: Math.max(colorChannelMin, Math.min(colorChannelMax, Math.round(color.b))),
   };
 };
 
 export const rgbToHsl = (color: RgbColor): HslColor => {
-  const r = color.r / 255;
-  const g = color.g / 255;
-  const b = color.b / 255;
+  const r = color.r / colorChannelMax;
+  const g = color.g / colorChannelMax;
+  const b = color.b / colorChannelMax;
 
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
