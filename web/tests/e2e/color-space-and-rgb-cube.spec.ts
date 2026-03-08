@@ -144,9 +144,9 @@ test("T-112(color-space-3d): HSLからLab遷移後もSliceとキューブ状態�
   await expect(slider).toHaveValue("100");
 
   await page.getByRole("tab", { name: "Lab" }).click();
-  await expect(slice.getByRole("combobox")).toHaveValue("r");
-  await expect(slider).toHaveValue("255");
-  await expect(slice.getByText("R 固定 = 255")).toBeVisible();
+  await expect(slice.getByRole("combobox")).toHaveValue("lab-l");
+  await expect(slider).toHaveValue("100");
+  await expect(slice.getByText("L* 固定 = 100")).toBeVisible();
   await page.getByRole("tab", { name: "RGB" }).click();
   await expect(slice.getByRole("combobox")).toHaveValue("r");
   await expect(slider).toHaveValue("255");

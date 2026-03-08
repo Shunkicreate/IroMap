@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { clampRgb } from "@/domain/color/color-conversion";
 import {
-  isRgbSliceAxis,
   type ColorSpace3d,
   toRgbColor,
   type RgbColor,
@@ -44,14 +43,17 @@ const secondOverlayTextTop = 40;
 const textAlpha = 0.85;
 const defaultCubeSize = 400;
 
-const getSpaceLabel = (space: ColorSpace3d): string => {
-  if (space === "rgb") {
-    return t("spaceRgb");
+const getSliceAxisLabel = (axis: SliceAxis): string => {
+  if (axis === "lab-l") {
+    return "L*";
   }
-  if (space === "hsl") {
-    return t("spaceHsl");
+  if (axis === "lab-a") {
+    return "a";
   }
-  return t("spaceLab");
+  if (axis === "lab-b") {
+    return "b";
+  }
+  return axis.toUpperCase();
 };
 
 const mapPointer = (event: React.PointerEvent<HTMLCanvasElement>): { x: number; y: number } => {
@@ -121,9 +123,7 @@ export function RgbCubeCanvas({
     if (axisGuideMode === "visible") {
       drawAxisGuide(context, space, rotation, width, height, objectScale);
     }
-    if (space === "rgb" && isRgbSliceAxis(sliceAxis)) {
-      drawSlicePlane(context, rotation, width, height, sliceAxis, sliceValue, objectScale);
-    }
+    drawSlicePlane(context, space, rotation, width, height, sliceAxis, sliceValue, objectScale);
 
     const projected = sampledColors
       .map((color) => projectColor(color, space, rotation, width, height, objectScale))
@@ -145,19 +145,11 @@ export function RgbCubeCanvas({
       overlayTextLeft,
       resolutionTextTop
     );
-    if (space === "rgb" || space === "hsl") {
-      context.fillText(
-        t("cubeSliceOverlay", { axis: sliceAxis.toUpperCase(), value: sliceValue }),
-        overlayTextLeft,
-        secondOverlayTextTop
-      );
-    } else {
-      context.fillText(
-        t("cubeSpaceOverlay", { space: getSpaceLabel(space) }),
-        overlayTextLeft,
-        secondOverlayTextTop
-      );
-    }
+    context.fillText(
+      t("cubeSliceOverlay", { axis: getSliceAxisLabel(sliceAxis), value: sliceValue }),
+      overlayTextLeft,
+      secondOverlayTextTop
+    );
   }, [axisGuideMode, cubeSize, rotation, sampledColors, sliceAxis, sliceValue, space]);
 
   const findNearestColor = (offsetX: number, offsetY: number): RgbColor | null => {
@@ -217,6 +209,8 @@ export function RgbCubeCanvas({
       ref={canvasRef}
       className="cubeCanvas"
       style={{ height: `${cubeSize}px` }}
+      tabIndex={0}
+      aria-label={t("cubeCanvasAriaLabel")}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
