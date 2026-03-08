@@ -32,7 +32,7 @@ resource "github_repository_ruleset" "branch_protection" {
       dismiss_stale_reviews_on_push     = false
       require_code_owner_review         = false
       require_last_push_approval        = false
-      required_approving_review_count   = 0
+      required_approving_review_count   = var.required_approving_review_count
       required_review_thread_resolution = false
     }
 

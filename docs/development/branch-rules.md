@@ -33,7 +33,9 @@ IroMap のブランチ運用ルールを定義する。
 - Required status checks:
   - `lint-and-format` (workflow: `quality-gate`)
   - `validate-branch-name` (workflow: `branch-name`)
-- Require pull request reviews before merging を有効化
+- Require pull request reviews before merging:
+  - チーム開発: 有効化（`required_approving_review_count >= 1`）
+  - 単独開発: 任意（セルフ運用時は `required_approving_review_count = 0`）
 - Include administrators を有効化
 
 ## 6. 初期セットアップ
