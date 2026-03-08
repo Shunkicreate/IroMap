@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { PanelHeader } from "@/components/workbench/panel-header";
 import {
   isHslSliceAxis,
   type ColorSpace3d,
@@ -64,10 +65,7 @@ export function ColorWorkbench() {
       <div className="workbenchMainGrid">
         <div className="visualizationGrid">
           <section className="panel">
-            <div className="panelHeader">
-              <h2>{t("panelRgbCube")}</h2>
-              <p>FR-1 / FR-2 / FR-3 / FR-4</p>
-            </div>
+            <PanelHeader titleKey="panelRgbCube" requirementsKey="panelRgbCubeRequirements" />
             <Tabs
               value={space}
               onValueChange={(value) => handleSpaceChange(value as ColorSpace3d)}
