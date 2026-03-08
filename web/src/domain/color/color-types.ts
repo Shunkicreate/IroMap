@@ -62,7 +62,8 @@ export type ColorSpace3d = "rgb" | "hsl" | "lab";
 
 export type RgbSliceAxis = "r" | "g" | "b";
 export type HslSliceAxis = "h" | "s" | "l";
-export type SliceAxis = RgbSliceAxis | HslSliceAxis;
+export type LabSliceAxis = "lab-l" | "lab-a" | "lab-b";
+export type SliceAxis = RgbSliceAxis | HslSliceAxis | LabSliceAxis;
 
 export const isRgbSliceAxis = (axis: SliceAxis): axis is RgbSliceAxis => {
   return axis === "r" || axis === "g" || axis === "b";
@@ -70,4 +71,8 @@ export const isRgbSliceAxis = (axis: SliceAxis): axis is RgbSliceAxis => {
 
 export const isHslSliceAxis = (axis: SliceAxis): axis is HslSliceAxis => {
   return axis === "h" || axis === "s" || axis === "l";
+};
+
+export const isLabSliceAxis = (axis: SliceAxis): axis is LabSliceAxis => {
+  return axis === "lab-l" || axis === "lab-a" || axis === "lab-b";
 };
