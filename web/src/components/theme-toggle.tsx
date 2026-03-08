@@ -15,11 +15,7 @@ export function ThemeToggle() {
       aria-label={t("themeToggleAriaLabel")}
       onClick={() => setTheme(isDark ? "light" : "dark")}
     >
-      {safeTheme === "system"
-        ? t("themeToggleLoading")
-        : isDark
-          ? t("themeToggleDark")
-          : t("themeToggleLight")}
+      {t("themeToggleButtonLabel")}
     </button>
   );
 }
