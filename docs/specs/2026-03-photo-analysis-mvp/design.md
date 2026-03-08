@@ -2,13 +2,14 @@
 
 ## 1. 目的
 
-- `spec.md` の FR-1 から FR-4 を満たす設計方針を定義する
+- `spec.md` の FR-1 から FR-6 を満たす設計方針を定義する
 
 ## 2. 全体方針
 
 - 画像入力を共通のピクセルサンプリング処理で正規化する
 - 分析指標ごとに独立した計算モジュールを持たせる
 - 表示層は「散布図」「ヒストグラム」「比率表示」の3系統に分離する
+- 指標ごとの値レンジ評価を `Interpretation Guide` として同一画面に提示する
 
 ## 3. アーキテクチャ上の位置づけ
 
@@ -24,6 +25,7 @@
 - `HueBin`: { start, end, count }
 - `SaturationBin`: { start, end, count }
 - `ColorArea`: { label, ratio, rgb }
+- `InterpretationBand`: { metric, min, max, label }
 
 ## 5. シーケンス
 
