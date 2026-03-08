@@ -34,6 +34,16 @@ const buildColorFromPixel = (axis: SliceAxis, value: number, x: number, y: numbe
   return toRgbColor(x, colorChannelMax - y, value);
 };
 
+const getPlaneLabels = (axis: SliceAxis): { x: string; y: string; fixed: string } => {
+  if (axis === "r") {
+    return { x: "G", y: "B", fixed: "R" };
+  }
+  if (axis === "g") {
+    return { x: "R", y: "B", fixed: "G" };
+  }
+  return { x: "R", y: "G", fixed: "B" };
+};
+
 export function SliceCanvas({
   axis,
   value,
@@ -43,6 +53,7 @@ export function SliceCanvas({
   onColorSelect,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const labels = getPlaneLabels(axis);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -120,15 +131,22 @@ export function SliceCanvas({
           />
         </label>
       </div>
-      <canvas
-        ref={canvasRef}
-        width={colorChannelLevels}
-        height={colorChannelLevels}
-        className="sliceCanvas"
-        onPointerMove={handlePointerMove}
-        onPointerLeave={() => onHoverColorChange(null)}
-        onClick={handleClick}
-      />
+      <div className="sliceCanvasWrap">
+        <div className="sliceAxisBadge">
+          {t("sliceFixedAxisLabel", { axis: labels.fixed, value })}
+        </div>
+        <canvas
+          ref={canvasRef}
+          width={colorChannelLevels}
+          height={colorChannelLevels}
+          className="sliceCanvas"
+          onPointerMove={handlePointerMove}
+          onPointerLeave={() => onHoverColorChange(null)}
+          onClick={handleClick}
+        />
+        <div className="sliceAxisXLabel">{t("sliceAxisXLabel", { axis: labels.x })}</div>
+        <div className="sliceAxisYLabel">{t("sliceAxisYLabel", { axis: labels.y })}</div>
+      </div>
     </section>
   );
 }
