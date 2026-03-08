@@ -1,4 +1,5 @@
 import { rgbToHueAndSaturation, rgbToLab } from "@/domain/color/color-conversion";
+import { colorChannelMax } from "@/domain/color/color-constants";
 import type { LabColor, RgbColor } from "@/domain/color/color-types";
 
 type PixelSample = {
@@ -75,7 +76,7 @@ const samplePixels = (imageData: ImageData, step: number, maxSamples: number): P
       }
 
       const offset = (y * width + x) * 4;
-      const alpha = data[offset + 3] / 255;
+      const alpha = data[offset + 3] / colorChannelMax;
       if (alpha === 0) {
         continue;
       }
