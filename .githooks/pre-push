@@ -3,7 +3,7 @@ set -euo pipefail
 
 . "$(git rev-parse --show-toplevel)/.githooks/guard-worktree-and-branch.sh"
 require_worktree_checkout
-reject_main_branch
+require_feature_branch
 
 while read -r local_ref local_sha remote_ref remote_sha; do
   if [[ "$local_ref" == "refs/heads/main" || "$remote_ref" == "refs/heads/main" ]]; then
