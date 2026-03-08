@@ -6,7 +6,7 @@ test("T-101(color-copy): 選択色保持の確認", async ({ page }) => {
   await selectColorFromSlice(page);
 
   const selectedPanel = getPanel(page, "インスペクタ");
-  await expect(selectedPanel.getByText("選択色がありません")).toHaveCount(0);
+  await expect(selectedPanel.getByText(/^#[0-9A-F]{6}$/i).last()).toBeVisible();
 });
 
 test("T-102(color-copy): コピー形式の確認", async ({ page }) => {
@@ -25,10 +25,12 @@ test("T-102(color-copy): コピー形式の確認", async ({ page }) => {
 
 test("T-101(inspector): プレビュー表示の確認", async ({ page }) => {
   await page.goto("/");
-  await hoverColorOnSlice(page);
-
   const inspector = getPanel(page, "インスペクタ");
-  await expect(inspector.getByText("ホバー対象がありません")).toHaveCount(0);
+  await expect(inspector.locator("code")).toHaveCount(6);
+  await expect(inspector.locator("code", { hasText: "--" })).toHaveCount(6);
+
+  await hoverColorOnSlice(page);
+  await expect(inspector.getByText(/^#[0-9A-F]{6}$/i).first()).toBeVisible();
 });
 
 test("T-102(inspector): 選択色保持の確認", async ({ page }) => {
@@ -36,7 +38,7 @@ test("T-102(inspector): 選択色保持の確認", async ({ page }) => {
   await selectColorFromSlice(page);
 
   const inspector = getPanel(page, "インスペクタ");
-  await expect(inspector.getByText("選択色がありません")).toHaveCount(0);
+  await expect(inspector.getByText(/^#[0-9A-F]{6}$/i).last()).toBeVisible();
 });
 
 test("T-103(inspector): 3形式表示の確認", async ({ page }) => {
