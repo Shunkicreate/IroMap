@@ -2,6 +2,8 @@ import { defineConfig, devices } from "@playwright/test";
 
 const hasExternalBaseUrl = Boolean(process.env.PLAYWRIGHT_BASE_URL);
 const isCI = Boolean(process.env.CI);
+const playwrightPort = process.env.PLAYWRIGHT_PORT ?? "3100";
+const localBaseUrl = `http://127.0.0.1:${playwrightPort}`;
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -11,14 +13,14 @@ export default defineConfig({
   workers: isCI ? 1 : undefined,
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3000",
+    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? localBaseUrl,
     trace: "on-first-retry",
   },
   webServer: hasExternalBaseUrl
     ? undefined
     : {
-        command: "pnpm dev",
-        url: "http://127.0.0.1:3000",
+        command: `pnpm dev -- --hostname 127.0.0.1 --port ${playwrightPort}`,
+        url: localBaseUrl,
         timeout: 120_000,
         reuseExistingServer: !isCI,
       },
