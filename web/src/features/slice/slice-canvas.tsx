@@ -7,6 +7,7 @@ import {
   colorChannelMax,
   colorChannelMin,
 } from "@/domain/color/color-constants";
+import { t } from "@/i18n/translate";
 
 type Props = {
   axis: SliceAxis;
@@ -112,20 +113,20 @@ export function SliceCanvas({
   return (
     <section className="panel">
       <div className="panelHeader">
-        <h2>Slice</h2>
+        <h2>{t("panelSlice")}</h2>
         <p>FR-1 / FR-2 / FR-3</p>
       </div>
       <div className="sliceControls">
         <label>
-          Axis
+          {t("sliceAxisLabel")}
           <select value={axis} onChange={(event) => onAxisChange(event.target.value as SliceAxis)}>
-            <option value="r">R fixed</option>
-            <option value="g">G fixed</option>
-            <option value="b">B fixed</option>
+            <option value="r">{t("sliceAxisR")}</option>
+            <option value="g">{t("sliceAxisG")}</option>
+            <option value="b">{t("sliceAxisB")}</option>
           </select>
         </label>
         <label>
-          Value: {value}
+          {t("sliceValueLabel", { value })}
           <input
             type="range"
             min={colorChannelMin}

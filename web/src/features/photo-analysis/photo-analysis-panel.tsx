@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { analyzePhoto, type PhotoAnalysisResult } from "@/domain/photo-analysis/photo-analysis";
 import { rgbToHex } from "@/domain/color/color-format";
 import { colorChannelLevels } from "@/domain/color/color-constants";
+import { t } from "@/i18n/translate";
 
 type AnalysisState = {
   fileName: string;
@@ -68,7 +69,7 @@ export function PhotoAnalysisPanel() {
         result,
       });
     } catch {
-      setError("Failed to decode image or compute analysis");
+      setError(t("photoError"));
       setAnalysis(null);
     } finally {
       setIsAnalyzing(false);
@@ -78,22 +79,22 @@ export function PhotoAnalysisPanel() {
   return (
     <section className="panel">
       <div className="panelHeader">
-        <h2>Photo Analysis MVP</h2>
+        <h2>{t("panelPhotoAnalysis")}</h2>
         <p>FR-1 / FR-2 / FR-3 / FR-4</p>
       </div>
 
       <label className="fileInput">
-        Upload image
+        {t("photoUploadLabel")}
         <input type="file" accept="image/*" onChange={handleFileChange} />
       </label>
 
-      {isAnalyzing ? <p className="muted">Analyzing...</p> : null}
+      {isAnalyzing ? <p className="muted">{t("photoAnalyzing")}</p> : null}
       {error ? <p className="errorText">{error}</p> : null}
 
       {analysis ? (
         <div className="analysisGrid">
           <article>
-            <h3>Lab a-b scatter</h3>
+            <h3>{t("photoLabScatter")}</h3>
             <svg
               viewBox={`0 0 ${scatterViewboxSize} ${scatterViewboxSize}`}
               className="scatterPlot"
@@ -120,7 +121,7 @@ export function PhotoAnalysisPanel() {
           </article>
 
           <article>
-            <h3>Hue histogram</h3>
+            <h3>{t("photoHueHistogram")}</h3>
             <div className="histogramBars">
               {analysis.result.hueHistogram.map((bin) => {
                 const height = Math.max(
@@ -139,7 +140,7 @@ export function PhotoAnalysisPanel() {
           </article>
 
           <article>
-            <h3>Saturation histogram</h3>
+            <h3>{t("photoSaturationHistogram")}</h3>
             <div className="histogramBars saturationBars">
               {analysis.result.saturationHistogram.map((bin) => {
                 const height = Math.max(
@@ -160,7 +161,7 @@ export function PhotoAnalysisPanel() {
           </article>
 
           <article>
-            <h3>Color area ratio</h3>
+            <h3>{t("photoColorAreaRatio")}</h3>
             <ul className="areaList">
               {analysis.result.colorAreas.map((area) => (
                 <li key={area.label}>
@@ -170,7 +171,7 @@ export function PhotoAnalysisPanel() {
                       backgroundColor: `rgb(${area.rgb.r}, ${area.rgb.g}, ${area.rgb.b})`,
                     }}
                   />
-                  <span>{area.label}</span>
+                  <span>{area.label === "others" ? t("photoOthers") : area.label}</span>
                   <strong>{area.ratio.toFixed(1)}%</strong>
                 </li>
               ))}
@@ -181,8 +182,11 @@ export function PhotoAnalysisPanel() {
 
       {analysis ? (
         <p className="muted">
-          file={analysis.fileName} | sampled={analysis.result.sampledPixels} | elapsed=
-          {analysis.result.elapsedMs.toFixed(fileSummaryPrecision)}ms
+          {t("photoSummary", {
+            fileName: analysis.fileName,
+            sampledPixels: analysis.result.sampledPixels,
+            elapsedMs: analysis.result.elapsedMs.toFixed(fileSummaryPrecision),
+          })}
         </p>
       ) : null}
     </section>
