@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { clampRgb } from "@/domain/color/color-conversion";
 import {
+  isRgbSliceAxis,
   type ColorSpace3d,
   toRgbColor,
   type RgbColor,
@@ -41,6 +42,7 @@ const overlayTextLeft = 14;
 const resolutionTextTop = 22;
 const secondOverlayTextTop = 40;
 const textAlpha = 0.85;
+const defaultCubeSize = 400;
 
 const getSpaceLabel = (space: ColorSpace3d): string => {
   if (space === "rgb") {
@@ -113,16 +115,18 @@ export function RgbCubeCanvas({
     context.fillStyle = "#0e1118";
     context.fillRect(0, 0, width, height);
 
-    drawGuide(context, space, rotation, width, height);
+    const objectScale = cubeSize / defaultCubeSize;
+
+    drawGuide(context, space, rotation, width, height, objectScale);
     if (axisGuideMode === "visible") {
-      drawAxisGuide(context, space, rotation, width, height);
+      drawAxisGuide(context, space, rotation, width, height, objectScale);
     }
-    if (space === "rgb") {
-      drawSlicePlane(context, rotation, width, height, sliceAxis, sliceValue);
+    if (space === "rgb" && isRgbSliceAxis(sliceAxis)) {
+      drawSlicePlane(context, rotation, width, height, sliceAxis, sliceValue, objectScale);
     }
 
     const projected = sampledColors
-      .map((color) => projectColor(color, space, rotation, width, height))
+      .map((color) => projectColor(color, space, rotation, width, height, objectScale))
       .sort((left, right) => left.depth - right.depth);
 
     projectedPointsRef.current = projected;
@@ -141,7 +145,7 @@ export function RgbCubeCanvas({
       overlayTextLeft,
       resolutionTextTop
     );
-    if (space === "rgb") {
+    if (space === "rgb" || space === "hsl") {
       context.fillText(
         t("cubeSliceOverlay", { axis: sliceAxis.toUpperCase(), value: sliceValue }),
         overlayTextLeft,
@@ -154,7 +158,7 @@ export function RgbCubeCanvas({
         secondOverlayTextTop
       );
     }
-  }, [axisGuideMode, rotation, sampledColors, sliceAxis, sliceValue, space]);
+  }, [axisGuideMode, cubeSize, rotation, sampledColors, sliceAxis, sliceValue, space]);
 
   const findNearestColor = (offsetX: number, offsetY: number): RgbColor | null => {
     return getNearestProjectedColor(

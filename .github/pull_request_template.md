@@ -14,5 +14,6 @@
 
 ## Local Quality Gate
 - [ ] `git hooks` are enabled (`git config core.hooksPath .githooks`)
+- [ ] `pnpm run lint:md` passed
 - [ ] `pnpm --dir web run lint` passed
 - [ ] `pnpm --dir web run format:check` passed

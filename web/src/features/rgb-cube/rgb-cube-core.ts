@@ -74,11 +74,12 @@ const projectSpacePoint = (
   point: SpacePoint,
   rotation: Rotation,
   width: number,
-  height: number
+  height: number,
+  objectScale = 1
 ): { x: number; y: number; depth: number } => {
   const rotated = rotatePoint(point, rotation);
   const perspective = 1 / (rotated.z + perspectiveOffset);
-  const scale = Math.min(width, height) * scaleRatio;
+  const scale = Math.min(width, height) * scaleRatio * objectScale;
 
   return {
     x: width / 2 + rotated.x * scale * perspective,
@@ -120,10 +121,11 @@ export const projectColor = (
   space: ColorSpace3d,
   rotation: Rotation,
   width: number,
-  height: number
+  height: number,
+  objectScale = 1
 ): ProjectedPoint => {
   const point = toSpacePoint(color, space);
-  const projected = projectSpacePoint(point, rotation, width, height);
+  const projected = projectSpacePoint(point, rotation, width, height, objectScale);
 
   return {
     x: projected.x,
@@ -148,7 +150,8 @@ const drawGuideRgb = (
   context: CanvasRenderingContext2D,
   rotation: Rotation,
   width: number,
-  height: number
+  height: number,
+  objectScale = 1
 ): void => {
   const corners: SpacePoint[] = [
     { x: -1, y: -1, z: -1 },
@@ -161,7 +164,9 @@ const drawGuideRgb = (
     { x: 1, y: 1, z: 1 },
   ];
 
-  const projected = corners.map((point) => projectSpacePoint(point, rotation, width, height));
+  const projected = corners.map((point) =>
+    projectSpacePoint(point, rotation, width, height, objectScale)
+  );
   const edgePairs = [
     [0, 1],
     [0, 2],
@@ -189,7 +194,8 @@ const drawGuideHsl = (
   context: CanvasRenderingContext2D,
   rotation: Rotation,
   width: number,
-  height: number
+  height: number,
+  objectScale = 1
 ): void => {
   context.lineWidth = 1;
   context.strokeStyle = rgbaFromGray(neutralGray, defaultAlpha);
@@ -202,8 +208,14 @@ const drawGuideHsl = (
     const radian = ratio * fullCircleRadians;
     const cos = Math.cos(radian);
     const sin = Math.sin(radian);
-    const top = projectSpacePoint({ x: cos, y: 1, z: sin }, rotation, width, height);
-    const bottom = projectSpacePoint({ x: cos, y: -1, z: sin }, rotation, width, height);
+    const top = projectSpacePoint({ x: cos, y: 1, z: sin }, rotation, width, height, objectScale);
+    const bottom = projectSpacePoint(
+      { x: cos, y: -1, z: sin },
+      rotation,
+      width,
+      height,
+      objectScale
+    );
     topRing.push(top);
     bottomRing.push(bottom);
 
@@ -217,8 +229,14 @@ const drawGuideHsl = (
   for (const radian of axisRadians) {
     const cos = Math.cos(radian);
     const sin = Math.sin(radian);
-    const top = projectSpacePoint({ x: cos, y: 1, z: sin }, rotation, width, height);
-    const bottom = projectSpacePoint({ x: cos, y: -1, z: sin }, rotation, width, height);
+    const top = projectSpacePoint({ x: cos, y: 1, z: sin }, rotation, width, height, objectScale);
+    const bottom = projectSpacePoint(
+      { x: cos, y: -1, z: sin },
+      rotation,
+      width,
+      height,
+      objectScale
+    );
     drawLine(context, bottom, top);
   }
 };
@@ -254,10 +272,11 @@ export const drawSlicePlane = (
   width: number,
   height: number,
   axis: SliceAxis,
-  value: number
+  value: number,
+  objectScale = 1
 ): void => {
   const planeCorners = getPlaneCorners(axis, value).map((color) =>
-    projectSpacePoint(toSpacePoint(color, "rgb"), rotation, width, height)
+    projectSpacePoint(toSpacePoint(color, "rgb"), rotation, width, height, objectScale)
   );
 
   context.beginPath();
@@ -278,17 +297,18 @@ export const drawGuide = (
   space: ColorSpace3d,
   rotation: Rotation,
   width: number,
-  height: number
+  height: number,
+  objectScale = 1
 ): void => {
   if (space === "rgb") {
-    drawGuideRgb(context, rotation, width, height);
+    drawGuideRgb(context, rotation, width, height, objectScale);
     return;
   }
   if (space === "hsl") {
-    drawGuideHsl(context, rotation, width, height);
+    drawGuideHsl(context, rotation, width, height, objectScale);
     return;
   }
-  drawGuideRgb(context, rotation, width, height);
+  drawGuideRgb(context, rotation, width, height, objectScale);
 };
 
 const getAxisLabels = (space: ColorSpace3d): { x: string; y: string; z: string } => {
@@ -306,12 +326,13 @@ export const drawAxisGuide = (
   space: ColorSpace3d,
   rotation: Rotation,
   width: number,
-  height: number
+  height: number,
+  objectScale = 1
 ): void => {
-  const origin = projectSpacePoint({ x: 0, y: 0, z: 0 }, rotation, width, height);
-  const xAxis = projectSpacePoint({ x: 1, y: 0, z: 0 }, rotation, width, height);
-  const yAxis = projectSpacePoint({ x: 0, y: 1, z: 0 }, rotation, width, height);
-  const zAxis = projectSpacePoint({ x: 0, y: 0, z: 1 }, rotation, width, height);
+  const origin = projectSpacePoint({ x: 0, y: 0, z: 0 }, rotation, width, height, objectScale);
+  const xAxis = projectSpacePoint({ x: 1, y: 0, z: 0 }, rotation, width, height, objectScale);
+  const yAxis = projectSpacePoint({ x: 0, y: 1, z: 0 }, rotation, width, height, objectScale);
+  const zAxis = projectSpacePoint({ x: 0, y: 0, z: 1 }, rotation, width, height, objectScale);
   const labels = getAxisLabels(space);
 
   context.lineWidth = 1.4;

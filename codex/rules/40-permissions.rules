@@ -42,6 +42,11 @@ prefix_rule(
 )
 
 prefix_rule(
+    pattern=["pnpm", "run", "worktree:add"],
+    decision="allow",
+)
+
+prefix_rule(
     pattern=["pnpm", ["-v", "--version"]],
     decision="allow",
 )

@@ -28,9 +28,11 @@ IroMap のブランチ運用ルールを定義する。
 
 - ローカル: `pre-commit` で format + lint fix を実行
 - ローカル: `pre-push` で lint と format:check を必須化
+- ローカル: `pnpm run lint:md` を実行してドキュメント品質を確認する
 - ローカル: `pre-commit` / `pre-push` で `feature/*` 以外のブランチを拒否
 - GitHub Actions:
-  - `quality-gate`: lint / format:check
+  - `quality-gate`: markdown lint / lint / format:check
+  - `quality-gate`: e2e (Playwright)
   - `branch-name`: `feature/*` または `main` を検証
 
 ## 5. GitHub 推奨設定
@@ -38,6 +40,7 @@ IroMap のブランチ運用ルールを定義する。
 - Branch protection 対象: `main`
 - Required status checks:
   - `lint-and-format` (workflow: `quality-gate`)
+  - `e2e` (workflow: `quality-gate`)
   - `validate-branch-name` (workflow: `branch-name`)
 - Require pull request reviews before merging:
   - チーム開発: 有効化（`required_approving_review_count >= 1`）
