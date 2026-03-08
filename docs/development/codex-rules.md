@@ -23,8 +23,11 @@
 - 新規ルール追加時は、既存ルールと重複・矛盾がないか確認する
 - `prefix_rule` は以下の3層で分離する
   - `allow`: 読み取り専用（`status`, `diff`, `log` など）
-  - `prompt`: 状態変更（`add`, `commit`, `push`, `gh pr create` など）
+  - `prompt`: 状態変更（`add`, `commit`, `push`, `gh pr create`, `pnpm install` など）
   - `forbidden`: 破壊操作（`git reset --hard`, `git clean -fd`）
+- `pnpm` は以下で分離する
+  - `allow`: `pnpm --dir web run lint`, `pnpm --dir web run format:check`, `pnpm --dir web run setup:hooks:check`
+  - `prompt`: `pnpm install`, `pnpm add/remove/update`, 任意の `pnpm run`
 - 実装・設計フロー変更があれば、`docs/development/README.md` と同時更新する
 - ルール変更を伴うPRでは、変更理由をPR本文に記載する
 - `.worktree` を追加・削除したときは `40-permissions.rules` の `WORKTREE_PATHS` を更新する
@@ -45,4 +48,6 @@ codex execpolicy check --rules codex/rules/40-permissions.rules git status
 codex execpolicy check --rules codex/rules/40-permissions.rules git -C /Users/shunki.tada/VSCode/IroMap/.worktree/skill-git-worktree-setup status --short
 codex execpolicy check --rules codex/rules/40-permissions.rules git -C /Users/shunki.tada/VSCode/IroMap commit -m test
 codex execpolicy check --rules codex/rules/40-permissions.rules git reset --hard
+codex execpolicy check --rules codex/rules/40-permissions.rules pnpm --dir web run lint
+codex execpolicy check --rules codex/rules/40-permissions.rules pnpm -C /Users/shunki.tada/VSCode/IroMap/.worktree/feature-codex-permissions-rules install
 ```

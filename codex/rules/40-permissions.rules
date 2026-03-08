@@ -11,6 +11,7 @@ REPO_ROOT = "/Users/shunki.tada/VSCode/IroMap"
 WORKTREE_PATHS = [
     REPO_ROOT,
     REPO_ROOT + "/.worktree/feature-git-hygiene-iac",
+    REPO_ROOT + "/.worktree/feature-codex-permissions-rules",
     REPO_ROOT + "/.worktree/rewrite-remove-node-modules-state",
     REPO_ROOT + "/.worktree/shadcn-ui-migration",
     REPO_ROOT + "/.worktree/skill-git-worktree-setup",
@@ -50,6 +51,22 @@ prefix_rule(
     decision="allow",
 )
 
+# Read-only quality checks with pnpm
+prefix_rule(
+    pattern=["pnpm", "--dir", "web", "run", ["lint", "format:check", "setup:hooks:check"]],
+    decision="allow",
+)
+
+prefix_rule(
+    pattern=["pnpm", "-C", WORKTREE_PATHS, "--dir", "web", "run", ["lint", "format:check", "setup:hooks:check"]],
+    decision="allow",
+)
+
+prefix_rule(
+    pattern=["pnpm", ["-v", "--version"]],
+    decision="allow",
+)
+
 # State-changing git commands
 prefix_rule(
     pattern=["git", ["add", "restore", "switch", "checkout", "commit", "push", "pull", "fetch", "merge", "rebase", "cherry-pick", "worktree"]],
@@ -68,6 +85,43 @@ prefix_rule(
     pattern=["gh", "pr", ["create", "edit", "reopen", "ready", "close", "merge"]],
     decision="prompt",
     justification="PR state changes should be confirmed case by case.",
+)
+
+# State-changing pnpm commands
+prefix_rule(
+    pattern=["pnpm", ["install", "add", "remove", "update", "up", "dlx", "exec", "run"]],
+    decision="prompt",
+    justification="Package and script operations may modify lockfiles, dependencies, or generated outputs.",
+)
+
+prefix_rule(
+    pattern=["pnpm", "-C", WORKTREE_PATHS, ["install", "add", "remove", "update", "up", "dlx", "exec", "run"]],
+    decision="prompt",
+    justification="Worktree package and script operations should be confirmed per execution.",
+)
+
+prefix_rule(
+    pattern=["pnpm", "--dir", "web", "install"],
+    decision="prompt",
+    justification="Install updates local dependency state.",
+)
+
+prefix_rule(
+    pattern=["pnpm", "--dir", "web", "run", ["build", "dev", "setup:hooks", "test"]],
+    decision="prompt",
+    justification="Non-read-only script execution should be confirmed.",
+)
+
+prefix_rule(
+    pattern=["pnpm", "-C", WORKTREE_PATHS, "--dir", "web", "install"],
+    decision="prompt",
+    justification="Install updates worktree dependency state.",
+)
+
+prefix_rule(
+    pattern=["pnpm", "-C", WORKTREE_PATHS, "--dir", "web", "run", ["build", "dev", "setup:hooks", "test"]],
+    decision="prompt",
+    justification="Non-read-only worktree scripts should be confirmed.",
 )
 
 # Explicitly block destructive git commands
