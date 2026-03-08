@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+. "$(git rev-parse --show-toplevel)/.githooks/guard-worktree-and-branch.sh"
+require_worktree_checkout
+reject_main_branch
+
 cd "$(git rev-parse --show-toplevel)/web"
 pnpm lint-staged
