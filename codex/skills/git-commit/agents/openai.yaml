@@ -1,0 +1,4 @@
+interface:
+  display_name: "Git Commit"
+  short_description: "Create focused single-purpose commits"
+  default_prompt: "Use $git-commit to split changes into single-purpose commits and execute git commit via repository-root -C worktree paths."
