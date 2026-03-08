@@ -17,6 +17,12 @@ type Props = {
   onColorSelect: (color: RgbColor) => void;
 };
 
+const rgbaStride = 4;
+const redOffset = 0;
+const greenOffset = 1;
+const blueOffset = 2;
+const alphaOffset = 3;
+
 const buildColorFromPixel = (axis: SliceAxis, value: number, x: number, y: number): RgbColor => {
   if (axis === "r") {
     return {
@@ -64,11 +70,11 @@ export function SliceCanvas({
     for (let y = colorChannelMin; y < colorChannelLevels; y += 1) {
       for (let x = colorChannelMin; x < colorChannelLevels; x += 1) {
         const color = buildColorFromPixel(axis, value, x, y);
-        const offset = (y * colorChannelLevels + x) * 4;
-        imageData.data[offset] = color.r;
-        imageData.data[offset + 1] = color.g;
-        imageData.data[offset + 2] = color.b;
-        imageData.data[offset + 3] = colorChannelMax;
+        const offset = (y * colorChannelLevels + x) * rgbaStride;
+        imageData.data[offset + redOffset] = color.r;
+        imageData.data[offset + greenOffset] = color.g;
+        imageData.data[offset + blueOffset] = color.b;
+        imageData.data[offset + alphaOffset] = colorChannelMax;
       }
     }
 

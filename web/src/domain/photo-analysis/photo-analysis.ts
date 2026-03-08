@@ -36,8 +36,21 @@ export type PhotoAnalysisResult = {
 };
 
 const hueBinCount = 36;
+const hueMax = 360;
 const saturationBinCount = 20;
 const topAreaCount = 5;
+const quantizeBucketSize = 16;
+const performanceSamplingThreshold = 100_000;
+const maxSampleCount = 200_000;
+const maxScatterPoints = 3000;
+const rgbaStride = 4;
+const alphaChannelOffset = 3;
+const noAlpha = 0;
+const ratioPercent = 100;
+const ratioTolerance = 99.9;
+const othersColorValue = 96;
+const hueBucketDegrees = 10;
+const minimumUnit = 1;
 
 const createBins = (binCount: number, maxValue: number): HistogramBin[] => {
   const binSize = maxValue / binCount;
@@ -51,7 +64,7 @@ const createBins = (binCount: number, maxValue: number): HistogramBin[] => {
 };
 
 const quantizeComponent = (value: number): number => {
-  return Math.floor(value / 16) * 16;
+  return Math.floor(value / quantizeBucketSize) * quantizeBucketSize;
 };
 
 const buildAreaLabel = (color: RgbColor): string => {
@@ -59,10 +72,10 @@ const buildAreaLabel = (color: RgbColor): string => {
 };
 
 const pickSamplingStep = (pixelCount: number): number => {
-  if (pixelCount <= 100_000) {
-    return 1;
+  if (pixelCount <= performanceSamplingThreshold) {
+    return minimumUnit;
   }
-  return Math.ceil(Math.sqrt(pixelCount / 100_000));
+  return Math.ceil(Math.sqrt(pixelCount / performanceSamplingThreshold));
 };
 
 const samplePixels = (imageData: ImageData, step: number, maxSamples: number): PixelSample[] => {
@@ -75,9 +88,9 @@ const samplePixels = (imageData: ImageData, step: number, maxSamples: number): P
         return sampled;
       }
 
-      const offset = (y * width + x) * 4;
-      const alpha = data[offset + 3] / colorChannelMax;
-      if (alpha === 0) {
+      const offset = (y * width + x) * rgbaStride;
+      const alpha = data[offset + alphaChannelOffset] / colorChannelMax;
+      if (alpha === noAlpha) {
         continue;
       }
 
@@ -97,7 +110,7 @@ const samplePixels = (imageData: ImageData, step: number, maxSamples: number): P
 };
 
 const buildScatter = (samples: PixelSample[], maxPoints: number): ScatterPoint[] => {
-  const step = Math.max(1, Math.ceil(samples.length / maxPoints));
+  const step = Math.max(minimumUnit, Math.ceil(samples.length / maxPoints));
   const points: ScatterPoint[] = [];
 
   for (let index = 0; index < samples.length; index += step) {
@@ -119,19 +132,19 @@ const fillHistograms = (
   hue: HistogramBin[];
   saturation: HistogramBin[];
 } => {
-  const hueBins = createBins(hueBinCount, 360);
-  const saturationBins = createBins(saturationBinCount, 1);
+  const hueBins = createBins(hueBinCount, hueMax);
+  const saturationBins = createBins(saturationBinCount, minimumUnit);
 
   for (const sample of samples) {
     const { hue, saturation } = rgbToHueAndSaturation(sample.color);
-    const hueIndex = Math.min(hueBinCount - 1, Math.floor(hue / 10));
+    const hueIndex = Math.min(hueBinCount - 1, Math.floor(hue / hueBucketDegrees));
     const saturationIndex = Math.min(
       saturationBinCount - 1,
       Math.floor(saturation * saturationBinCount)
     );
 
-    hueBins[hueIndex].count += 1;
-    saturationBins[saturationIndex].count += 1;
+    hueBins[hueIndex].count += minimumUnit;
+    saturationBins[saturationIndex].count += minimumUnit;
   }
 
   return {
@@ -155,7 +168,7 @@ const calculateColorAreas = (samples: PixelSample[]): ColorArea[] => {
   }
 
   const sorted = [...bucketCounts.entries()].sort((left, right) => right[1] - left[1]);
-  const total = samples.length || 1;
+  const total = samples.length || minimumUnit;
 
   const top = sorted.slice(0, topAreaCount).map(([key, count]) => {
     const [rText, gText, bText] = key.split("-");
@@ -167,17 +180,17 @@ const calculateColorAreas = (samples: PixelSample[]): ColorArea[] => {
 
     return {
       label: buildAreaLabel(rgb),
-      ratio: (count / total) * 100,
+      ratio: (count / total) * ratioPercent,
       rgb,
     };
   });
 
   const summed = top.reduce((current, area) => current + area.ratio, 0);
-  if (summed < 99.9 && sorted.length > topAreaCount) {
+  if (summed < ratioTolerance && sorted.length > topAreaCount) {
     top.push({
       label: "Others",
-      ratio: 100 - summed,
-      rgb: { r: 96, g: 96, b: 96 },
+      ratio: ratioPercent - summed,
+      rgb: { r: othersColorValue, g: othersColorValue, b: othersColorValue },
     });
   }
 
@@ -187,8 +200,8 @@ const calculateColorAreas = (samples: PixelSample[]): ColorArea[] => {
 export const analyzePhoto = (imageData: ImageData): PhotoAnalysisResult => {
   const startAt = performance.now();
   const step = pickSamplingStep(imageData.width * imageData.height);
-  const samples = samplePixels(imageData, step, 200_000);
-  const scatter = buildScatter(samples, 3000);
+  const samples = samplePixels(imageData, step, maxSampleCount);
+  const scatter = buildScatter(samples, maxScatterPoints);
   const { hue, saturation } = fillHistograms(samples);
   const colorAreas = calculateColorAreas(samples);
 

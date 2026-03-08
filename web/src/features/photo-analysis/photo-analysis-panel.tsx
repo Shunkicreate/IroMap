@@ -3,13 +3,21 @@
 import { useMemo, useState } from "react";
 import { analyzePhoto, type PhotoAnalysisResult } from "@/domain/photo-analysis/photo-analysis";
 import { rgbToHex } from "@/domain/color/color-format";
+import { colorChannelLevels } from "@/domain/color/color-constants";
 
 type AnalysisState = {
   fileName: string;
   result: PhotoAnalysisResult;
 } | null;
 
-const maxScatterRange = 128;
+const maxScatterRange = colorChannelLevels / 2;
+const scatterViewboxSize = 100;
+const histogramHeightPercent = 100;
+const histogramMinHeightPercent = 2;
+const pointRadius = 0.7;
+const pointOpacity = 0.8;
+const fileSummaryPrecision = 1;
+const histogramTooltipPrecision = 2;
 
 const readFileAsImageData = async (file: File): Promise<ImageData> => {
   const imageBitmap = await createImageBitmap(file);
@@ -27,7 +35,7 @@ const readFileAsImageData = async (file: File): Promise<ImageData> => {
 };
 
 const toScatterPosition = (value: number): number => {
-  return ((value + maxScatterRange) / (maxScatterRange * 2)) * 100;
+  return ((value + maxScatterRange) / (maxScatterRange * 2)) * scatterViewboxSize;
 };
 
 export function PhotoAnalysisPanel() {
@@ -86,16 +94,26 @@ export function PhotoAnalysisPanel() {
         <div className="analysisGrid">
           <article>
             <h3>Lab a-b scatter</h3>
-            <svg viewBox="0 0 100 100" className="scatterPlot" role="img">
-              <rect x="0" y="0" width="100" height="100" fill="#0f172a" />
+            <svg
+              viewBox={`0 0 ${scatterViewboxSize} ${scatterViewboxSize}`}
+              className="scatterPlot"
+              role="img"
+            >
+              <rect
+                x="0"
+                y="0"
+                width={scatterViewboxSize}
+                height={scatterViewboxSize}
+                fill="#0f172a"
+              />
               {analysis.result.scatter.map((point, index) => (
                 <circle
                   key={`${index}-${point.x}-${point.y}`}
                   cx={toScatterPosition(point.x)}
-                  cy={100 - toScatterPosition(point.y)}
-                  r="0.7"
+                  cy={scatterViewboxSize - toScatterPosition(point.y)}
+                  r={pointRadius}
                   fill={rgbToHex(point.color)}
-                  opacity="0.8"
+                  opacity={pointOpacity}
                 />
               ))}
             </svg>
@@ -105,7 +123,10 @@ export function PhotoAnalysisPanel() {
             <h3>Hue histogram</h3>
             <div className="histogramBars">
               {analysis.result.hueHistogram.map((bin) => {
-                const height = Math.max(2, (bin.count / maxHueCount) * 100);
+                const height = Math.max(
+                  histogramMinHeightPercent,
+                  (bin.count / maxHueCount) * histogramHeightPercent
+                );
                 return (
                   <span
                     key={`${bin.start}-${bin.end}`}
@@ -121,12 +142,17 @@ export function PhotoAnalysisPanel() {
             <h3>Saturation histogram</h3>
             <div className="histogramBars saturationBars">
               {analysis.result.saturationHistogram.map((bin) => {
-                const height = Math.max(2, (bin.count / maxSaturationCount) * 100);
+                const height = Math.max(
+                  histogramMinHeightPercent,
+                  (bin.count / maxSaturationCount) * histogramHeightPercent
+                );
                 return (
                   <span
                     key={`${bin.start}-${bin.end}`}
                     style={{ height: `${height}%` }}
-                    title={`${bin.start.toFixed(2)}-${bin.end.toFixed(2)}: ${bin.count}`}
+                    title={`${bin.start.toFixed(histogramTooltipPrecision)}-${bin.end.toFixed(
+                      histogramTooltipPrecision
+                    )}: ${bin.count}`}
                   />
                 );
               })}
@@ -156,7 +182,7 @@ export function PhotoAnalysisPanel() {
       {analysis ? (
         <p className="muted">
           file={analysis.fileName} | sampled={analysis.result.sampledPixels} | elapsed=
-          {analysis.result.elapsedMs.toFixed(1)}ms
+          {analysis.result.elapsedMs.toFixed(fileSummaryPrecision)}ms
         </p>
       ) : null}
     </section>

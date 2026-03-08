@@ -3,8 +3,12 @@ import { rgbToHsl } from "@/domain/color/color-conversion";
 
 export type CopyFormat = "hex" | "rgb" | "hsl";
 
+const hexRadix = 16;
+const hexByteLength = 2;
+const hexPadChar = "0";
+
 const toHexByte = (value: number): string => {
-  return value.toString(16).padStart(2, "0").toUpperCase();
+  return value.toString(hexRadix).padStart(hexByteLength, hexPadChar).toUpperCase();
 };
 
 export const rgbToHex = (color: RgbColor): string => {
