@@ -13,6 +13,8 @@
 - Hue histogram を表示する
 - Saturation histogram を表示する
 - Color area ratio（主要色の面積比）を表示する
+- Lab scatter / Hue histogram / Saturation histogram に軸ラベルを表示する
+- Slice表示を含む主要グラフで、共通の軸表示フレーム実装を利用する
 - キューブへの画像プロット操作時に、アップロードUIをキューブ近傍へ配置する
 
 ### Out of Scope
@@ -54,6 +56,14 @@
 
 - 彩度の分布をビン集計して表示できる
 - 低彩度画像かどうかを判別できる
+
+### FR-3.5: 主要グラフで軸情報を明示できる
+
+#### 受け入れ条件
+
+- Lab a-b scatter で X=a*, Y=b* の軸表示が確認できる
+- Hue histogram で X=Hue, Y=Count の軸表示が確認できる
+- Saturation histogram で X=Saturation, Y=Count の軸表示が確認できる
 
 ### FR-4: Color area ratio を表示できる
 
