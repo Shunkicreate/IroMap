@@ -11,11 +11,14 @@ IroMap のブランチ運用ルールを定義する。
 ## 2. 作業フロー
 
 1. `main` から `feature/*` を作成する
-2. 実装・テスト・ドキュメント更新を `feature/*` で行う
+2. 実装・テスト・ドキュメント更新（コード・docsの両方）を `.worktree/feature/*` で行う
 3. `feature/* -> main` の Pull Request で統合する
 
 ## 3. 禁止事項
 
+- リポジトリルート（`/Users/shunki.tada/VSCode/IroMap`）での直接修正
+- `.worktree` 外での commit / push
+- `main` ブランチでの修正（commit / push）
 - `main` への直接 push
 - `feature/*` 以外の命名での恒常運用
 
@@ -23,6 +26,7 @@ IroMap のブランチ運用ルールを定義する。
 
 - ローカル: `pre-commit` で format + lint fix を実行
 - ローカル: `pre-push` で lint と format:check を必須化
+- ローカル: `pre-commit` / `pre-push` で `feature/*` 以外のブランチを拒否
 - GitHub Actions:
   - `quality-gate`: lint / format:check
   - `branch-name`: `feature/*` または `main` を検証
