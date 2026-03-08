@@ -39,3 +39,27 @@ test("T-104(ui-foundation): テーマトグルでライト/ダークが切り替
   );
   expect(isDarkAfter).toBe(!isDarkBefore);
 });
+
+test("T-105(ui-foundation): ポインタ非依存の導線で選択色を更新できる", async ({ page }) => {
+  await page.goto("/");
+
+  await page.getByRole("button", { name: /プリセット 1:/ }).click();
+  await expect(page.locator(".copyValue")).toHaveText("#FF6347");
+});
+
+test("T-106(ui-foundation): 内部要件IDを表示せず、可視化の解釈ガイドを表示する", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  await expect(page.getByText(/FR-\d/)).toHaveCount(0);
+  await expect(page.getByText("分析の見方")).toBeVisible();
+});
+
+test("T-107(ui-foundation): コピー通知が aria-live で更新される", async ({ page }) => {
+  await page.goto("/");
+
+  await page.getByRole("button", { name: /プリセット 1:/ }).click();
+  await page.getByRole("button", { name: "コピー" }).click();
+  await expect(page.locator(".copyStatus").first()).toContainText(/1\./);
+});
