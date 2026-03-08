@@ -171,15 +171,15 @@ const drawSlicePlane = (
   axis: SliceAxis,
   value: number
 ): void => {
-  const planeCorners = getPlaneCorners(axis, value)
-    .map((color) => projectColor(color, rotation, width, height))
-    .sort((left, right) => left.depth - right.depth);
+  const planeCorners = getPlaneCorners(axis, value).map((color) =>
+    projectColor(color, rotation, width, height)
+  );
 
   context.beginPath();
   context.moveTo(planeCorners[0].x, planeCorners[0].y);
   context.lineTo(planeCorners[1].x, planeCorners[1].y);
-  context.lineTo(planeCorners[3].x, planeCorners[3].y);
   context.lineTo(planeCorners[2].x, planeCorners[2].y);
+  context.lineTo(planeCorners[3].x, planeCorners[3].y);
   context.closePath();
   context.fillStyle = rgbaFromGray(colorChannelMax, planeFillAlpha);
   context.strokeStyle = rgbaFromGray(colorChannelMax, planeStrokeAlpha);

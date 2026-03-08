@@ -2,23 +2,23 @@
 
 ## 実装
 
-- [ ] T-001 Lab scatter 計算ロジックを実装する（FR-1）
+- [x] T-001 Lab scatter 計算ロジックを実装する（FR-1）
   - 完了条件: a-b平面へプロット可能なデータが生成される
-- [ ] T-002 Hue histogram 集計を実装する（FR-2）
+- [x] T-002 Hue histogram 集計を実装する（FR-2）
   - 完了条件: 色相分布がビン単位で出力される
-- [ ] T-003 Saturation histogram 集計を実装する（FR-3）
+- [x] T-003 Saturation histogram 集計を実装する（FR-3）
   - 完了条件: 彩度分布がビン単位で出力される
-- [ ] T-004 Color area ratio 算出を実装する（FR-4）
+- [x] T-004 Color area ratio 算出を実装する（FR-4）
   - 完了条件: 主要色と比率（%）が算出される
-- [ ] T-005 分析ダッシュボードUIを実装する（FR-1,2,3,4）
+- [x] T-005 分析ダッシュボードUIを実装する（FR-1,2,3,4）
   - 完了条件: 4指標を1画面で確認できる
 
 ## テスト
 
-- [ ] T-101 単色画像でLab scatter表示を確認（FR-1）
-- [ ] T-102 色相が偏った画像でHue histogramを確認（FR-2）
-- [ ] T-103 低彩度画像でSaturation histogramを確認（FR-3）
-- [ ] T-104 主要色比率の合計が100%になることを確認（FR-4）
+- [x] T-101 単色画像でLab scatter表示を確認（FR-1）
+- [x] T-102 色相が偏った画像でHue histogramを確認（FR-2）
+- [x] T-103 低彩度画像でSaturation histogramを確認（FR-3）
+- [x] T-104 主要色比率の合計が100%になることを確認（FR-4）
 
 ## 監視 / 運用
 
