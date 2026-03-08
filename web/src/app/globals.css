@@ -106,10 +106,10 @@
 }
 
 .workbenchRoot {
-  width: min(1100px, calc(100% - 32px));
-  margin: 24px auto 60px;
+  width: min(1440px, calc(100% - 32px));
+  margin: 12px auto 24px;
   display: grid;
-  gap: 16px;
+  gap: 10px;
   color: var(--workbench-text);
 }
 
@@ -139,9 +139,26 @@
 
 .visualizationGrid {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
   align-items: start;
+}
+
+.workbenchMainGrid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 3fr) minmax(320px, 1fr);
+  align-items: start;
+}
+
+.supportPanels {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.analysisSection {
+  width: 100%;
 }
 
 .panelHeader {
@@ -451,16 +468,54 @@
 }
 
 @media (max-width: 640px) {
+  .pageHeader p {
+    display: none;
+  }
+
+  .panelHeader p {
+    display: none;
+  }
+
+  .workbenchSteps,
+  .analysisSection {
+    display: none;
+  }
+
+  .workbenchMainGrid,
   .visualizationGrid {
     grid-template-columns: 1fr;
   }
 
+  .supportPanels {
+    gap: 8px;
+  }
+
   .workbenchRoot {
     width: calc(100% - 20px);
-    margin: 10px auto 20px;
+    margin: 10px auto 16px;
+    gap: 8px;
   }
 
   .cubeCanvas {
     height: 320px;
+  }
+}
+
+@media (min-width: 1200px) and (min-height: 760px) {
+  .workbenchRoot {
+    height: calc(100vh - 20px);
+    max-height: calc(100vh - 20px);
+    overflow: hidden;
+  }
+
+  .workbenchMainGrid {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .supportPanels,
+  .analysisSection {
+    min-height: 0;
+    overflow: auto;
   }
 }

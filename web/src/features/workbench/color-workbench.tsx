@@ -61,88 +61,93 @@ export function ColorWorkbench() {
         <p>{t("workbenchSteps")}</p>
       </div>
 
-      <div className="visualizationGrid">
-        <section className="panel">
-          <div className="panelHeader">
-            <h2>{t("panelRgbCube")}</h2>
-            <p>FR-1 / FR-2 / FR-3 / FR-4</p>
-          </div>
-          <Tabs
-            value={space}
-            onValueChange={(value) => handleSpaceChange(value as ColorSpace3d)}
-            className="spaceTabs"
-          >
-            <TabsList className="spaceTabsList">
-              <TabsTrigger value="rgb" className="spaceTabTrigger">
-                {t("spaceRgb")}
-              </TabsTrigger>
-              <TabsTrigger value="hsl" className="spaceTabTrigger">
-                {t("spaceHsl")}
-              </TabsTrigger>
-              <TabsTrigger value="lab" className="spaceTabTrigger">
-                {t("spaceLab")}
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-          <div className="cubeSettings">
-            <label className="toggleLabel">
-              <input
-                type="checkbox"
-                checked={isAxisGuideVisible}
-                onChange={(event) => setIsAxisGuideVisible(event.target.checked)}
-              />
-              {t("cubeShowAxisGuide")}
-            </label>
-            <label className="toggleLabel">
-              <input
-                type="checkbox"
-                checked={isCubeSizeSliderVisible}
-                onChange={(event) => setIsCubeSizeSliderVisible(event.target.checked)}
-              />
-              {t("cubeShowSizeSlider")}
-            </label>
-            {isCubeSizeSliderVisible ? (
-              <label>
-                {t("cubeSizeLabel", { size: cubeSize })}
+      <div className="workbenchMainGrid">
+        <div className="visualizationGrid">
+          <section className="panel">
+            <div className="panelHeader">
+              <h2>{t("panelRgbCube")}</h2>
+              <p>FR-1 / FR-2 / FR-3 / FR-4</p>
+            </div>
+            <Tabs
+              value={space}
+              onValueChange={(value) => handleSpaceChange(value as ColorSpace3d)}
+              className="spaceTabs"
+            >
+              <TabsList className="spaceTabsList">
+                <TabsTrigger value="rgb" className="spaceTabTrigger">
+                  {t("spaceRgb")}
+                </TabsTrigger>
+                <TabsTrigger value="hsl" className="spaceTabTrigger">
+                  {t("spaceHsl")}
+                </TabsTrigger>
+                <TabsTrigger value="lab" className="spaceTabTrigger">
+                  {t("spaceLab")}
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <div className="cubeSettings">
+              <label className="toggleLabel">
                 <input
-                  type="range"
-                  min={320}
-                  max={640}
-                  step={10}
-                  value={cubeSize}
-                  onChange={(event) => setCubeSize(Number(event.target.value))}
+                  type="checkbox"
+                  checked={isAxisGuideVisible}
+                  onChange={(event) => setIsAxisGuideVisible(event.target.checked)}
                 />
+                {t("cubeShowAxisGuide")}
               </label>
-            ) : null}
-          </div>
-          <RgbCubeCanvas
+              <label className="toggleLabel">
+                <input
+                  type="checkbox"
+                  checked={isCubeSizeSliderVisible}
+                  onChange={(event) => setIsCubeSizeSliderVisible(event.target.checked)}
+                />
+                {t("cubeShowSizeSlider")}
+              </label>
+              {isCubeSizeSliderVisible ? (
+                <label>
+                  {t("cubeSizeLabel", { size: cubeSize })}
+                  <input
+                    type="range"
+                    min={320}
+                    max={640}
+                    step={10}
+                    value={cubeSize}
+                    onChange={(event) => setCubeSize(Number(event.target.value))}
+                  />
+                </label>
+              ) : null}
+            </div>
+            <RgbCubeCanvas
+              space={space}
+              rotation={rotation}
+              cubeSize={cubeSize}
+              axisGuideMode={isAxisGuideVisible ? "visible" : "hidden"}
+              sliceAxis={sliceAxis}
+              sliceValue={sliceValue}
+              onRotationChange={setRotation}
+              onHoverColorChange={setHoverColor}
+              onColorSelect={setSelectedColor}
+            />
+          </section>
+
+          <SliceCanvas
             space={space}
-            rotation={rotation}
-            cubeSize={cubeSize}
-            axisGuideMode={isAxisGuideVisible ? "visible" : "hidden"}
-            sliceAxis={sliceAxis}
-            sliceValue={sliceValue}
-            onRotationChange={setRotation}
+            axis={sliceAxis}
+            value={sliceValue}
+            onAxisChange={setSliceAxis}
+            onValueChange={setSliceValue}
             onHoverColorChange={setHoverColor}
             onColorSelect={setSelectedColor}
           />
-        </section>
+        </div>
 
-        <SliceCanvas
-          space={space}
-          axis={sliceAxis}
-          value={sliceValue}
-          onAxisChange={setSliceAxis}
-          onValueChange={setSliceValue}
-          onHoverColorChange={setHoverColor}
-          onColorSelect={setSelectedColor}
-        />
+        <aside className="supportPanels">
+          <ColorInspector hoverColor={hoverColor} selectedColor={selectedColor} />
+          <ColorCopyPanel selectedColor={selectedColor} onColorPasted={setSelectedColor} />
+        </aside>
       </div>
-
-      <ColorInspector hoverColor={hoverColor} selectedColor={selectedColor} />
-      <ColorCopyPanel selectedColor={selectedColor} onColorPasted={setSelectedColor} />
-
-      <PhotoAnalysisPanel />
+      <div className="analysisSection">
+        <PhotoAnalysisPanel />
+      </div>
     </main>
   );
 }
