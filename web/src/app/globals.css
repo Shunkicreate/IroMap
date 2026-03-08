@@ -137,6 +137,13 @@
   padding: 14px;
 }
 
+.visualizationGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  align-items: start;
+}
+
 .panelHeader {
   display: flex;
   align-items: baseline;
@@ -166,6 +173,40 @@
 
 .spaceTabs {
   margin-bottom: 10px;
+}
+
+.spaceTabsList {
+  background: #0f1c2f;
+  border: 1px solid #2d4263;
+}
+
+.spaceTabTrigger {
+  color: var(--workbench-muted);
+  border: 1px solid transparent;
+}
+
+.spaceTabTrigger[data-state="active"] {
+  color: var(--workbench-text);
+  background: linear-gradient(180deg, #243f67, #1c3352);
+  border-color: #4f7ab0;
+  box-shadow: 0 0 0 1px #4f7ab055;
+}
+
+.cubeSettings {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.toggleLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toggleLabel input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
 }
 
 .inspectorCards {
@@ -264,6 +305,39 @@
   border: 1px solid #2a3d5d;
 }
 
+.sliceCanvasWrap {
+  position: relative;
+  width: fit-content;
+  padding: 18px 14px 28px 32px;
+}
+
+.sliceAxisBadge {
+  position: absolute;
+  top: 0;
+  left: 32px;
+  font-size: 0.8rem;
+  color: #d6e2f6;
+}
+
+.sliceAxisXLabel {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.8rem;
+  color: var(--workbench-muted);
+}
+
+.sliceAxisYLabel {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%) rotate(-90deg);
+  transform-origin: left top;
+  font-size: 0.8rem;
+  color: var(--workbench-muted);
+}
+
 .fileInput {
   width: fit-content;
   margin-bottom: 8px;
@@ -334,6 +408,10 @@
 }
 
 @media (max-width: 640px) {
+  .visualizationGrid {
+    grid-template-columns: 1fr;
+  }
+
   .workbenchRoot {
     width: calc(100% - 20px);
     margin: 10px auto 20px;

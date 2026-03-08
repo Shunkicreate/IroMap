@@ -17,6 +17,7 @@ type Rotation = {
 
 const defaultSliceValue = 128;
 const defaultRotation: Rotation = { x: -0.7, y: 0.6 };
+const defaultCubeSize = 400;
 
 export function ColorWorkbench() {
   const [hoverColor, setHoverColor] = useState<RgbColor | null>(null);
@@ -24,6 +25,9 @@ export function ColorWorkbench() {
   const [sliceAxis, setSliceAxis] = useState<SliceAxis>("r");
   const [sliceValue, setSliceValue] = useState<number>(defaultSliceValue);
   const [space, setSpace] = useState<ColorSpace3d>("rgb");
+  const [isAxisGuideVisible, setIsAxisGuideVisible] = useState<boolean>(true);
+  const [isCubeSizeSliderVisible, setIsCubeSizeSliderVisible] = useState<boolean>(true);
+  const [cubeSize, setCubeSize] = useState<number>(defaultCubeSize);
   const [rotation, setRotation] = useState<Rotation>(defaultRotation);
 
   return (
@@ -33,44 +37,85 @@ export function ColorWorkbench() {
         <p>{t("workbenchSteps")}</p>
       </div>
 
-      <section className="panel">
-        <div className="panelHeader">
-          <h2>{t("panelRgbCube")}</h2>
-          <p>FR-1 / FR-2 / FR-3 / FR-4</p>
-        </div>
-        <Tabs
-          value={space}
-          onValueChange={(value) => setSpace(value as ColorSpace3d)}
-          className="spaceTabs"
-        >
-          <TabsList>
-            <TabsTrigger value="rgb">{t("spaceRgb")}</TabsTrigger>
-            <TabsTrigger value="hsl">{t("spaceHsl")}</TabsTrigger>
-            <TabsTrigger value="lab">{t("spaceLab")}</TabsTrigger>
-          </TabsList>
-        </Tabs>
-        <RgbCubeCanvas
-          space={space}
-          rotation={rotation}
-          sliceAxis={sliceAxis}
-          sliceValue={sliceValue}
-          onRotationChange={setRotation}
+      <div className="visualizationGrid">
+        <section className="panel">
+          <div className="panelHeader">
+            <h2>{t("panelRgbCube")}</h2>
+            <p>FR-1 / FR-2 / FR-3 / FR-4</p>
+          </div>
+          <Tabs
+            value={space}
+            onValueChange={(value) => setSpace(value as ColorSpace3d)}
+            className="spaceTabs"
+          >
+            <TabsList className="spaceTabsList">
+              <TabsTrigger value="rgb" className="spaceTabTrigger">
+                {t("spaceRgb")}
+              </TabsTrigger>
+              <TabsTrigger value="hsl" className="spaceTabTrigger">
+                {t("spaceHsl")}
+              </TabsTrigger>
+              <TabsTrigger value="lab" className="spaceTabTrigger">
+                {t("spaceLab")}
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <div className="cubeSettings">
+            <label className="toggleLabel">
+              <input
+                type="checkbox"
+                checked={isAxisGuideVisible}
+                onChange={(event) => setIsAxisGuideVisible(event.target.checked)}
+              />
+              {t("cubeShowAxisGuide")}
+            </label>
+            <label className="toggleLabel">
+              <input
+                type="checkbox"
+                checked={isCubeSizeSliderVisible}
+                onChange={(event) => setIsCubeSizeSliderVisible(event.target.checked)}
+              />
+              {t("cubeShowSizeSlider")}
+            </label>
+            {isCubeSizeSliderVisible ? (
+              <label>
+                {t("cubeSizeLabel", { size: cubeSize })}
+                <input
+                  type="range"
+                  min={320}
+                  max={640}
+                  step={10}
+                  value={cubeSize}
+                  onChange={(event) => setCubeSize(Number(event.target.value))}
+                />
+              </label>
+            ) : null}
+          </div>
+          <RgbCubeCanvas
+            space={space}
+            rotation={rotation}
+            cubeSize={cubeSize}
+            axisGuideMode={isAxisGuideVisible ? "visible" : "hidden"}
+            sliceAxis={sliceAxis}
+            sliceValue={sliceValue}
+            onRotationChange={setRotation}
+            onHoverColorChange={setHoverColor}
+            onColorSelect={setSelectedColor}
+          />
+        </section>
+
+        <SliceCanvas
+          axis={sliceAxis}
+          value={sliceValue}
+          onAxisChange={setSliceAxis}
+          onValueChange={setSliceValue}
           onHoverColorChange={setHoverColor}
           onColorSelect={setSelectedColor}
         />
-      </section>
+      </div>
 
       <ColorInspector hoverColor={hoverColor} selectedColor={selectedColor} />
       <ColorCopyPanel selectedColor={selectedColor} />
-
-      <SliceCanvas
-        axis={sliceAxis}
-        value={sliceValue}
-        onAxisChange={setSliceAxis}
-        onValueChange={setSliceValue}
-        onHoverColorChange={setHoverColor}
-        onColorSelect={setSelectedColor}
-      />
 
       <PhotoAnalysisPanel />
     </main>

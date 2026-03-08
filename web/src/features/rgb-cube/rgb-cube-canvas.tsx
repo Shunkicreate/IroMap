@@ -37,6 +37,8 @@ type ProjectedPoint = {
 type Props = {
   space: ColorSpace3d;
   rotation: Rotation;
+  cubeSize: number;
+  axisGuideMode: "visible" | "hidden";
   sliceAxis: SliceAxis;
   sliceValue: number;
   onRotationChange: (rotation: Rotation) => void;
@@ -333,9 +335,53 @@ const getSpaceLabel = (space: ColorSpace3d): string => {
   return t("spaceLab");
 };
 
+const getAxisLabels = (space: ColorSpace3d): { x: string; y: string; z: string } => {
+  if (space === "rgb") {
+    return { x: "R", y: "G", z: "B" };
+  }
+  if (space === "hsl") {
+    return { x: "S·cos(H)", y: "L", z: "S·sin(H)" };
+  }
+  return { x: "a", y: "L", z: "b" };
+};
+
+const drawAxisGuide = (
+  context: CanvasRenderingContext2D,
+  space: ColorSpace3d,
+  rotation: Rotation,
+  width: number,
+  height: number
+): void => {
+  const origin = projectSpacePoint({ x: 0, y: 0, z: 0 }, rotation, width, height);
+  const xAxis = projectSpacePoint({ x: 1, y: 0, z: 0 }, rotation, width, height);
+  const yAxis = projectSpacePoint({ x: 0, y: 1, z: 0 }, rotation, width, height);
+  const zAxis = projectSpacePoint({ x: 0, y: 0, z: 1 }, rotation, width, height);
+  const labels = getAxisLabels(space);
+
+  context.lineWidth = 1.4;
+  context.font = "11px monospace";
+
+  context.strokeStyle = "rgba(255, 107, 107, 0.9)";
+  drawLine(context, origin, xAxis);
+  context.fillStyle = "rgba(255, 128, 128, 0.95)";
+  context.fillText(labels.x, xAxis.x + 6, xAxis.y - 6);
+
+  context.strokeStyle = "rgba(107, 224, 152, 0.9)";
+  drawLine(context, origin, yAxis);
+  context.fillStyle = "rgba(137, 235, 173, 0.95)";
+  context.fillText(labels.y, yAxis.x + 6, yAxis.y - 6);
+
+  context.strokeStyle = "rgba(120, 186, 255, 0.9)";
+  drawLine(context, origin, zAxis);
+  context.fillStyle = "rgba(156, 206, 255, 0.95)";
+  context.fillText(labels.z, zAxis.x + 6, zAxis.y - 6);
+};
+
 export function RgbCubeCanvas({
   space,
   rotation,
+  cubeSize,
+  axisGuideMode,
   sliceAxis,
   sliceValue,
   onRotationChange,
@@ -385,6 +431,9 @@ export function RgbCubeCanvas({
     context.fillRect(0, 0, width, height);
 
     drawGuide(context, space, rotation, width, height);
+    if (axisGuideMode === "visible") {
+      drawAxisGuide(context, space, rotation, width, height);
+    }
     if (space === "rgb") {
       drawSlicePlane(context, rotation, width, height, sliceAxis, sliceValue);
     }
@@ -422,7 +471,7 @@ export function RgbCubeCanvas({
         secondOverlayTextTop
       );
     }
-  }, [rotation, sampledColors, sliceAxis, sliceValue, space]);
+  }, [axisGuideMode, rotation, sampledColors, sliceAxis, sliceValue, space]);
 
   const findNearestColor = (offsetX: number, offsetY: number): RgbColor | null => {
     let bestDistance = Number.POSITIVE_INFINITY;
@@ -475,7 +524,7 @@ export function RgbCubeCanvas({
     dragRef.current.y = pointer.y;
 
     onRotationChange({
-      x: rotation.x + deltaY * rotationSensitivity,
+      x: rotation.x - deltaY * rotationSensitivity,
       y: rotation.y + deltaX * rotationSensitivity,
     });
   };
@@ -500,6 +549,7 @@ export function RgbCubeCanvas({
     <canvas
       ref={canvasRef}
       className="cubeCanvas"
+      style={{ height: `${cubeSize}px` }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
