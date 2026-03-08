@@ -70,39 +70,20 @@ prefix_rule(
 
 # PR publishing and updates
 prefix_rule(
-    pattern=["gh", "pr", ["create", "edit", "reopen", "ready", "close", "merge"]],
-    decision="prompt",
-    justification="PR state changes should be confirmed case by case.",
-)
-
-# State-changing pnpm commands
-prefix_rule(
-    pattern=["pnpm", "add", "-D", "markdownlint-cli"],
+    pattern=["gh", "pr", "create"],
     decision="allow",
 )
 
 prefix_rule(
-    pattern=["pnpm", ["install", "remove", "update", "up", "dlx", "exec", "run"]],
+    pattern=["gh", "pr", ["edit", "reopen", "ready", "close", "merge"]],
     decision="prompt",
-    justification="Package and script operations may modify lockfiles, dependencies, or generated outputs.",
+    justification="PR state changes should be confirmed case by case.",
 )
 
+# pnpm commands
 prefix_rule(
-    pattern=["pnpm", "--dir", "web", "install"],
-    decision="prompt",
-    justification="Install updates local dependency state.",
-)
-
-prefix_rule(
-    pattern=["pnpm", "--dir", "web", "run", ["build", "dev", "setup:hooks", "test"]],
-    decision="prompt",
-    justification="Non-read-only script execution should be confirmed.",
-)
-
-prefix_rule(
-    pattern=["pnpm", "-C"],
-    decision="prompt",
-    justification="Cross-directory pnpm operations should remain explicit.",
+    pattern=["pnpm"],
+    decision="allow",
 )
 
 # Explicitly block destructive git commands
