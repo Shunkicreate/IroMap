@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { PanelHeader } from "@/components/workbench/panel-header";
 import type { ColorSpace3d, RgbColor, SliceAxis } from "@/domain/color/color-types";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ColorCopyPanel } from "@/features/color-copy/color-copy-panel";
@@ -39,10 +40,7 @@ export function ColorWorkbench() {
 
       <div className="visualizationGrid">
         <section className="panel">
-          <div className="panelHeader">
-            <h2>{t("panelRgbCube")}</h2>
-            <p>{t("panelRgbCubeRequirements")}</p>
-          </div>
+          <PanelHeader titleKey="panelRgbCube" requirementsKey="panelRgbCubeRequirements" />
           <Tabs
             value={space}
             onValueChange={(value) => setSpace(value as ColorSpace3d)}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { PanelHeader } from "@/components/workbench/panel-header";
 import {
   type CopyFormat,
   formatColor,
@@ -49,10 +50,7 @@ export function ColorCopyPanel({ selectedColor }: Props) {
 
   return (
     <section className="panel">
-      <div className="panelHeader">
-        <h2>{t("panelColorCopy")}</h2>
-        <p>{t("panelColorCopyRequirements")}</p>
-      </div>
+      <PanelHeader titleKey="panelColorCopy" requirementsKey="panelColorCopyRequirements" />
 
       {selectedColor ? (
         <>

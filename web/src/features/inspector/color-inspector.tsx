@@ -1,3 +1,5 @@
+import { ColorSwatch } from "@/components/workbench/color-swatch";
+import { PanelHeader } from "@/components/workbench/panel-header";
 import { formatHsl, formatRgb, rgbToHex } from "@/domain/color/color-format";
 import type { RgbColor } from "@/domain/color/color-types";
 import { t } from "@/i18n/translate";
@@ -21,22 +23,14 @@ const renderColorRow = (label: string, color: RgbColor) => {
 export function ColorInspector({ hoverColor, selectedColor }: Props) {
   return (
     <section className="panel">
-      <div className="panelHeader">
-        <h2>{t("panelInspector")}</h2>
-        <p>{t("panelInspectorRequirements")}</p>
-      </div>
+      <PanelHeader titleKey="panelInspector" requirementsKey="panelInspectorRequirements" />
 
       <div className="inspectorCards">
         <div className="inspectorCard">
           <strong>{t("inspectorPreview")}</strong>
           {hoverColor ? (
             <>
-              <span
-                className="swatch"
-                style={{
-                  backgroundColor: `rgb(${hoverColor.r}, ${hoverColor.g}, ${hoverColor.b})`,
-                }}
-              />
+              <ColorSwatch color={hoverColor} />
               {renderColorRow(t("inspectorHoverLabel"), hoverColor)}
             </>
           ) : (
@@ -48,12 +42,7 @@ export function ColorInspector({ hoverColor, selectedColor }: Props) {
           <strong>{t("inspectorSelected")}</strong>
           {selectedColor ? (
             <>
-              <span
-                className="swatch"
-                style={{
-                  backgroundColor: `rgb(${selectedColor.r}, ${selectedColor.g}, ${selectedColor.b})`,
-                }}
-              />
+              <ColorSwatch color={selectedColor} />
               {renderColorRow(t("inspectorSelectedLabel"), selectedColor)}
             </>
           ) : (

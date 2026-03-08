@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { ColorSwatch } from "@/components/workbench/color-swatch";
+import { PanelHeader } from "@/components/workbench/panel-header";
 import { analyzePhoto, type PhotoAnalysisResult } from "@/domain/photo-analysis/photo-analysis";
 import { rgbToHex } from "@/domain/color/color-format";
 import { colorChannelLevels } from "@/domain/color/color-constants";
@@ -82,10 +84,10 @@ export function PhotoAnalysisPanel() {
 
   return (
     <section className="panel">
-      <div className="panelHeader">
-        <h2>{t("panelPhotoAnalysis")}</h2>
-        <p>{t("panelPhotoAnalysisRequirements")}</p>
-      </div>
+      <PanelHeader
+        titleKey="panelPhotoAnalysis"
+        requirementsKey="panelPhotoAnalysisRequirements"
+      />
 
       <label className="fileInput">
         {t("photoUploadLabel")}
@@ -169,12 +171,7 @@ export function PhotoAnalysisPanel() {
             <ul className="areaList">
               {analysis.result.colorAreas.map((area) => (
                 <li key={area.label}>
-                  <span
-                    className="swatch"
-                    style={{
-                      backgroundColor: `rgb(${area.rgb.r}, ${area.rgb.g}, ${area.rgb.b})`,
-                    }}
-                  />
+                  <ColorSwatch color={area.rgb} />
                   <span>{area.label === "others" ? t("photoOthers") : area.label}</span>
                   <strong>{area.ratio.toFixed(1)}%</strong>
                 </li>

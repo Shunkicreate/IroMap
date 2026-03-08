@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { PanelHeader } from "@/components/workbench/panel-header";
 import { toRgbColor, type RgbColor, type SliceAxis } from "@/domain/color/color-types";
 import {
   colorChannelLevels,
@@ -109,10 +110,7 @@ export function SliceCanvas({
 
   return (
     <section className="panel">
-      <div className="panelHeader">
-        <h2>{t("panelSlice")}</h2>
-        <p>{t("panelSliceRequirements")}</p>
-      </div>
+      <PanelHeader titleKey="panelSlice" requirementsKey="panelSliceRequirements" />
       <div className="sliceControls">
         <label>
           {t("sliceAxisLabel")}
