@@ -113,6 +113,18 @@
   color: var(--workbench-text);
 }
 
+.explorationLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.explorationSide {
+  display: grid;
+  gap: 16px;
+}
+
 .pageHeader {
   border: 1px solid var(--workbench-surface-border);
   background: color-mix(in srgb, var(--workbench-surface) 88%, #fff 12%);
@@ -258,6 +270,16 @@
   image-rendering: pixelated;
   border-radius: 10px;
   border: 1px solid #2a3d5d;
+}
+
+@media (max-width: 960px) {
+  .explorationLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .sliceCanvas {
+    width: 100%;
+  }
 }
 
 .fileInput {
