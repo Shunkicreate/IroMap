@@ -19,6 +19,19 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "IroMap | Photo Color Analyzer",
   description: "Understand the color structure of your photos",
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+      noimageindex: true,
+      maxImagePreview: "none",
+      maxSnippet: -1,
+      maxVideoPreview: -1,
+    },
+  },
 };
 
 export default function RootLayout({
