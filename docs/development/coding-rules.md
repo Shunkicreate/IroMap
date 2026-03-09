@@ -38,6 +38,7 @@
 - 依存方向は `app -> features -> domain/rendering/lib` を維持する
 - `domain/` は UI フレームワーク（React/Next.js）に依存しない
 - `components/` から feature 固有実装を直接参照しない
+- feature 内で共通UIが必要な場合は、まず `components/ui` の既存コンポーネント再利用を優先する
 - `types/` は外部境界（API 入出力など）に限定し、`domain` と二重定義しない
 
 ## 6. React 実装ルール
