@@ -1,6 +1,14 @@
 import { expect, test } from "@playwright/test";
 import { uploadRedPng } from "./helpers";
 
+test("T-101(ui-foundation): トップページに機能/ドキュメント導線を表示しない", async ({ page }) => {
+  await page.goto("/");
+
+  await expect(page.getByRole("heading", { name: "機能" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "ドキュメント" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "仕様ドキュメントへ" })).toHaveCount(0);
+});
+
 test("T-102(ui-foundation): モバイル幅でレイアウト崩れがないことを確認", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
