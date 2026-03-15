@@ -1,13 +1,13 @@
 ---
 name: pr-create
-description: Review changes against develop and create or update draft pull requests with GitHub CLI for this repository. Use when asked to generate a PR from `git diff develop...HEAD`, create a draft PR, push then create PR (`-p`), or update only an existing PR body (`-u`) while following `.github/pull_request_template.md` exactly.
+description: Review changes against main and create or update draft pull requests with GitHub CLI for this repository. Use when asked to generate a PR from `git diff main...HEAD`, create a draft PR, push then create PR (`-p`), or update only an existing PR body (`-u`) while following `.github/pull_request_template.md` exactly.
 ---
 
 # PR Create
 
 ## Overview
 
-Create or update a pull request by using change evidence between `develop` and `HEAD`.
+Create or update a pull request by using change evidence between `main` and `HEAD`.
 Generate Japanese PR text in the repository template format and execute the corresponding `gh` command.
 
 ## Allowed Command Scope
@@ -22,8 +22,8 @@ Do not use other command families unless the user explicitly changes the rule.
 
 Always collect these before generating PR text:
 - `git status`
-- `git diff develop...HEAD`
-- `git log --oneline develop..HEAD`
+- `git diff main...HEAD`
+- `git log --oneline main..HEAD`
 - `.github/pull_request_template.md`
 
 If PR already exists (`-u`), also collect:
@@ -34,16 +34,16 @@ If PR already exists (`-u`), also collect:
 Interpret options as follows.
 
 1. Default (no option)
-- Generate PR title/body from `develop...HEAD` diff.
+- Generate PR title/body from `main...HEAD` diff.
 - Create draft PR with `gh pr create --draft`.
 
 2. `-p`
 - Push current branch first: `git push -u origin <current-branch>`.
-- Generate PR title/body from `develop...HEAD` diff.
+- Generate PR title/body from `main...HEAD` diff.
 - Create draft PR with `gh pr create --draft`.
 
 3. `-u`
-- Generate PR body from `develop...HEAD` diff.
+- Generate PR body from `main...HEAD` diff.
 - Update existing PR body only with `gh pr edit --body <description>`.
 
 ## PR Body Rules
@@ -65,7 +65,7 @@ Avoid vague titles like 「修正対応」 or 「各種更新」.
 
 ## Execution Procedure
 
-1. Identify current branch and confirm base branch is `develop`.
+1. Identify current branch and confirm base branch is `main`.
 2. Gather required inputs from Git history and diff.
 3. Draft title and body in template format.
 4. If diff is complex, add a Mermaid diagram section that clarifies flow or structure.
@@ -73,13 +73,13 @@ Avoid vague titles like 「修正対応」 or 「各種更新」.
 
 Default mode command:
 ```bash
-gh pr create --base develop --head <current-branch> --draft --title "<title>" --body "<description>"
+gh pr create --base main --head <current-branch> --draft --title "<title>" --body "<description>"
 ```
 
 `-p` mode commands:
 ```bash
 git push -u origin <current-branch>
-gh pr create --base develop --head <current-branch> --draft --title "<title>" --body "<description>"
+gh pr create --base main --head <current-branch> --draft --title "<title>" --body "<description>"
 ```
 
 `-u` mode command:
