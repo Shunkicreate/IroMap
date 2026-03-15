@@ -3,12 +3,13 @@
 ## 1. 目的
 
 - `spec.md` の FR-1 から FR-8 を満たすため、既存の photo analysis / rgb cube / slice / inspector を 1 つの分析ワークベンチへ統合する設計方針を定義する
+- 複数画像比較は今回の実装対象から外し、この文書内では後続拡張の設計メモとして残す
 
 ## 2. 全体方針
 
 - 既存の画像サンプリング結果を単一の分析データソースとして扱う
 - 可視化レイヤーは `image plane / 3d color space / slice / metrics` に分割し、同じ選択状態を参照する
-- MVP は `単一選択モデル + 2 件比較 + 表コピー + L* histogram` を成立条件とする
+- 今回の実装は `単一 target の選択モデル + 表コピー + L* histogram` を成立条件とする
 - 履歴、保存、ブラシ選択などは後続で差し込めるよう状態モデルを分離する
 
 ## 2.1 用語定義
@@ -23,12 +24,8 @@
   - 後続で保存可能にする UI 状態の束。MVP では永続化しないが、state の構造だけ先に持つ
 - `selection`
   - 明示操作により確定したサンプル集合。再集計や比較の入力になる
-- `selection slot`
-  - 同一 target 内で selection を保持する枠。MVP では `A` と `B` の 2 slot を持つ
 - `hover`
   - 一時的に注目しているサンプルまたはサンプル集合。再集計の基準には使わない
-- `selection scope`
-  - `full-image` または `selected-region`
 - `comparison scope`
   - `full-image`、`matched-selection` の 2 種。MVP はこの 2 つに限定する
 
@@ -56,7 +53,7 @@
 - `MetricsTablePanel`
   - 指標表表示、差分列、コピー形式切替、コピー実行を担当する
 - `HistogramPanel`
-  - metric 切替、selection scope に応じた histogram、comparison overlay、bin コピーを担当する
+  - metric 切替、histogram、comparison overlay、bin コピーを担当する
 - `ComparePanel`
   - baseline / compare target の選択、comparison scope の切替、空状態を担当する
 
@@ -75,7 +72,7 @@
   - `{ selectionId, targetId, source, geometry, sampleIds, sampleCount, coverageRatio, createdAt }`
   - `source` は `image-rect | image-point | color-space-pick | slice-pick`
 - `TargetSelectionState`
-  - `{ activeSelectionSlot, selectionAId?, selectionBId? }`
+  - `{ activeSelectionId? }`
 - `MetricValue`
   - `{ key, label, group, value, unit, precision, description, emptyStateLabel }`
 - `HistogramBin`
@@ -98,7 +95,6 @@
   - `activeCompareTargetId`
   - `selectionStateByTarget`
   - `activeHover`
-  - `selectionScope`
   - `comparisonScope`
   - `copyFormat`
   - `panelVisibility`
@@ -113,7 +109,7 @@
 
 - 計算結果は source of truth に直接保持せず、target と selection から再導出する
 - hover は 1 件のみ保持し、selection と別 state に置く
-- selection は target ごとに `A/B` の 2 slot を持つ
+- selection は target ごとに 1 件の active selection のみ保持する
 - baseline と compare は同型 state で扱い、比較 UI のみが両者を束ねる
 - 将来の snapshot 保存は、現在の source of truth をシリアライズして生成する
 
@@ -125,8 +121,6 @@
 - `matched-selection`
   - baseline / compare のそれぞれで active selection を 1 件ずつ持つ場合のみ比較する
 - baseline selection のみ存在し、compare selection が無い場合は `matched-selection` を成立させない
-- `Selection A-B ΔE`
-  - 同一 target の `selectionA` と `selectionB` が両方存在するときだけ算出する
 - 将来の `snapshot vs snapshot` 比較も内部的には `ComparisonPair` へ正規化する
 
 ## 4.4 レスポンシブ状態ルール
@@ -141,10 +135,10 @@
 
 1. 画像を読み込み、既存の sampling pipeline で `PixelSample[]` を生成する
 2. RGB から HSL / Lab と、3D・slice 用の投影値を計算する
-3. ワークベンチは baseline / compare target と selection slot state を保持する
+3. ワークベンチは baseline / compare target と selection state を保持する
 4. hover が発生したら `activeHover` のみ更新し、再集計は行わない
 5. 矩形選択または色空間選択が確定したら、共通の `sampleIds` へ正規化して `AnalysisSelection` を生成する
-6. `Metrics Engine` が selection scope に応じて指標表、histogram、比較差分を再集計する
+6. `Metrics Engine` が現在 target をもとに指標表、histogram、比較差分を再集計する
 7. 各ビューが `activeHover` と `selectionStateByTarget` を参照し、相互ハイライトを反映する
 8. コピー操作時は表示中データを `Markdown / CSV / TSV` へ整形してクリップボードへ渡す
 
@@ -157,7 +151,6 @@
   - `createRectangleSelection(target, bounds): AnalysisSelection`
   - `createPointSelection(target, sampleId, source): AnalysisSelection`
   - `setActiveHover(targetId, sampleIds, source): WorkbenchHoverState`
-  - `setActiveSelectionSlot(targetId, slot): TargetSelectionState`
   - `buildComparisonPair(state): ComparisonPair | null`
   - `computeMetricTable(target, selection): MetricValue[]`
   - `buildLuminanceHistogram(target, selection, bins): HistogramBin[]`
@@ -168,8 +161,8 @@
 ## 6.1 指標仕様
 
 - 指標の入力範囲
-  - `selectionScope = full-image` のときは target 全 sample
-  - `selectionScope = selected-region` のときは active selection の sample のみ
+  - 指標表と histogram は target 全 sample を対象に集計する
+  - active selection はハイライトと `selection_coverage_ratio` の算出に使う
 - 表示精度
   - MVP では数値表示を小数第 2 位で丸める
   - 元計算値は内部で保持し、UI 表示時とコピー時に丸める
@@ -201,9 +194,6 @@
   - `mean(C*) where L* > 80`
 - `selection_coverage_ratio`
   - `selected sample count / target sample count`
-- `selection_a_b_delta_e`
-  - `DeltaE76(selectionAMeanLab, selectionBMeanLab)`
-  - 同一 target 内の `selection A` と `selection B` が両方存在するときのみ算出する
 
 ### 6.1.2 比較指標
 
@@ -276,8 +266,6 @@
 - 差分列
   - 指標表では `value` に加えて `delta` を持つ
   - histogram は差分列を持たず、系列の重ね表示で比較する
-- 同一 target 内比較
-  - `Selection A-B ΔE` は compare target の有無に関係なく算出できる
 - 差分欠損ルール
   - baseline か compare のどちらかが `N/A` の場合、delta も `N/A`
 - target 間の座標対応
@@ -307,10 +295,9 @@
 1. target を読み込む
 2. 上段 3 ペインで分布を確認する
 3. Preview または色空間上で hover して sample 情報を見る
-4. `selection slot A/B` のいずれかを選び、矩形選択または pick で selection を確定する
-5. 下段の指標表と histogram を selection scope で確認する
-6. 必要に応じて `Selection A-B ΔE` を確認する
-7. 必要に応じて表または histogram をコピーする
+4. 矩形選択または pick で selection を確定する
+5. 下段の指標表と histogram を確認する
+6. 必要に応じて表または histogram をコピーする
 
 ### 6.6.2 2 件比較
 
@@ -323,15 +310,14 @@
 ### 6.6.3 選択解除
 
 1. PreviewPanel または InspectorPanel から `clear selection` を実行する
-2. 現在の active selection slot を解除する
-3. selection scope が `selected-region` の場合は `full-image` へ戻す
+2. 現在の active selection を解除する
 
 ## 6.7 操作優先順位ルール
 
 - hover は常に最も軽い操作で、selection を上書きしない
 - drag 中は新規 hover を無視し、drag 完了時に selection だけを更新する
 - compare target 未設定時は compare panel の操作以外でエラーを出さない
-- histogram metric 切替は selection scope を維持する
+- histogram metric 切替は現在の分析状態を維持する
 - responsive 崩しで panel 順が変わっても、active state は不変とする
 
 ## 6.8 空状態ルール
@@ -340,8 +326,8 @@
   - Preview / ColorSpace / Slice は empty state を表示する
 - compare target 未設定
   - ComparePanel は追加導線だけを見せる
-- selection 未設定で `selected-region` を要求
-  - panel 内で案内を表示し、自動的に新 selection を作らない
+- selection 未設定
+  - `selection_coverage_ratio` は `N/A` 表示にする
 
 ## 6.9 選択・相互ハイライト仕様
 

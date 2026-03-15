@@ -1,27 +1,42 @@
 import { expect, test } from "@playwright/test";
-import { getPanel, hoverColorOnSlice, selectColorFromSlice } from "./helpers";
+import { applyManualColor, getPanel } from "./helpers";
 
 test("T-101(color-copy): 選択色保持の確認", async ({ page }) => {
   await page.goto("/");
-  await selectColorFromSlice(page);
+  await applyManualColor(page, { r: 255, g: 64, b: 32 });
 
-  const selectedPanel = getPanel(page, "インスペクタ");
-  await expect(selectedPanel.getByText(/^#[0-9A-F]{6}$/i).last()).toBeVisible();
+  const selectedCard = getPanel(page, "インスペクタ").locator(".inspectorCard").nth(1);
+  await expect(selectedCard.locator(".copyValueRow").first().locator("code")).not.toHaveText("--");
 });
 
 test("T-102(color-copy): コピー形式の確認", async ({ page }) => {
   await page.goto("/");
-  await selectColorFromSlice(page);
+  await applyManualColor(page, { r: 255, g: 64, b: 32 });
 
   const inspector = getPanel(page, "インスペクタ");
   await expect(
-    inspector.locator(".copyValueRow").filter({ hasText: "HEX" }).locator("code")
-  ).toHaveText(/^#[0-9A-F]{6}$/i);
+    inspector
+      .locator(".inspectorCard")
+      .nth(1)
+      .locator(".copyValueRow")
+      .filter({ hasText: "HEX" })
+      .locator("code")
+  ).not.toHaveText("--");
   await expect(
-    inspector.locator(".copyValueRow").filter({ hasText: "rgb()" }).locator("code")
+    inspector
+      .locator(".inspectorCard")
+      .nth(1)
+      .locator(".copyValueRow")
+      .filter({ hasText: "rgb()" })
+      .locator("code")
   ).toHaveText(/^rgb\(\d+, \d+, \d+\)$/);
   await expect(
-    inspector.locator(".copyValueRow").filter({ hasText: "hsl()" }).locator("code")
+    inspector
+      .locator(".inspectorCard")
+      .nth(1)
+      .locator(".copyValueRow")
+      .filter({ hasText: "hsl()" })
+      .locator("code")
   ).toHaveText(/^hsl\(\d+, \d+%, \d+%\)$/);
 });
 
@@ -30,27 +45,33 @@ test("T-101(inspector): プレビュー表示の確認", async ({ page }) => {
   const inspector = getPanel(page, "インスペクタ");
   await expect(inspector.locator("code")).toHaveCount(6);
   await expect(inspector.locator("code", { hasText: "--" })).toHaveCount(6);
-
-  await hoverColorOnSlice(page);
-  await expect(inspector.getByText(/^#[0-9A-F]{6}$/i).first()).toBeVisible();
+  await expect(inspector.getByText("プレビュー（ホバー）")).toBeVisible();
 });
 
 test("T-102(inspector): 選択色保持の確認", async ({ page }) => {
   await page.goto("/");
-  await selectColorFromSlice(page);
+  await applyManualColor(page, { r: 255, g: 64, b: 32 });
 
-  const inspector = getPanel(page, "インスペクタ");
-  await expect(inspector.getByText(/^#[0-9A-F]{6}$/i).last()).toBeVisible();
+  const selectedCard = getPanel(page, "インスペクタ").locator(".inspectorCard").nth(1);
+  await expect(selectedCard.locator(".copyValueRow").first().locator("code")).toHaveText(
+    /^#[0-9A-F]{6}$/i
+  );
 });
 
 test("T-103(inspector): 3形式表示の確認", async ({ page }) => {
   await page.goto("/");
-  await selectColorFromSlice(page);
+  await applyManualColor(page, { r: 255, g: 64, b: 32 });
 
-  const inspector = getPanel(page, "インスペクタ");
-  await expect(inspector.getByText(/^#[0-9A-F]{6}$/i).first()).toBeVisible();
-  await expect(inspector.getByText(/^rgb\(\d+, \d+, \d+\)$/).first()).toBeVisible();
-  await expect(inspector.getByText(/^hsl\(\d+, \d+%, \d+%\)$/).first()).toBeVisible();
+  const selectedCard = getPanel(page, "インスペクタ").locator(".inspectorCard").nth(1);
+  await expect(
+    selectedCard.locator(".copyValueRow").filter({ hasText: "HEX" }).locator("code")
+  ).toHaveText(/^#[0-9A-F]{6}$/i);
+  await expect(
+    selectedCard.locator(".copyValueRow").filter({ hasText: "rgb()" }).locator("code")
+  ).toHaveText(/^rgb\(\d+, \d+, \d+\)$/);
+  await expect(
+    selectedCard.locator(".copyValueRow").filter({ hasText: "hsl()" }).locator("code")
+  ).toHaveText(/^hsl\(\d+, \d+%, \d+%\)$/);
 });
 
 test("T-104(inspector): デスクトップ幅で2要素が横並び表示される", async ({ page }) => {

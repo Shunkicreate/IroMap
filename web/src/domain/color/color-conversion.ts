@@ -222,3 +222,14 @@ export const rgbToHueAndSaturation = (color: RgbColor): { hue: number; saturatio
     saturation: hsl.s / hslSaturationPercentage,
   };
 };
+
+export const labToChroma = (lab: LabColor): number => {
+  return Math.sqrt(lab.a * lab.a + lab.b * lab.b);
+};
+
+export const deltaE76 = (left: LabColor, right: LabColor): number => {
+  const deltaL = left.l - right.l;
+  const deltaA = left.a - right.a;
+  const deltaB = left.b - right.b;
+  return Math.sqrt(deltaL * deltaL + deltaA * deltaA + deltaB * deltaB);
+};
