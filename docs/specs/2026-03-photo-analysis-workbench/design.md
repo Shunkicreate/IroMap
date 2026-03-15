@@ -26,8 +26,6 @@
   - 明示操作により確定したサンプル集合。再集計や比較の入力になる
 - `hover`
   - 一時的に注目しているサンプルまたはサンプル集合。再集計の基準には使わない
-- `selection scope`
-  - `full-image` または `selected-region`
 - `comparison scope`
   - `full-image`、`matched-selection` の 2 種。MVP はこの 2 つに限定する
 
@@ -55,7 +53,7 @@
 - `MetricsTablePanel`
   - 指標表表示、差分列、コピー形式切替、コピー実行を担当する
 - `HistogramPanel`
-  - metric 切替、selection scope に応じた histogram、comparison overlay、bin コピーを担当する
+  - metric 切替、histogram、comparison overlay、bin コピーを担当する
 - `ComparePanel`
   - baseline / compare target の選択、comparison scope の切替、空状態を担当する
 
@@ -97,7 +95,6 @@
   - `activeCompareTargetId`
   - `selectionStateByTarget`
   - `activeHover`
-  - `selectionScope`
   - `comparisonScope`
   - `copyFormat`
   - `panelVisibility`
@@ -141,7 +138,7 @@
 3. ワークベンチは baseline / compare target と selection state を保持する
 4. hover が発生したら `activeHover` のみ更新し、再集計は行わない
 5. 矩形選択または色空間選択が確定したら、共通の `sampleIds` へ正規化して `AnalysisSelection` を生成する
-6. `Metrics Engine` が selection scope に応じて指標表、histogram、比較差分を再集計する
+6. `Metrics Engine` が現在 target をもとに指標表、histogram、比較差分を再集計する
 7. 各ビューが `activeHover` と `selectionStateByTarget` を参照し、相互ハイライトを反映する
 8. コピー操作時は表示中データを `Markdown / CSV / TSV` へ整形してクリップボードへ渡す
 
@@ -164,8 +161,8 @@
 ## 6.1 指標仕様
 
 - 指標の入力範囲
-  - `selectionScope = full-image` のときは target 全 sample
-  - `selectionScope = selected-region` のときは active selection の sample のみ
+  - 指標表と histogram は target 全 sample を対象に集計する
+  - active selection はハイライトと `selection_coverage_ratio` の算出に使う
 - 表示精度
   - MVP では数値表示を小数第 2 位で丸める
   - 元計算値は内部で保持し、UI 表示時とコピー時に丸める
@@ -299,7 +296,7 @@
 2. 上段 3 ペインで分布を確認する
 3. Preview または色空間上で hover して sample 情報を見る
 4. 矩形選択または pick で selection を確定する
-5. 下段の指標表と histogram を selection scope で確認する
+5. 下段の指標表と histogram を確認する
 6. 必要に応じて表または histogram をコピーする
 
 ### 6.6.2 2 件比較
@@ -313,15 +310,14 @@
 ### 6.6.3 選択解除
 
 1. PreviewPanel または InspectorPanel から `clear selection` を実行する
-2. 現在の active selection slot を解除する
-3. selection scope が `selected-region` の場合は `full-image` へ戻す
+2. 現在の active selection を解除する
 
 ## 6.7 操作優先順位ルール
 
 - hover は常に最も軽い操作で、selection を上書きしない
 - drag 中は新規 hover を無視し、drag 完了時に selection だけを更新する
 - compare target 未設定時は compare panel の操作以外でエラーを出さない
-- histogram metric 切替は selection scope を維持する
+- histogram metric 切替は現在の分析状態を維持する
 - responsive 崩しで panel 順が変わっても、active state は不変とする
 
 ## 6.8 空状態ルール
@@ -330,8 +326,8 @@
   - Preview / ColorSpace / Slice は empty state を表示する
 - compare target 未設定
   - ComparePanel は追加導線だけを見せる
-- selection 未設定で `selected-region` を要求
-  - panel 内で案内を表示し、自動的に新 selection を作らない
+- selection 未設定
+  - `selection_coverage_ratio` は `N/A` 表示にする
 
 ## 6.9 選択・相互ハイライト仕様
 

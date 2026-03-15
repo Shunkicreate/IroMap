@@ -51,7 +51,6 @@ export type RgbCubePoint = {
   ratio: number;
 };
 
-export type SelectionScope = "full-image" | "selected-region";
 export type ExportFormat = "markdown" | "csv" | "tsv";
 
 export type PhotoSelection = {
@@ -488,14 +487,10 @@ const getSelectionIds = (selection: PhotoSelection | null | undefined): Set<numb
   return new Set(selection.sampleIds);
 };
 
-export const getScopedSamples = (
+export const getSelectedSamples = (
   result: PhotoAnalysisResult,
-  selectionState: TargetSelectionState | null | undefined,
-  scope: SelectionScope
+  selectionState: TargetSelectionState | null | undefined
 ): PhotoSample[] => {
-  if (scope === "full-image") {
-    return result.samples;
-  }
   const selection = selectionState?.activeSelection ?? null;
   const ids = getSelectionIds(selection);
   if (!ids) {
@@ -589,14 +584,12 @@ export const buildHistogramBins = (
 export const buildMetricRows = ({
   result,
   selectionState,
-  scope,
 }: {
   result: PhotoAnalysisResult;
   selectionState: TargetSelectionState | null | undefined;
-  scope: SelectionScope;
 }): WorkbenchMetricRow[] => {
-  const scopedSamples = getScopedSamples(result, selectionState, scope);
-  const summary = buildMetricSummary(scopedSamples);
+  const summary = buildMetricSummary(result.samples);
+  const selectedSamples = getSelectedSamples(result, selectionState);
 
   const getMetricValue = (
     key: WorkbenchMetricKey,
@@ -625,7 +618,7 @@ export const buildMetricRows = ({
       case "highlight_neutral_distance_mean":
         return sourceSummary.highlightNeutralDistanceMean;
       case "selection_coverage_ratio":
-        return scope === "selected-region" && result.samples.length > 0
+        return selectedSamples.length > 0 && result.samples.length > 0
           ? (sampleCount / result.samples.length) * ratioPercent
           : null;
       default:
@@ -634,7 +627,11 @@ export const buildMetricRows = ({
   };
 
   return metricDefinitions.map((definition) => {
-    const baseValue = getMetricValue(definition.key, summary, scopedSamples.length);
+    const sampleCount =
+      definition.key === "selection_coverage_ratio"
+        ? selectedSamples.length
+        : result.samples.length;
+    const baseValue = getMetricValue(definition.key, summary, sampleCount);
 
     return {
       ...definition,

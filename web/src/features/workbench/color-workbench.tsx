@@ -21,13 +21,12 @@ import {
   buildMetricRows,
   buildPointSelection,
   buildRectangleSelection,
-  getScopedSamples,
+  getSelectedSamples,
   serializeHistogramBins,
   serializeMetricRows,
   type ExportFormat,
   type PhotoAnalysisResult,
   type PhotoSample,
-  type SelectionScope,
   type TargetSelectionState,
   type WorkbenchHistogramMetric,
   type WorkbenchMetricRow,
@@ -588,8 +587,6 @@ export function ColorWorkbench() {
     source: "preview",
   });
   const [selectedColor, setSelectedColor] = useState<RgbColor | null>(null);
-  const [selectionScope, setSelectionScope] = useState<SelectionScope>("full-image");
-  const [sliceMappingScope, setSliceMappingScope] = useState<SelectionScope>("full-image");
   const [copyFormat, setCopyFormat] = useState<ExportFormat>("markdown");
   const [histogramMetric, setHistogramMetric] = useState<WorkbenchHistogramMetric>("luminance");
   const [sliceAxis, setSliceAxis] = useState<SliceAxis>("r");
@@ -679,41 +676,27 @@ export function ColorWorkbench() {
 
   const baselineSelectionState = selectionStateByTarget.baseline ?? defaultSelectionState;
   const activeBaselineSelection = baselineSelectionState.activeSelection;
-  const scopedBaselineSamples = useMemo(
-    () =>
-      baselineTarget.result
-        ? getScopedSamples(baselineTarget.result, baselineSelectionState, selectionScope)
-        : [],
-    [baselineSelectionState, baselineTarget.result, selectionScope]
-  );
-  const sliceMappedSamples = useMemo(
-    () =>
-      baselineTarget.result
-        ? getScopedSamples(baselineTarget.result, baselineSelectionState, sliceMappingScope)
-        : [],
-    [baselineSelectionState, baselineTarget.result, sliceMappingScope]
-  );
+  const sliceMappedSamples = baselineTarget.result?.samples ?? [];
   const baselineMetricRows = useMemo(
     () =>
       baselineTarget.result
         ? buildMetricRows({
             result: baselineTarget.result,
             selectionState: baselineSelectionState,
-            scope: selectionScope,
           })
         : [],
-    [baselineTarget.result, baselineSelectionState, selectionScope]
+    [baselineTarget.result, baselineSelectionState]
   );
   const baselineHistogram = useMemo(
-    () => buildHistogramBins(scopedBaselineSamples, histogramMetric),
-    [scopedBaselineSamples, histogramMetric]
+    () => buildHistogramBins(baselineTarget.result?.samples ?? [], histogramMetric),
+    [baselineTarget.result, histogramMetric]
   );
 
   const selectionCubePoints = useMemo(
     () =>
       baselineTarget.result && activeBaselineSelection
         ? buildCubePointsFromSamples(
-            getScopedSamples(baselineTarget.result, baselineSelectionState, "selected-region")
+            getSelectedSamples(baselineTarget.result, baselineSelectionState)
           )
         : [],
     [activeBaselineSelection, baselineSelectionState, baselineTarget.result]
@@ -766,11 +749,6 @@ export function ColorWorkbench() {
     setSliceValue(normalizeSliceValueForAxis(nextAxis, sliceValue));
   };
 
-  const handleSelectionScopeChange = (scope: SelectionScope): void => {
-    setSelectionScope(scope);
-    setSliceMappingScope(scope);
-  };
-
   const setActiveSelection = (
     selectionFactory: () =>
       | ReturnType<typeof buildPointSelection>
@@ -806,7 +784,6 @@ export function ColorWorkbench() {
         bounds,
       })
     );
-    handleSelectionScopeChange("selected-region");
     setLiveMessage(t("workbenchSelectionUpdated"));
   };
 
@@ -861,7 +838,6 @@ export function ColorWorkbench() {
         },
       };
     });
-    handleSelectionScopeChange("full-image");
   };
 
   const handleStatusChange = (message: string): void => {
@@ -1106,25 +1082,6 @@ export function ColorWorkbench() {
 
           <section className="panel inspectorExtensionPanel">
             <div className="inspectorControls">
-              <div>
-                <strong>{t("workbenchSelectionScopeLabel")}</strong>
-                <div className="segmentedControl">
-                  <button
-                    type="button"
-                    className={selectionScope === "full-image" ? "segmentedActive" : ""}
-                    onClick={() => handleSelectionScopeChange("full-image")}
-                  >
-                    {t("workbenchScopeFullImage")}
-                  </button>
-                  <button
-                    type="button"
-                    className={selectionScope === "selected-region" ? "segmentedActive" : ""}
-                    onClick={() => handleSelectionScopeChange("selected-region")}
-                  >
-                    {t("workbenchScopeSelectedRegion")}
-                  </button>
-                </div>
-              </div>
               <button type="button" onClick={handleSelectionClear}>
                 {t("workbenchClearSelection")}
               </button>

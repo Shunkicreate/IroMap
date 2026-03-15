@@ -4,7 +4,7 @@ import {
   buildHistogramBins,
   buildMetricRows,
   buildPointSelection,
-  getScopedSamples,
+  getSelectedSamples,
   serializeHistogramBins,
   serializeMetricRows,
   type TargetSelectionState,
@@ -90,7 +90,7 @@ test("T-202(photo-analysis): 同一入力で再分析結果が一致する", asy
   expect(second.cubePoints).toEqual(first.cubePoints);
 });
 
-test("T-203(photo-analysis): selected-region scope で単一 selection だけ再集計できる", async () => {
+test("T-203(photo-analysis): 単一 selection の coverage を指標表へ反映できる", async () => {
   const imageData = createImageDataLike(4, 4, (x) => {
     if (x < 2) {
       return { r: 255, g: 0, b: 0 };
@@ -111,13 +111,12 @@ test("T-203(photo-analysis): selected-region scope で単一 selection だけ再
     activeSelection: selection,
   };
 
-  const scopedSamples = getScopedSamples(result, selectionState, "selected-region");
+  const scopedSamples = getSelectedSamples(result, selectionState);
   expect(scopedSamples).toHaveLength(1);
 
   const metricRows = buildMetricRows({
     result,
     selectionState,
-    scope: "selected-region",
   });
   const coverage = metricRows.find((row) => row.key === "selection_coverage_ratio");
   expect(coverage?.value).toBeCloseTo((1 / result.samples.length) * 100, 4);
@@ -133,7 +132,6 @@ test("T-205(photo-analysis): metric table と histogram を Markdown 形式で e
   const metricRows = buildMetricRows({
     result,
     selectionState: null,
-    scope: "full-image",
   });
   const histogram = buildHistogramBins(result.samples, "luminance");
 
