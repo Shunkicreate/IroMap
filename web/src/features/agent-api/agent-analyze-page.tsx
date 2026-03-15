@@ -3,7 +3,10 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import type { AnalyzeErrorResponse, AnalyzeSuccessResponse } from "@/lib/agent-analyze-schema";
+import type {
+  AnalyzeErrorResponse,
+  AnalyzeSuccessResponse,
+} from "@/domain/photo-analysis/agent-api-contract";
 import styles from "./agent-analyze-page.module.css";
 
 const supportedTypes = ["image/jpeg", "image/png", "image/webp"];

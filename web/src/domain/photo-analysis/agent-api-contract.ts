@@ -16,6 +16,27 @@ export type AnalyzeErrorResponse = {
   };
 };
 
+export type PlainRgbColor = {
+  r: number;
+  g: number;
+  b: number;
+};
+
+export type DominantColorSummary = {
+  hex: string;
+  ratio: number;
+  rgb: PlainRgbColor;
+};
+
+export type VisualizationExplanation = {
+  id: string;
+  title: string;
+  colorSpace: string;
+  axes: string[];
+  description: string;
+  findings: string;
+};
+
 export type AnalyzeSuccessResponse = {
   input: {
     mimeType: string;
@@ -25,15 +46,7 @@ export type AnalyzeSuccessResponse = {
     colorSpace: string;
   };
   summary: {
-    dominantColors: Array<{
-      hex: string;
-      ratio: number;
-      rgb: {
-        r: number;
-        g: number;
-        b: number;
-      };
-    }>;
+    dominantColors: DominantColorSummary[];
     avgBrightness: number;
     avgSaturation: number;
     description: string;
@@ -49,7 +62,7 @@ export type AnalyzeSuccessResponse = {
     rgbCube: {
       sampleCount: number;
       points: Array<{
-        rgb: { r: number; g: number; b: number };
+        rgb: PlainRgbColor;
         count: number;
         ratio: number;
       }>;
@@ -60,7 +73,7 @@ export type AnalyzeSuccessResponse = {
       points: Array<{
         x: number;
         y: number;
-        rgb: { r: number; g: number; b: number };
+        rgb: PlainRgbColor;
       }>;
     };
     labScatter: {
@@ -68,7 +81,7 @@ export type AnalyzeSuccessResponse = {
       points: Array<{
         x: number;
         y: number;
-        rgb: { r: number; g: number; b: number };
+        rgb: PlainRgbColor;
       }>;
     };
     hueHistogram: {
@@ -82,18 +95,11 @@ export type AnalyzeSuccessResponse = {
         label: string;
         ratio: number;
         hex: string;
-        rgb: { r: number; g: number; b: number };
+        rgb: PlainRgbColor;
       }>;
     };
   };
-  explanations: Array<{
-    id: string;
-    title: string;
-    colorSpace: string;
-    axes: string[];
-    description: string;
-    findings: string;
-  }>;
+  explanations: VisualizationExplanation[];
 };
 
 export type RateLimitPolicy = {
