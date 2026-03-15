@@ -49,10 +49,12 @@ const defaultCubeSize = 400;
 const minCubeSize = 320;
 const maxCubeSize = 900;
 const cubeSizeStep = 10;
-const imageOverlayMinAlpha = 0.2;
-const imageOverlayMaxAlpha = 0.95;
-const imageOverlayMinRadius = 2.2;
-const imageOverlayMaxRadius = 6.2;
+const imageOverlayMinAlpha = 0.45;
+const imageOverlayMaxAlpha = 1;
+const imageOverlayMinRadius = 2.8;
+const imageOverlayMaxRadius = 7.2;
+const imageOverlayStrokeAlpha = 0.9;
+const imageOverlayStrokeWidth = 0.8;
 
 const getSliceAxisLabel = (axis: SliceAxis): string => {
   if (axis === "lab-l") {
@@ -181,6 +183,9 @@ export function RgbCubeCanvas({
       context.beginPath();
       context.arc(point.x, point.y, radius, 0, fullCircleRadians);
       context.fill();
+      context.strokeStyle = `rgba(${point.color.r}, ${point.color.g}, ${point.color.b}, ${imageOverlayStrokeAlpha})`;
+      context.lineWidth = imageOverlayStrokeWidth;
+      context.stroke();
     }
 
     context.fillStyle = `rgba(255, 255, 255, ${textAlpha})`;
