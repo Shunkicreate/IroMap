@@ -62,7 +62,6 @@ const imageOverlayStrokeWidth = 0.8;
 const compareOverlayStroke = "#f4b942";
 const selectionOverlayStroke = "#f97316";
 const hoverOverlayStroke = "#ffffff";
-const selectionOverlayRadiusOffset = 2.2;
 const compareOverlayRadiusOffset = 1.6;
 const focusOverlayRadius = 6.5;
 
@@ -236,12 +235,37 @@ export function RgbCubeCanvas({
     for (const point of projectedSelection) {
       const intensity = point.count / maxSelectionCount;
       const radius =
-        imageOverlayMinRadius + (imageOverlayMaxRadius - imageOverlayMinRadius) * intensity;
-      context.strokeStyle = selectionOverlayStroke;
-      context.lineWidth = 1.6;
+        imageOverlayMinRadius + (imageOverlayMaxRadius - imageOverlayMinRadius) * intensity + 2.4;
+      const gradient = context.createRadialGradient(
+        point.x - radius * 0.35,
+        point.y - radius * 0.45,
+        radius * 0.15,
+        point.x,
+        point.y,
+        radius
+      );
+      gradient.addColorStop(0, "rgba(255, 248, 240, 0.9)");
+      gradient.addColorStop(0.2, "rgba(253, 186, 116, 0.75)");
+      gradient.addColorStop(0.7, "rgba(249, 115, 22, 0.42)");
+      gradient.addColorStop(1, "rgba(194, 65, 12, 0.18)");
+      context.fillStyle = gradient;
       context.beginPath();
-      context.arc(point.x, point.y, radius + selectionOverlayRadiusOffset, 0, fullCircleRadians);
+      context.arc(point.x, point.y, radius, 0, fullCircleRadians);
+      context.fill();
+      context.strokeStyle = "rgba(251, 146, 60, 0.82)";
+      context.lineWidth = 1.2;
       context.stroke();
+
+      context.fillStyle = "rgba(255, 255, 255, 0.35)";
+      context.beginPath();
+      context.arc(
+        point.x - radius * 0.3,
+        point.y - radius * 0.35,
+        Math.max(radius * 0.24, 0.8),
+        0,
+        fullCircleRadians
+      );
+      context.fill();
     }
 
     const drawFocusRing = (color: RgbColor | null | undefined, strokeStyle: string): void => {
@@ -256,7 +280,9 @@ export function RgbCubeCanvas({
       context.stroke();
     };
 
-    drawFocusRing(selectedColor, selectionOverlayStroke);
+    if (projectedSelection.length === 0) {
+      drawFocusRing(selectedColor, selectionOverlayStroke);
+    }
     drawFocusRing(hoverColor, hoverOverlayStroke);
 
     context.fillStyle = `rgba(255, 255, 255, ${textAlpha})`;

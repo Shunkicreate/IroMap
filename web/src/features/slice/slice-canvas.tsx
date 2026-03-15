@@ -25,6 +25,7 @@ type Props = {
   axis: SliceAxis;
   value: number;
   mappedSamples?: PhotoSample[];
+  selectedSamples?: PhotoSample[];
   hoverColor?: RgbColor | null;
   selectedColor?: RgbColor | null;
   onAxisChange: (axis: SliceAxis) => void;
@@ -170,6 +171,96 @@ const getSliceTolerance = (axis: SliceAxis): number => {
   return 4;
 };
 
+const selectedSphereRadiusByAxis = (axis: SliceAxis): number => {
+  if (axis === "h") {
+    return 12;
+  }
+  if (axis === "s" || axis === "l" || axis === "lab-l") {
+    return 6;
+  }
+  if (axis === "lab-a" || axis === "lab-b") {
+    return 10;
+  }
+  return 14;
+};
+
+const getSampleAxisValue = (sample: PhotoSample, axis: SliceAxis): number => {
+  if (axis === "r") {
+    return sample.color.r;
+  }
+  if (axis === "g") {
+    return sample.color.g;
+  }
+  if (axis === "b") {
+    return sample.color.b;
+  }
+  if (axis === "h") {
+    return sample.hsl.h;
+  }
+  if (axis === "s") {
+    return sample.hsl.s;
+  }
+  if (axis === "l") {
+    return sample.hsl.l;
+  }
+  if (axis === "lab-l") {
+    return sample.lab.l;
+  }
+  if (axis === "lab-a") {
+    return sample.lab.a;
+  }
+  return sample.lab.b;
+};
+
+const projectSampleToSlicePlane = (
+  sample: PhotoSample,
+  axis: SliceAxis
+): { x: number; y: number } => {
+  if (axis === "r") {
+    return { x: sample.color.g, y: colorChannelMax - sample.color.b };
+  }
+  if (axis === "g") {
+    return { x: sample.color.r, y: colorChannelMax - sample.color.b };
+  }
+  if (axis === "b") {
+    return { x: sample.color.r, y: colorChannelMax - sample.color.g };
+  }
+  if (axis === "h") {
+    return {
+      x: Math.round((sample.hsl.s / 100) * colorChannelMax),
+      y: colorChannelMax - Math.round((sample.hsl.l / 100) * colorChannelMax),
+    };
+  }
+  if (axis === "s") {
+    return {
+      x: Math.round((sample.hsl.h / 360) * colorChannelMax),
+      y: colorChannelMax - Math.round((sample.hsl.l / 100) * colorChannelMax),
+    };
+  }
+  if (axis === "l") {
+    return {
+      x: Math.round((sample.hsl.h / 360) * colorChannelMax),
+      y: colorChannelMax - Math.round((sample.hsl.s / 100) * colorChannelMax),
+    };
+  }
+  if (axis === "lab-l") {
+    return {
+      x: Math.round(((sample.lab.a + 128) / 255) * colorChannelMax),
+      y: colorChannelMax - Math.round(((sample.lab.b + 128) / 255) * colorChannelMax),
+    };
+  }
+  if (axis === "lab-a") {
+    return {
+      x: Math.round(((sample.lab.b + 128) / 255) * colorChannelMax),
+      y: colorChannelMax - Math.round((sample.lab.l / 100) * colorChannelMax),
+    };
+  }
+  return {
+    x: Math.round(((sample.lab.a + 128) / 255) * colorChannelMax),
+    y: colorChannelMax - Math.round((sample.lab.l / 100) * colorChannelMax),
+  };
+};
+
 const projectSampleToSlice = (
   sample: PhotoSample,
   axis: SliceAxis,
@@ -254,6 +345,7 @@ export function SliceCanvas({
   axis,
   value,
   mappedSamples = [],
+  selectedSamples = [],
   hoverColor = null,
   selectedColor = null,
   onAxisChange,
@@ -316,6 +408,39 @@ export function SliceCanvas({
       context.fill();
     }
 
+    const sphereRadius = selectedSphereRadiusByAxis(axis);
+    for (const sample of selectedSamples) {
+      const axisDistance =
+        axis === "h"
+          ? getHueDistance(getSampleAxisValue(sample, axis), value)
+          : Math.abs(getSampleAxisValue(sample, axis) - value);
+      if (axisDistance > sphereRadius) {
+        continue;
+      }
+
+      const planePoint = projectSampleToSlicePlane(sample, axis);
+      const crossSectionRadius = Math.sqrt(sphereRadius ** 2 - axisDistance ** 2);
+      const gradient = context.createRadialGradient(
+        planePoint.x - crossSectionRadius * 0.35,
+        planePoint.y - crossSectionRadius * 0.4,
+        Math.max(crossSectionRadius * 0.1, 0.5),
+        planePoint.x,
+        planePoint.y,
+        crossSectionRadius
+      );
+      gradient.addColorStop(0, "rgba(255, 248, 240, 0.8)");
+      gradient.addColorStop(0.28, "rgba(253, 186, 116, 0.7)");
+      gradient.addColorStop(0.72, "rgba(249, 115, 22, 0.34)");
+      gradient.addColorStop(1, "rgba(194, 65, 12, 0.12)");
+      context.fillStyle = gradient;
+      context.beginPath();
+      context.arc(planePoint.x, planePoint.y, Math.max(crossSectionRadius, 1.2), 0, Math.PI * 2);
+      context.fill();
+      context.strokeStyle = "rgba(251, 146, 60, 0.8)";
+      context.lineWidth = 1.2;
+      context.stroke();
+    }
+
     const drawMarker = (color: RgbColor | null, strokeStyle: string, radius: number): void => {
       if (!color) {
         return;
@@ -365,7 +490,7 @@ export function SliceCanvas({
 
     drawMarker(selectedColor, "#f97316", 10);
     drawMarker(hoverColor, "#ffffff", 7);
-  }, [axis, hoverColor, mappedSamples, selectedColor, value]);
+  }, [axis, hoverColor, mappedSamples, selectedColor, selectedSamples, value]);
 
   const mapPointerToColor = (
     event: React.PointerEvent<HTMLCanvasElement> | React.MouseEvent<HTMLCanvasElement>

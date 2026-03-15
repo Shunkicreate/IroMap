@@ -1348,6 +1348,7 @@ export function ColorWorkbench() {
             axis={sliceAxis}
             value={sliceValue}
             mappedSamples={sliceMappedSamples}
+            selectedSamples={selectedSamples}
             hoverColor={hoverColor}
             selectedColor={selectedColor}
             onAxisChange={handleSliceAxisChange}
