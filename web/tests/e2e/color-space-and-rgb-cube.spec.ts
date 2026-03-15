@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { getCubeCanvas, getPanel } from "./helpers";
+import { getCubeCanvas, getPanel, getSliceCanvas } from "./helpers";
 
 const dragOnCube = async (page: Page): Promise<void> => {
   const cube = getCubeCanvas(page);
@@ -76,7 +76,7 @@ test("T-108(color-space-3d): RGBキューブとSliceの近接配置を確認", a
   await page.setViewportSize({ width: 1600, height: 900 });
   await page.goto("/");
   const cubeBox = await getCubeCanvas(page).boundingBox();
-  const sliceBox = await page.locator(".sliceCanvas").boundingBox();
+  const sliceBox = await getSliceCanvas(page).boundingBox();
 
   expect(cubeBox).not.toBeNull();
   expect(sliceBox).not.toBeNull();
@@ -166,6 +166,6 @@ test("T-102(rgb-cube): 回転操作の動作確認", async ({ page }) => {
 
 test("T-103(rgb-cube): 解像度固定の確認", async ({ page }) => {
   await page.goto("/");
-  await expect(page.locator(".sliceCanvas")).toHaveAttribute("width", "256");
-  await expect(page.locator(".sliceCanvas")).toHaveAttribute("height", "256");
+  await expect(getSliceCanvas(page)).toHaveAttribute("width", "256");
+  await expect(getSliceCanvas(page)).toHaveAttribute("height", "256");
 });

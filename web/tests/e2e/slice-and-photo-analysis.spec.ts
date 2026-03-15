@@ -41,10 +41,11 @@ test("T-201(photo-analysis): 上部CTAからアップロードして結果表示
 
   await uploadRedPng(page);
 
+  const previewPanel = getPanel(page, "選択画像プレビュー");
   const panel = getPanel(page, "写真分析 MVP");
   await expect(page.getByText("選択中: red.png")).toBeVisible();
   await expect(panel.getByText("Lab a-b 散布図")).toBeVisible();
-  await expect(panel.locator(".photoPasteStatus")).toContainText("file=red.png");
+  await expect(previewPanel.locator(".previewStatusGrid")).toContainText("file=red.png");
 });
 
 test("T-202(photo-analysis): クリップボード画像貼り付けで結果表示できる", async ({ page }) => {
@@ -52,9 +53,12 @@ test("T-202(photo-analysis): クリップボード画像貼り付けで結果表
 
   await pasteRedPngToPhotoAnalysis(page);
 
+  const previewPanel = getPanel(page, "選択画像プレビュー");
   const panel = getPanel(page, "写真分析 MVP");
   await expect(panel.getByText("Lab a-b 散布図")).toBeVisible();
-  await expect(panel.locator(".photoPasteStatus")).toContainText("file=clipboard-image.png");
+  await expect(previewPanel.locator(".previewStatusGrid")).toContainText(
+    "file=clipboard-image.png"
+  );
 });
 
 test("T-203(photo-analysis): クリップボードJPEG貼り付けで結果表示できる", async ({ page }) => {
@@ -62,9 +66,12 @@ test("T-203(photo-analysis): クリップボードJPEG貼り付けで結果表�
 
   await pasteRedJpegToPhotoAnalysis(page);
 
+  const previewPanel = getPanel(page, "選択画像プレビュー");
   const panel = getPanel(page, "写真分析 MVP");
   await expect(panel.getByText("Lab a-b 散布図")).toBeVisible();
-  await expect(panel.locator(".photoPasteStatus")).toContainText("file=clipboard-image.jpg");
+  await expect(previewPanel.locator(".previewStatusGrid")).toContainText(
+    "file=clipboard-image.jpg"
+  );
 });
 
 test("T-204(photo-analysis): 選択画像プレビューを表示できる", async ({ page }) => {
@@ -72,10 +79,10 @@ test("T-204(photo-analysis): 選択画像プレビューを表示できる", asy
 
   await uploadRedPng(page);
 
-  const panel = getPanel(page, "写真分析 MVP");
+  const panel = getPanel(page, "選択画像プレビュー");
   const previewImage = panel.getByRole("img", { name: "分析対象画像: red.png" });
 
   await expect(previewImage).toBeVisible();
   await expect(previewImage).toHaveAttribute("alt", "分析対象画像: red.png");
-  await expect(panel.getByText("red.png", { exact: true }).last()).toBeVisible();
+  await expect(page.getByText("選択中: red.png")).toBeVisible();
 });
