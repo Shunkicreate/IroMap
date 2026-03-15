@@ -1,5 +1,4 @@
 import {
-  deltaE76,
   labToChroma,
   rgbToHsl,
   rgbToHueAndSaturation,
@@ -52,14 +51,12 @@ export type RgbCubePoint = {
   ratio: number;
 };
 
-export type SelectionSlot = "A" | "B";
 export type SelectionScope = "full-image" | "selected-region";
 export type ExportFormat = "markdown" | "csv" | "tsv";
 
 export type PhotoSelection = {
   selectionId: string;
   targetId: string;
-  slot: SelectionSlot;
   source: "image-rect" | "image-point" | "color-space-pick" | "slice-pick";
   sampleIds: number[];
   sampleCount: number;
@@ -68,9 +65,7 @@ export type PhotoSelection = {
 };
 
 export type TargetSelectionState = {
-  activeSelectionSlot: SelectionSlot;
-  selectionA: PhotoSelection | null;
-  selectionB: PhotoSelection | null;
+  activeSelection: PhotoSelection | null;
 };
 
 export type WorkbenchMetricKey =
@@ -84,8 +79,7 @@ export type WorkbenchMetricKey =
   | "neutral_distance_mean"
   | "highlight_b_mean"
   | "highlight_neutral_distance_mean"
-  | "selection_coverage_ratio"
-  | "selection_a_b_delta_e";
+  | "selection_coverage_ratio";
 
 export type WorkbenchMetricRow = {
   group: string;
@@ -249,14 +243,6 @@ const metricDefinitions: Array<{
     unit: "%",
     precision: 2,
     description: "選択領域の占有率",
-  },
-  {
-    group: "分離",
-    key: "selection_a_b_delta_e",
-    label: "Selection A-B ΔE",
-    unit: "",
-    precision: 2,
-    description: "同一画像内の選択領域分離",
   },
 ];
 
@@ -496,16 +482,6 @@ const buildMetricSummary = (samples: PhotoSample[]): MetricSummary => {
   };
 };
 
-const getSelectionForSlot = (
-  selectionState: TargetSelectionState | null | undefined,
-  slot: SelectionSlot
-): PhotoSelection | null => {
-  if (!selectionState) {
-    return null;
-  }
-  return slot === "A" ? selectionState.selectionA : selectionState.selectionB;
-};
-
 const getSelectionIds = (selection: PhotoSelection | null | undefined): Set<number> | null => {
   if (!selection || selection.sampleIds.length === 0) {
     return null;
@@ -521,7 +497,7 @@ export const getScopedSamples = (
   if (scope === "full-image") {
     return result.samples;
   }
-  const selection = getSelectionForSlot(selectionState, selectionState?.activeSelectionSlot ?? "A");
+  const selection = selectionState?.activeSelection ?? null;
   const ids = getSelectionIds(selection);
   if (!ids) {
     return [];
@@ -532,12 +508,10 @@ export const getScopedSamples = (
 export const buildRectangleSelection = ({
   result,
   targetId,
-  slot,
   bounds,
 }: {
   result: PhotoAnalysisResult;
   targetId: string;
-  slot: SelectionSlot;
   bounds: { x: number; y: number; width: number; height: number };
 }): PhotoSelection => {
   const minX = Math.min(bounds.x, bounds.x + bounds.width);
@@ -551,9 +525,8 @@ export const buildRectangleSelection = ({
     .map((sample) => sample.sampleId);
 
   return {
-    selectionId: `${targetId}-${slot}-${minX}-${minY}-${maxX}-${maxY}`,
+    selectionId: `${targetId}-${minX}-${minY}-${maxX}-${maxY}`,
     targetId,
-    slot,
     source: "image-rect",
     sampleIds,
     sampleCount: sampleIds.length,
@@ -570,21 +543,18 @@ export const buildRectangleSelection = ({
 export const buildPointSelection = ({
   result,
   targetId,
-  slot,
   sampleId,
   source,
 }: {
   result: PhotoAnalysisResult;
   targetId: string;
-  slot: SelectionSlot;
   sampleId: number;
   source: PhotoSelection["source"];
 }): PhotoSelection => {
   const sample = result.samples.find((item) => item.sampleId === sampleId);
   return {
-    selectionId: `${targetId}-${slot}-${sampleId}`,
+    selectionId: `${targetId}-${sampleId}`,
     targetId,
-    slot,
     source,
     sampleIds: sample ? [sampleId] : [],
     sampleCount: sample ? 1 : 0,
@@ -628,20 +598,6 @@ export const buildMetricRows = ({
 }): WorkbenchMetricRow[] => {
   const scopedSamples = getScopedSamples(result, selectionState, scope);
   const summary = buildMetricSummary(scopedSamples);
-  const selectionA = getSelectionForSlot(selectionState, "A");
-  const selectionB = getSelectionForSlot(selectionState, "B");
-  const selectionASamples = selectionA
-    ? result.samples.filter((sample) => selectionA.sampleIds.includes(sample.sampleId))
-    : [];
-  const selectionBSamples = selectionB
-    ? result.samples.filter((sample) => selectionB.sampleIds.includes(sample.sampleId))
-    : [];
-  const selectionASummary = buildMetricSummary(selectionASamples);
-  const selectionBSummary = buildMetricSummary(selectionBSamples);
-  const selectionDeltaE =
-    selectionASummary.meanLab && selectionBSummary.meanLab
-      ? deltaE76(selectionASummary.meanLab, selectionBSummary.meanLab)
-      : null;
 
   const getMetricValue = (
     key: WorkbenchMetricKey,
@@ -673,8 +629,6 @@ export const buildMetricRows = ({
         return scope === "selected-region" && result.samples.length > 0
           ? (sampleCount / result.samples.length) * ratioPercent
           : null;
-      case "selection_a_b_delta_e":
-        return selectionDeltaE;
       default:
         return null;
     }

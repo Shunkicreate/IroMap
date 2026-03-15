@@ -24,8 +24,6 @@
   - 後続で保存可能にする UI 状態の束。MVP では永続化しないが、state の構造だけ先に持つ
 - `selection`
   - 明示操作により確定したサンプル集合。再集計や比較の入力になる
-- `selection slot`
-  - 同一 target 内で selection を保持する枠。MVP では `A` と `B` の 2 slot を持つ
 - `hover`
   - 一時的に注目しているサンプルまたはサンプル集合。再集計の基準には使わない
 - `selection scope`
@@ -76,7 +74,7 @@
   - `{ selectionId, targetId, source, geometry, sampleIds, sampleCount, coverageRatio, createdAt }`
   - `source` は `image-rect | image-point | color-space-pick | slice-pick`
 - `TargetSelectionState`
-  - `{ activeSelectionSlot, selectionAId?, selectionBId? }`
+  - `{ activeSelectionId? }`
 - `MetricValue`
   - `{ key, label, group, value, unit, precision, description, emptyStateLabel }`
 - `HistogramBin`
@@ -114,7 +112,7 @@
 
 - 計算結果は source of truth に直接保持せず、target と selection から再導出する
 - hover は 1 件のみ保持し、selection と別 state に置く
-- selection は target ごとに `A/B` の 2 slot を持つ
+- selection は target ごとに 1 件の active selection のみ保持する
 - baseline と compare は同型 state で扱い、比較 UI のみが両者を束ねる
 - 将来の snapshot 保存は、現在の source of truth をシリアライズして生成する
 
@@ -126,8 +124,6 @@
 - `matched-selection`
   - baseline / compare のそれぞれで active selection を 1 件ずつ持つ場合のみ比較する
 - baseline selection のみ存在し、compare selection が無い場合は `matched-selection` を成立させない
-- `Selection A-B ΔE`
-  - 同一 target の `selectionA` と `selectionB` が両方存在するときだけ算出する
 - 将来の `snapshot vs snapshot` 比較も内部的には `ComparisonPair` へ正規化する
 
 ## 4.4 レスポンシブ状態ルール
@@ -142,7 +138,7 @@
 
 1. 画像を読み込み、既存の sampling pipeline で `PixelSample[]` を生成する
 2. RGB から HSL / Lab と、3D・slice 用の投影値を計算する
-3. ワークベンチは baseline / compare target と selection slot state を保持する
+3. ワークベンチは baseline / compare target と selection state を保持する
 4. hover が発生したら `activeHover` のみ更新し、再集計は行わない
 5. 矩形選択または色空間選択が確定したら、共通の `sampleIds` へ正規化して `AnalysisSelection` を生成する
 6. `Metrics Engine` が selection scope に応じて指標表、histogram、比較差分を再集計する
@@ -158,7 +154,6 @@
   - `createRectangleSelection(target, bounds): AnalysisSelection`
   - `createPointSelection(target, sampleId, source): AnalysisSelection`
   - `setActiveHover(targetId, sampleIds, source): WorkbenchHoverState`
-  - `setActiveSelectionSlot(targetId, slot): TargetSelectionState`
   - `buildComparisonPair(state): ComparisonPair | null`
   - `computeMetricTable(target, selection): MetricValue[]`
   - `buildLuminanceHistogram(target, selection, bins): HistogramBin[]`
@@ -202,9 +197,6 @@
   - `mean(C*) where L* > 80`
 - `selection_coverage_ratio`
   - `selected sample count / target sample count`
-- `selection_a_b_delta_e`
-  - `DeltaE76(selectionAMeanLab, selectionBMeanLab)`
-  - 同一 target 内の `selection A` と `selection B` が両方存在するときのみ算出する
 
 ### 6.1.2 比較指標
 
@@ -277,8 +269,6 @@
 - 差分列
   - 指標表では `value` に加えて `delta` を持つ
   - histogram は差分列を持たず、系列の重ね表示で比較する
-- 同一 target 内比較
-  - `Selection A-B ΔE` は compare target の有無に関係なく算出できる
 - 差分欠損ルール
   - baseline か compare のどちらかが `N/A` の場合、delta も `N/A`
 - target 間の座標対応
@@ -308,10 +298,9 @@
 1. target を読み込む
 2. 上段 3 ペインで分布を確認する
 3. Preview または色空間上で hover して sample 情報を見る
-4. `selection slot A/B` のいずれかを選び、矩形選択または pick で selection を確定する
+4. 矩形選択または pick で selection を確定する
 5. 下段の指標表と histogram を selection scope で確認する
-6. 必要に応じて `Selection A-B ΔE` を確認する
-7. 必要に応じて表または histogram をコピーする
+6. 必要に応じて表または histogram をコピーする
 
 ### 6.6.2 2 件比較
 

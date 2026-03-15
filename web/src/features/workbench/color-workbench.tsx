@@ -28,7 +28,6 @@ import {
   type PhotoAnalysisResult,
   type PhotoSample,
   type SelectionScope,
-  type SelectionSlot,
   type TargetSelectionState,
   type WorkbenchHistogramMetric,
   type WorkbenchMetricRow,
@@ -86,9 +85,7 @@ const ratioFormatter = new Intl.NumberFormat(undefined, {
   maximumFractionDigits: 1,
 });
 const defaultSelectionState: TargetSelectionState = {
-  activeSelectionSlot: "A",
-  selectionA: null,
-  selectionB: null,
+  activeSelection: null,
 };
 const histogramChartViewboxWidth = 100;
 const histogramChartViewboxHeight = 100;
@@ -204,13 +201,6 @@ const findNearestSampleByCoordinate = (
     }
   }
   return nearest;
-};
-
-const getSelectionBySlot = (
-  selectionState: TargetSelectionState | undefined,
-  slot: SelectionSlot
-) => {
-  return slot === "A" ? (selectionState?.selectionA ?? null) : (selectionState?.selectionB ?? null);
 };
 
 const formatMetricValue = (row: WorkbenchMetricRow, value: number | null): string => {
@@ -420,15 +410,15 @@ function PreviewPanel({
     });
   };
 
-  const renderSelectionBox = (slot: SelectionSlot) => {
-    const selection = getSelectionBySlot(selectionState, slot);
+  const renderSelectionBox = () => {
+    const selection = selectionState.activeSelection;
     if (!selection?.bounds || !target.result) {
       return null;
     }
     return (
       <rect
-        key={slot}
-        className={`previewSelectionBox previewSelectionBox${slot}`}
+        key={selection.selectionId}
+        className="previewSelectionBox previewSelectionBoxA"
         x={selection.bounds.x}
         y={selection.bounds.y}
         width={selection.bounds.width}
@@ -539,8 +529,7 @@ function PreviewPanel({
           className="previewOverlay"
           aria-hidden="true"
         >
-          {renderSelectionBox("A")}
-          {renderSelectionBox("B")}
+          {renderSelectionBox()}
           {draftRect ? (
             <rect
               className="previewSelectionDraft"
@@ -690,10 +679,7 @@ export function ColorWorkbench() {
   }, [baselineTarget.file]);
 
   const baselineSelectionState = selectionStateByTarget.baseline ?? defaultSelectionState;
-  const activeBaselineSelection = getSelectionBySlot(
-    baselineSelectionState,
-    baselineSelectionState.activeSelectionSlot
-  );
+  const activeBaselineSelection = baselineSelectionState.activeSelection;
   const scopedBaselineSamples = useMemo(
     () =>
       baselineTarget.result
@@ -786,24 +772,20 @@ export function ColorWorkbench() {
     setSliceMappingScope(scope);
   };
 
-  const setSelectionForCurrentSlot = (
-    selectionFactory: (
-      slot: SelectionSlot
-    ) => ReturnType<typeof buildPointSelection> | ReturnType<typeof buildRectangleSelection>
+  const setActiveSelection = (
+    selectionFactory: () =>
+      | ReturnType<typeof buildPointSelection>
+      | ReturnType<typeof buildRectangleSelection>
   ) => {
     if (!baselineTarget.result) {
       return;
     }
     setSelectionStateByTarget((current) => {
-      const state = current.baseline ?? defaultSelectionState;
-      const slot = state.activeSelectionSlot;
-      const nextSelection = selectionFactory(slot);
+      const nextSelection = selectionFactory();
       return {
         ...current,
         baseline: {
-          ...state,
-          selectionA: slot === "A" ? nextSelection : state.selectionA,
-          selectionB: slot === "B" ? nextSelection : state.selectionB,
+          activeSelection: nextSelection,
         },
       };
     });
@@ -818,11 +800,10 @@ export function ColorWorkbench() {
     if (!baselineTarget.result) {
       return;
     }
-    setSelectionForCurrentSlot((slot) =>
+    setActiveSelection(() =>
       buildRectangleSelection({
         result: baselineTarget.result!,
         targetId: baselineTarget.targetId,
-        slot,
         bounds,
       })
     );
@@ -848,11 +829,10 @@ export function ColorWorkbench() {
     if (!sample) {
       return;
     }
-    setSelectionForCurrentSlot((slot) =>
+    setActiveSelection(() =>
       buildPointSelection({
         result: baselineTarget.result!,
         targetId: baselineTarget.targetId,
-        slot,
         sampleId: sample.sampleId,
         source: "color-space-pick",
       })
@@ -862,11 +842,10 @@ export function ColorWorkbench() {
 
   const handlePreviewSampleSelect = (sample: PhotoSample): void => {
     setSelectedColor(sample.color);
-    setSelectionForCurrentSlot((slot) =>
+    setActiveSelection(() =>
       buildPointSelection({
         result: baselineTarget.result!,
         targetId: baselineTarget.targetId,
-        slot,
         sampleId: sample.sampleId,
         source: "image-point",
       })
@@ -876,28 +855,14 @@ export function ColorWorkbench() {
 
   const handleSelectionClear = (): void => {
     setSelectionStateByTarget((current) => {
-      const state = current.baseline ?? defaultSelectionState;
-      const slot = state.activeSelectionSlot;
       return {
         ...current,
         baseline: {
-          ...state,
-          selectionA: slot === "A" ? null : state.selectionA,
-          selectionB: slot === "B" ? null : state.selectionB,
+          activeSelection: null,
         },
       };
     });
     handleSelectionScopeChange("full-image");
-  };
-
-  const handleSelectionSlotChange = (slot: SelectionSlot): void => {
-    setSelectionStateByTarget((current) => ({
-      ...current,
-      baseline: {
-        ...(current.baseline ?? defaultSelectionState),
-        activeSelectionSlot: slot,
-      },
-    }));
   };
 
   const handleStatusChange = (message: string): void => {
@@ -1142,29 +1107,6 @@ export function ColorWorkbench() {
 
           <section className="panel inspectorExtensionPanel">
             <div className="inspectorControls">
-              <div>
-                <strong>{t("workbenchSelectionSlotLabel")}</strong>
-                <div className="segmentedControl">
-                  <button
-                    type="button"
-                    className={
-                      baselineSelectionState.activeSelectionSlot === "A" ? "segmentedActive" : ""
-                    }
-                    onClick={() => handleSelectionSlotChange("A")}
-                  >
-                    A
-                  </button>
-                  <button
-                    type="button"
-                    className={
-                      baselineSelectionState.activeSelectionSlot === "B" ? "segmentedActive" : ""
-                    }
-                    onClick={() => handleSelectionSlotChange("B")}
-                  >
-                    B
-                  </button>
-                </div>
-              </div>
               <div>
                 <strong>{t("workbenchSelectionScopeLabel")}</strong>
                 <div className="segmentedControl">

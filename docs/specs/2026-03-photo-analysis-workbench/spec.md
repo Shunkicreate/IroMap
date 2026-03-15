@@ -20,6 +20,7 @@
 
 - ブラシ選択
 - 色域ベース選択
+- selection slot
 - 複数画像比較と差分表示
 - 自動クラスタ抽出とクラスタ比較
 - 色相エントロピーなどの高度統計
@@ -87,11 +88,9 @@
   - `C* mean / C* p95`
   - `Neutral Distance mean`
   - `Highlight b* mean / Highlight Neutral Distance mean`
-  - `Selection A-B ΔE`
 - 各行は `区分 / 指標 / 値 / 意味` を確認できる
 - MVP での表示精度は、統計値を小数第 2 位まで表示する
 - 値が算出不能な場合は `N/A` を表示し、空文字や 0 に置き換えない
-- `Selection A-B ΔE` は同一 target 内の 2 selection 比較として表示できる
 
 ### FR-6: 指標表とヒストグラムをコピーできる
 
@@ -135,7 +134,6 @@
 - Highlight Neutrality は `L* > 80` の画素群で集計する
 - サンプルモードは将来 `全画素 / 間引き / 選択領域のみ` を持てる設計にするが、MVP では既存の間引き戦略を再利用してよい
 - `hover` は一時状態、`selection` は明示操作で確定する状態として扱う
-- 同一 target 内で `selection A` と `selection B` の 2 slot を持てる
 - `L* histogram` の bin 境界は `0 <= L* <= 100` の等幅分割とする
 
 ## 8. エッジケース

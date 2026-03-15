@@ -4,6 +4,7 @@
 - 今回の実装対象は `相互参照 / 局所選択 / 指標表コピー / L* histogram` に置く
 - 複数画像比較は優先度を下げ、設計メモだけを残して今回の実装から外す
 - `Lab a-b scatter` は優先度を下げ、今回の実装から削除する
+- `selection slot` は仕様未確定のため、今回の実装から外す
 - `Neutral Distance` は MVP では `C*` と同義で扱い、UI 上の名称だけ後続で調整可能にする
 - 履歴、選択保存、注釈メモは P1 以降の状態設計だけ先に確保する
 
@@ -15,13 +16,11 @@
 - 状態モデル
   - source of truth と派生 state の境界を定義済み
   - `hover` と `selection` を分離済み
-  - 同一 target 内で `selection A / selection B` の 2 slot を持つ前提を定義済み
+  - 今回の実装は単一の `activeSelection` のみを扱う
 - 選択と相互ハイライト
   - event source、hover rule、selection rule、正規化ルールを定義済み
 - 指標と histogram
   - 指標の計算対象、丸め、`N/A`、`L* histogram` の固定 bin を定義済み
-- 指標と分離
-  - `Selection A-B ΔE` を同一 target 内の 2 selection 比較指標として定義済み
 - UI レイアウト
   - `上段 = 主表示行`、`下段 = 補助情報行` を定義済み
   - デスクトップでは `下段のみ独立スクロール` を採用する

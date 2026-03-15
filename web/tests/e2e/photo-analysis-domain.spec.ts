@@ -90,7 +90,7 @@ test("T-202(photo-analysis): 同一入力で再分析結果が一致する", asy
   expect(second.cubePoints).toEqual(first.cubePoints);
 });
 
-test("T-203(photo-analysis): selected-region scope で選択サンプルだけ再集計できる", async () => {
+test("T-203(photo-analysis): selected-region scope で単一 selection だけ再集計できる", async () => {
   const imageData = createImageDataLike(4, 4, (x) => {
     if (x < 2) {
       return { r: 255, g: 0, b: 0 };
@@ -101,17 +101,14 @@ test("T-203(photo-analysis): selected-region scope で選択サンプルだけ�
   const firstSample = result.samples[0];
   expect(firstSample).toBeDefined();
 
-  const selectionA = buildPointSelection({
+  const selection = buildPointSelection({
     result,
     targetId: "baseline",
-    slot: "A",
     sampleId: firstSample!.sampleId,
     source: "image-point",
   });
   const selectionState: TargetSelectionState = {
-    activeSelectionSlot: "A",
-    selectionA,
-    selectionB: null,
+    activeSelection: selection,
   };
 
   const scopedSamples = getScopedSamples(result, selectionState, "selected-region");
@@ -124,44 +121,6 @@ test("T-203(photo-analysis): selected-region scope で選択サンプルだけ�
   });
   const coverage = metricRows.find((row) => row.key === "selection_coverage_ratio");
   expect(coverage?.value).toBeCloseTo((1 / result.samples.length) * 100, 4);
-});
-
-test("T-204(photo-analysis): selection A/B の平均Lab差から ΔE を算出できる", async () => {
-  const imageData = createImageDataLike(2, 1, (x) =>
-    x === 0 ? { r: 255, g: 0, b: 0 } : { r: 0, g: 255, b: 0 }
-  );
-  const result = analyzePhoto(imageData);
-  const left = result.samples[0];
-  const right = result.samples[1];
-  expect(left).toBeDefined();
-  expect(right).toBeDefined();
-
-  const selectionState: TargetSelectionState = {
-    activeSelectionSlot: "A",
-    selectionA: buildPointSelection({
-      result,
-      targetId: "baseline",
-      slot: "A",
-      sampleId: left!.sampleId,
-      source: "image-point",
-    }),
-    selectionB: buildPointSelection({
-      result,
-      targetId: "baseline",
-      slot: "B",
-      sampleId: right!.sampleId,
-      source: "image-point",
-    }),
-  };
-
-  const metricRows = buildMetricRows({
-    result,
-    selectionState,
-    scope: "full-image",
-  });
-  const deltaE = metricRows.find((row) => row.key === "selection_a_b_delta_e");
-  expect(deltaE?.value).not.toBeNull();
-  expect(deltaE?.value).toBeGreaterThan(0);
 });
 
 test("T-205(photo-analysis): metric table と histogram を Markdown 形式で export できる", async () => {
