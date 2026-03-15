@@ -554,7 +554,9 @@ function PreviewPanel({
         </button>
         <label className="compareUploadButton">
           <span>
-            {compareTarget.file ? `比較画像: ${compareTarget.file.name}` : "比較画像を追加"}
+            {compareTarget.file
+              ? t("workbenchCompareSelected", { fileName: compareTarget.file.name })
+              : t("workbenchCompareAdd")}
           </span>
           <input
             type="file"
@@ -610,17 +612,17 @@ function PreviewPanel({
 
       <div className="previewStatusGrid">
         <div>
-          <strong>baseline</strong>
+          <strong>{t("workbenchBaselineLabel")}</strong>
           <p className="muted previewStatusLine">
             {target.statusMessage || (target.file ? t("photoAnalyzing") : t("photoPreviewEmpty"))}
           </p>
           {target.error ? <p className="errorText">{target.error}</p> : null}
         </div>
         <div>
-          <strong>compare</strong>
+          <strong>{t("workbenchCompareLabel")}</strong>
           <p className="muted previewStatusLine">
             {compareTarget.statusMessage ||
-              (compareTarget.file ? t("photoAnalyzing") : "比較画像なし")}
+              (compareTarget.file ? t("photoAnalyzing") : t("workbenchCompareNone"))}
           </p>
           {compareTarget.error ? <p className="errorText">{compareTarget.error}</p> : null}
         </div>
@@ -958,7 +960,7 @@ export function ColorWorkbench() {
         bounds,
       })
     );
-    setLiveMessage("選択領域を更新しました");
+    setLiveMessage(t("workbenchSelectionUpdated"));
   };
 
   const handleColorHover = (color: RgbColor | null, source: HoverState["source"]): void => {
@@ -988,7 +990,7 @@ export function ColorWorkbench() {
         source: "color-space-pick",
       })
     );
-    setLiveMessage(`選択色を ${rgbToHex(color)} に更新しました`);
+    setLiveMessage(t("workbenchSelectedColorUpdated", { value: rgbToHex(color) }));
   };
 
   const handleSelectionClear = (): void => {
@@ -1067,15 +1069,15 @@ export function ColorWorkbench() {
   const copyMetricTable = async (): Promise<void> => {
     const payload = serializeMetricRows(baselineMetricRows, copyFormat);
     await navigator.clipboard.writeText(payload);
-    handleStatusChange(`指標表をコピーしました (${copyFormat})`);
-    toast.success(`指標表をコピーしました (${copyFormat})`);
+    handleStatusChange(t("workbenchMetricTableCopied", { format: copyFormat }));
+    toast.success(t("workbenchMetricTableCopied", { format: copyFormat }));
   };
 
   const copyHistogram = async (): Promise<void> => {
     const payload = serializeHistogramBins(baselineHistogram, copyFormat);
     await navigator.clipboard.writeText(payload);
-    handleStatusChange(`ヒストグラムをコピーしました (${copyFormat})`);
-    toast.success(`ヒストグラムをコピーしました (${copyFormat})`);
+    handleStatusChange(t("workbenchHistogramCopied", { format: copyFormat }));
+    toast.success(t("workbenchHistogramCopied", { format: copyFormat }));
   };
 
   const selectedFormats = selectedColor
@@ -1243,6 +1245,7 @@ export function ColorWorkbench() {
             space={space}
             axis={sliceAxis}
             value={sliceValue}
+            mappedSamples={scopedBaselineSamples}
             hoverColor={hoverColor}
             selectedColor={selectedColor}
             onAxisChange={handleSliceAxisChange}
@@ -1264,7 +1267,7 @@ export function ColorWorkbench() {
           <section className="panel inspectorExtensionPanel">
             <div className="inspectorControls">
               <div>
-                <strong>selection slot</strong>
+                <strong>{t("workbenchSelectionSlotLabel")}</strong>
                 <div className="segmentedControl">
                   <button
                     type="button"
@@ -1287,32 +1290,32 @@ export function ColorWorkbench() {
                 </div>
               </div>
               <div>
-                <strong>selection scope</strong>
+                <strong>{t("workbenchSelectionScopeLabel")}</strong>
                 <div className="segmentedControl">
                   <button
                     type="button"
                     className={selectionScope === "full-image" ? "segmentedActive" : ""}
                     onClick={() => setSelectionScope("full-image")}
                   >
-                    full-image
+                    {t("workbenchScopeFullImage")}
                   </button>
                   <button
                     type="button"
                     className={selectionScope === "selected-region" ? "segmentedActive" : ""}
                     onClick={() => setSelectionScope("selected-region")}
                   >
-                    selected-region
+                    {t("workbenchScopeSelectedRegion")}
                   </button>
                 </div>
               </div>
               <button type="button" onClick={handleSelectionClear}>
-                clear selection
+                {t("workbenchClearSelection")}
               </button>
             </div>
 
             <div className="inspectorDataGrid">
               <div>
-                <strong>hover sample</strong>
+                <strong>{t("workbenchHoverSampleLabel")}</strong>
                 <code>
                   {hoverState.sample ? `${hoverState.sample.x}, ${hoverState.sample.y}` : "--"}
                 </code>
@@ -1323,7 +1326,7 @@ export function ColorWorkbench() {
                 </code>
               </div>
               <div>
-                <strong>selected sample</strong>
+                <strong>{t("workbenchSelectedSampleLabel")}</strong>
                 <code>{selectedSample ? `${selectedSample.x}, ${selectedSample.y}` : "--"}</code>
                 <code>
                   {selectedSample
@@ -1332,7 +1335,7 @@ export function ColorWorkbench() {
                 </code>
               </div>
               <div>
-                <strong>selected formats</strong>
+                <strong>{t("workbenchSelectedFormatsLabel")}</strong>
                 {selectedFormats.length > 0 ? (
                   selectedFormats.map((format) => (
                     <code key={format.label}>
@@ -1377,14 +1380,15 @@ export function ColorWorkbench() {
           </article>
 
           <article className="photoAnalysisStatusCard">
-            <h3>compare</h3>
+            <h3>{t("workbenchCompareLabel")}</h3>
+            <strong>{t("workbenchComparisonScopeLabel")}</strong>
             <div className="segmentedControl">
               <button
                 type="button"
                 className={comparisonScope === "full-image" ? "segmentedActive" : ""}
                 onClick={() => setComparisonScope("full-image")}
               >
-                full-image
+                {t("workbenchScopeFullImage")}
               </button>
               <button
                 type="button"
@@ -1394,43 +1398,43 @@ export function ColorWorkbench() {
                 onClick={() => setComparisonScope("matched-selection")}
                 disabled={!canUseMatchedSelection}
               >
-                matched-selection
+                {t("workbenchScopeMatchedSelection")}
               </button>
             </div>
             <p className="muted photoPasteStatus" aria-live="polite">
               {compareTarget.result
                 ? canUseMatchedSelection || effectiveComparisonScope === "full-image"
                   ? compareTarget.statusMessage
-                  : "matched-selection は矩形選択後に有効になります。現在は full-image 比較のみです。"
-                : "比較対象未選択時は、baseline 分析のみを表示します。"}
+                  : t("workbenchMatchedSelectionHint")
+                : t("workbenchCompareEmptyHint")}
             </p>
           </article>
         </div>
 
         <div className="analysisWorkbenchControls">
           <label>
-            histogram
+            {t("workbenchHistogramLabel")}
             <select
               value={histogramMetric}
               onChange={(event) =>
                 setHistogramMetric(event.target.value as WorkbenchHistogramMetric)
               }
             >
-              <option value="luminance">L*</option>
-              <option value="hue">Hue</option>
-              <option value="saturation">Saturation</option>
-              <option value="chroma">C*</option>
+              <option value="luminance">{t("workbenchHistogramLuminanceOption")}</option>
+              <option value="hue">{t("workbenchHistogramHueOption")}</option>
+              <option value="saturation">{t("workbenchHistogramSaturationOption")}</option>
+              <option value="chroma">{t("workbenchHistogramChromaOption")}</option>
             </select>
           </label>
           <label>
-            copy format
+            {t("workbenchCopyFormatWorkbenchLabel")}
             <select
               value={copyFormat}
               onChange={(event) => setCopyFormat(event.target.value as ExportFormat)}
             >
-              <option value="markdown">Markdown Table</option>
-              <option value="csv">CSV</option>
-              <option value="tsv">TSV</option>
+              <option value="markdown">{t("workbenchExportMarkdown")}</option>
+              <option value="csv">{t("workbenchExportCsv")}</option>
+              <option value="tsv">{t("workbenchExportTsv")}</option>
             </select>
           </label>
           <button
@@ -1438,29 +1442,29 @@ export function ColorWorkbench() {
             onClick={() => void copyMetricTable()}
             disabled={baselineMetricRows.length === 0}
           >
-            table copy
+            {t("workbenchTableCopy")}
           </button>
           <button
             type="button"
             onClick={() => void copyHistogram()}
             disabled={baselineHistogram.length === 0}
           >
-            histogram copy
+            {t("workbenchHistogramCopy")}
           </button>
         </div>
 
         <div className="analysisWorkbenchGrid">
           <article className="analysisCard">
-            <h3>指標表</h3>
+            <h3>{t("workbenchMetricsTableTitle")}</h3>
             <div className="metricsTableWrap">
               <table className="metricsTable">
                 <thead>
                   <tr>
-                    <th>group</th>
-                    <th>metric</th>
-                    <th>value</th>
-                    <th>delta</th>
-                    <th>description</th>
+                    <th>{t("workbenchTableGroup")}</th>
+                    <th>{t("workbenchTableMetric")}</th>
+                    <th>{t("workbenchTableValue")}</th>
+                    <th>{t("workbenchTableDelta")}</th>
+                    <th>{t("workbenchTableDescription")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1479,7 +1483,7 @@ export function ColorWorkbench() {
           </article>
 
           <article className="analysisCard">
-            <h3>`L* histogram`</h3>
+            <h3>{t("workbenchHistogramCardTitle")}</h3>
             <GraphFrame xLabel="bin" yLabel="count" className="analysisGraphFrame">
               {renderHistogramChart({
                 bins: baselineHistogram,
@@ -1488,8 +1492,8 @@ export function ColorWorkbench() {
             </GraphFrame>
             <p className="muted">
               {compareHistogram.length > 0
-                ? "baseline / compare を同じ bin 定義で重ね表示"
-                : "baseline のみ表示"}
+                ? t("workbenchHistogramCompareHint")
+                : t("workbenchHistogramBaselineHint")}
             </p>
           </article>
         </div>

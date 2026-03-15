@@ -18,11 +18,13 @@ import {
 } from "@/domain/color/color-constants";
 import { t } from "@/i18n/translate";
 import { GraphFrame } from "@/components/graph/graph-frame";
+import type { PhotoSample } from "@/domain/photo-analysis/photo-analysis";
 
 type Props = {
   space: ColorSpace3d;
   axis: SliceAxis;
   value: number;
+  mappedSamples?: PhotoSample[];
   hoverColor?: RgbColor | null;
   selectedColor?: RgbColor | null;
   onAxisChange: (axis: SliceAxis) => void;
@@ -150,10 +152,108 @@ const getPlaneLabels = (axis: SliceAxis): { x: string; y: string; fixed: string 
   return { x: "H", y: "S", fixed: "L" };
 };
 
+const getHueDistance = (left: number, right: number): number => {
+  const distance = Math.abs(left - right);
+  return Math.min(distance, 360 - distance);
+};
+
+const getSliceTolerance = (axis: SliceAxis): number => {
+  if (axis === "h") {
+    return 6;
+  }
+  if (axis === "s" || axis === "l" || axis === "lab-l") {
+    return 2;
+  }
+  if (axis === "lab-a" || axis === "lab-b") {
+    return 4;
+  }
+  return 4;
+};
+
+const projectSampleToSlice = (
+  sample: PhotoSample,
+  axis: SliceAxis,
+  value: number
+): { x: number; y: number } | null => {
+  const tolerance = getSliceTolerance(axis);
+
+  if (axis === "r") {
+    if (Math.abs(sample.color.r - value) > tolerance) {
+      return null;
+    }
+    return { x: sample.color.g, y: colorChannelMax - sample.color.b };
+  }
+  if (axis === "g") {
+    if (Math.abs(sample.color.g - value) > tolerance) {
+      return null;
+    }
+    return { x: sample.color.r, y: colorChannelMax - sample.color.b };
+  }
+  if (axis === "b") {
+    if (Math.abs(sample.color.b - value) > tolerance) {
+      return null;
+    }
+    return { x: sample.color.r, y: colorChannelMax - sample.color.g };
+  }
+  if (axis === "h") {
+    if (getHueDistance(sample.hsl.h, value) > tolerance) {
+      return null;
+    }
+    return {
+      x: Math.round((sample.hsl.s / 100) * colorChannelMax),
+      y: colorChannelMax - Math.round((sample.hsl.l / 100) * colorChannelMax),
+    };
+  }
+  if (axis === "s") {
+    if (Math.abs(sample.hsl.s - value) > tolerance) {
+      return null;
+    }
+    return {
+      x: Math.round((sample.hsl.h / 360) * colorChannelMax),
+      y: colorChannelMax - Math.round((sample.hsl.l / 100) * colorChannelMax),
+    };
+  }
+  if (axis === "l") {
+    if (Math.abs(sample.hsl.l - value) > tolerance) {
+      return null;
+    }
+    return {
+      x: Math.round((sample.hsl.h / 360) * colorChannelMax),
+      y: colorChannelMax - Math.round((sample.hsl.s / 100) * colorChannelMax),
+    };
+  }
+  if (axis === "lab-l") {
+    if (Math.abs(sample.lab.l - value) > tolerance) {
+      return null;
+    }
+    return {
+      x: Math.round(((sample.lab.a + 128) / 255) * colorChannelMax),
+      y: colorChannelMax - Math.round(((sample.lab.b + 128) / 255) * colorChannelMax),
+    };
+  }
+  if (axis === "lab-a") {
+    if (Math.abs(sample.lab.a - value) > tolerance) {
+      return null;
+    }
+    return {
+      x: Math.round(((sample.lab.b + 128) / 255) * colorChannelMax),
+      y: colorChannelMax - Math.round((sample.lab.l / 100) * colorChannelMax),
+    };
+  }
+  if (Math.abs(sample.lab.b - value) > tolerance) {
+    return null;
+  }
+  return {
+    x: Math.round(((sample.lab.a + 128) / 255) * colorChannelMax),
+    y: colorChannelMax - Math.round((sample.lab.l / 100) * colorChannelMax),
+  };
+};
+
 export function SliceCanvas({
   space,
   axis,
   value,
+  mappedSamples = [],
   hoverColor = null,
   selectedColor = null,
   onAxisChange,
@@ -205,6 +305,17 @@ export function SliceCanvas({
 
     context.clearRect(0, 0, colorChannelLevels, colorChannelLevels);
 
+    context.fillStyle = "rgba(248, 250, 252, 0.42)";
+    for (const sample of mappedSamples) {
+      const point = projectSampleToSlice(sample, axis, value);
+      if (!point) {
+        continue;
+      }
+      context.beginPath();
+      context.arc(point.x, point.y, 1.8, 0, Math.PI * 2);
+      context.fill();
+    }
+
     const drawMarker = (color: RgbColor | null, strokeStyle: string, radius: number): void => {
       if (!color) {
         return;
@@ -254,7 +365,7 @@ export function SliceCanvas({
 
     drawMarker(selectedColor, "#f97316", 10);
     drawMarker(hoverColor, "#ffffff", 7);
-  }, [axis, hoverColor, selectedColor]);
+  }, [axis, hoverColor, mappedSamples, selectedColor, value]);
 
   const mapPointerToColor = (
     event: React.PointerEvent<HTMLCanvasElement> | React.MouseEvent<HTMLCanvasElement>

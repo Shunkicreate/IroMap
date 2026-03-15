@@ -631,6 +631,7 @@
 
 .previewImageStage {
   position: relative;
+  display: grid;
   overflow: clip;
   border-radius: 0.625rem;
   background: color-mix(in oklab, var(--workbench-surface) 88%, #08111d 12%);
@@ -1089,19 +1090,19 @@
 .photoPreviewImage,
 .photoPreviewEmpty {
   width: 100%;
-  aspect-ratio: 16 / 9;
   border-radius: 0.625rem;
   border: 0.0625rem solid var(--workbench-surface-border);
   background: color-mix(in oklab, var(--workbench-surface) 86%, #08111d 14%);
 }
 
 .photoPreviewImage {
-  object-fit: cover;
+  height: auto;
 }
 
 .photoPreviewEmpty {
   display: grid;
   place-items: center;
+  min-block-size: 18rem;
   text-align: center;
   padding: 0.75rem;
   color: var(--workbench-muted);
