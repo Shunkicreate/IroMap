@@ -204,9 +204,9 @@
   - `compare.b_mean - baseline.b_mean`
 - `delta_c_mean`
   - `compare.c_mean - baseline.c_mean`
-- `delta_e_mean`
-  - `mean(DeltaE76(baselineMeanLab, compareMeanLab))`
-  - MVP では平均 Lab 同士の単一点比較として扱う
+- `compare_to_baseline_mean_lab_delta_e76`
+  - `DeltaE76(baselineMeanLab, compareMeanLab)`
+  - baseline と compare の平均 Lab 同士の距離を表す単一スカラー値として扱う
 - `selection_a_b_delta_e`
   - 同一 target 内で `selection A` と `selection B` を比較する将来指標
   - MVP では active selection が 1 件のみのため、表にはプレースホルダを置かず未表示でもよい
@@ -277,6 +277,9 @@
 
 ## 6.5 UI レイアウト仕様
 
+- 用語
+  - `上段` はワークベンチの主表示行を指す
+  - `下段` は指標、比較、履歴などの補助情報行を指す
 - 上段
   - 左: `PreviewPanel`
   - 中央: `ColorSpacePanel`
