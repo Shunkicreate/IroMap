@@ -24,11 +24,18 @@ export type ColorArea = {
   rgb: RgbColor;
 };
 
+export type RgbCubePoint = {
+  color: RgbColor;
+  count: number;
+  ratio: number;
+};
+
 export type PhotoAnalysisResult = {
   scatter: ScatterPoint[];
   hueHistogram: HistogramBin[];
   saturationHistogram: HistogramBin[];
   colorAreas: ColorArea[];
+  cubePoints: RgbCubePoint[];
   elapsedMs: number;
   sampledPixels: number;
 };
@@ -41,6 +48,7 @@ const quantizeBucketSize = 16;
 const performanceSamplingThreshold = 100_000;
 const maxSampleCount = 200_000;
 const maxScatterPoints = 3000;
+const maxCubePointCount = 3500;
 const rgbaStride = 4;
 const alphaChannelOffset = 3;
 const noAlpha = 0;
@@ -185,6 +193,34 @@ const calculateColorAreas = (samples: PixelSample[]): ColorArea[] => {
   return top;
 };
 
+const buildRgbCubePoints = (samples: PixelSample[], maxPoints: number): RgbCubePoint[] => {
+  const bucketCounts = new Map<string, number>();
+
+  for (const sample of samples) {
+    const bucketColor = toRgbColor(
+      quantizeComponent(sample.color.r),
+      quantizeComponent(sample.color.g),
+      quantizeComponent(sample.color.b)
+    );
+    const key = `${bucketColor.r}-${bucketColor.g}-${bucketColor.b}`;
+    bucketCounts.set(key, (bucketCounts.get(key) ?? 0) + 1);
+  }
+
+  const sorted = [...bucketCounts.entries()]
+    .sort((left, right) => right[1] - left[1])
+    .slice(0, maxPoints);
+  const total = samples.length || minimumUnit;
+
+  return sorted.map(([key, count]) => {
+    const [rText, gText, bText] = key.split("-");
+    return {
+      color: toRgbColor(Number(rText), Number(gText), Number(bText)),
+      count,
+      ratio: count / total,
+    };
+  });
+};
+
 export const analyzePhoto = (imageData: ImageData): PhotoAnalysisResult => {
   const startAt = performance.now();
   const step = pickSamplingStep(imageData.width * imageData.height);
@@ -192,12 +228,14 @@ export const analyzePhoto = (imageData: ImageData): PhotoAnalysisResult => {
   const scatter = buildScatter(samples, maxScatterPoints);
   const { hue, saturation } = fillHistograms(samples);
   const colorAreas = calculateColorAreas(samples);
+  const cubePoints = buildRgbCubePoints(samples, maxCubePointCount);
 
   return {
     scatter,
     hueHistogram: hue,
     saturationHistogram: saturation,
     colorAreas,
+    cubePoints,
     elapsedMs: performance.now() - startAt,
     sampledPixels: samples.length,
   };

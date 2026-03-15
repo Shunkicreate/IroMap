@@ -23,6 +23,7 @@ type Props = {
   onColorInspect?: (color: RgbColor) => void;
   onStatusChange?: (message: string) => void;
   onImageSelected?: (file: File | null) => void;
+  onAnalysisComplete?: (result: PhotoAnalysisResult | null) => void;
   onUploadChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
 };
 
@@ -264,6 +265,7 @@ export function PhotoAnalysisPanel({
   onColorInspect,
   onStatusChange,
   onImageSelected,
+  onAnalysisComplete,
   onUploadChange,
 }: Props) {
   const [analysis, setAnalysis] = useState<AnalysisState>(null);
@@ -272,6 +274,7 @@ export function PhotoAnalysisPanel({
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const onStatusChangeRef = useRef(onStatusChange);
+  const onAnalysisCompleteRef = useRef(onAnalysisComplete);
 
   const maxHueCount = useMemo(() => {
     return Math.max(1, ...(analysis?.result.hueHistogram.map((bin) => bin.count) ?? [1]));
@@ -283,11 +286,16 @@ export function PhotoAnalysisPanel({
 
   useEffect(() => {
     onStatusChangeRef.current = onStatusChange;
-  }, [onStatusChange]);
+    onAnalysisCompleteRef.current = onAnalysisComplete;
+  }, [onAnalysisComplete, onStatusChange]);
 
   useEffect(() => {
     if (!sourceFile) {
+      setAnalysis(null);
+      setError("");
+      setStatusMessage("");
       setPreviewUrl("");
+      onAnalysisCompleteRef.current?.(null);
       return undefined;
     }
 
@@ -325,6 +333,7 @@ export function PhotoAnalysisPanel({
           fileName: sourceFile.name,
           result,
         });
+        onAnalysisCompleteRef.current?.(result);
 
         const success = t("photoSummary", {
           fileName: sourceFile.name,
@@ -342,6 +351,7 @@ export function PhotoAnalysisPanel({
         const failed = t("photoError");
         setError(failed);
         setAnalysis(null);
+        onAnalysisCompleteRef.current?.(null);
         setStatusMessage(failed);
         onStatusChangeRef.current?.(failed);
         toast.error(failed);

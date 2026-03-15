@@ -9,6 +9,10 @@ import {
   type RgbColor,
   type SliceAxis,
 } from "@/domain/color/color-types";
+import {
+  type PhotoAnalysisResult,
+  type RgbCubePoint,
+} from "@/domain/photo-analysis/photo-analysis";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ColorCopyPanel } from "@/features/color-copy/color-copy-panel";
 import { ColorInspector } from "@/features/inspector/color-inspector";
@@ -21,6 +25,8 @@ type Rotation = {
   x: number;
   y: number;
 };
+
+type RgbCubeOverlayMode = "grid" | "image" | "both";
 
 const defaultSliceValue = 128;
 const defaultRotation: Rotation = { x: -0.7, y: 0.6 };
@@ -79,6 +85,8 @@ export function ColorWorkbench() {
   const [isCubeSizeSliderVisible, setIsCubeSizeSliderVisible] = useState<boolean>(true);
   const [cubeSize, setCubeSize] = useState<number>(defaultCubeSize);
   const [rotation, setRotation] = useState<Rotation>(defaultRotation);
+  const [cubeOverlayMode, setCubeOverlayMode] = useState<RgbCubeOverlayMode>("both");
+  const [photoCubePoints, setPhotoCubePoints] = useState<RgbCubePoint[]>([]);
   const [manualR, setManualR] = useState<number>(128);
   const [manualG, setManualG] = useState<number>(128);
   const [manualB, setManualB] = useState<number>(128);
@@ -129,13 +137,20 @@ export function ColorWorkbench() {
     setAnalysisSourceFile(file);
     if (file) {
       setLiveMessage(t("photoUploadSelected", { fileName: file.name }));
+      return;
     }
+    setPhotoCubePoints([]);
+    setLiveMessage(t("photoUploadCleared"));
   };
 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>): void => {
     const file = event.target.files?.[0] ?? null;
     event.target.value = "";
     handleSourceFileSelected(file);
+  };
+
+  const handleAnalysisComplete = (result: PhotoAnalysisResult | null): void => {
+    setPhotoCubePoints(result?.cubePoints ?? []);
   };
 
   return (
@@ -162,6 +177,26 @@ export function ColorWorkbench() {
               </TabsList>
             </Tabs>
             <div className="cubeSettings">
+              <div className="cubeOverlayMode">
+                <span className="cubeControlLabel">{t("cubeOverlayModeLabel")}</span>
+                <Tabs
+                  value={cubeOverlayMode}
+                  onValueChange={(value) => setCubeOverlayMode(value as RgbCubeOverlayMode)}
+                  className="spaceTabs"
+                >
+                  <TabsList className="spaceTabsList">
+                    <TabsTrigger value="grid" className="spaceTabTrigger">
+                      {t("cubeOverlayModeGrid")}
+                    </TabsTrigger>
+                    <TabsTrigger value="image" className="spaceTabTrigger">
+                      {t("cubeOverlayModeImage")}
+                    </TabsTrigger>
+                    <TabsTrigger value="both" className="spaceTabTrigger">
+                      {t("cubeOverlayModeBoth")}
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
               <div className="cubeToggleRow">
                 <label className="toggleLabel">
                   <input
@@ -239,6 +274,8 @@ export function ColorWorkbench() {
               axisGuideMode={isAxisGuideVisible ? "visible" : "hidden"}
               sliceAxis={sliceAxis}
               sliceValue={sliceValue}
+              imageCubePoints={photoCubePoints}
+              overlayMode={cubeOverlayMode}
               onRotationChange={setRotation}
               onHoverColorChange={setHoverColor}
               onColorSelect={setSelectedColor}
@@ -263,6 +300,7 @@ export function ColorWorkbench() {
             onColorInspect={setSelectedColor}
             onStatusChange={handleStatusChange}
             onImageSelected={handleSourceFileSelected}
+            onAnalysisComplete={handleAnalysisComplete}
             onUploadChange={handlePhotoUpload}
           />
           <ColorCopyPanel

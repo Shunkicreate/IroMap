@@ -602,6 +602,16 @@
   margin-bottom: 0.75rem;
 }
 
+.cubeOverlayMode {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.cubeControlLabel {
+  font-size: 0.8rem;
+  color: var(--workbench-muted);
+}
+
 .cubeToggleRow {
   display: flex;
   align-items: center;
