@@ -83,7 +83,8 @@ pnpm run worktree:add feature/<task-name>
 このコマンドは以下を自動実行する。
 
 - `.worktree/feature/<task-name>` の作成（`git worktree add`）
-- 新規 branch 作成（未作成時のみ、base は `main`）
+- `git fetch origin main` による最新 `origin/main` の取得（base が `main` の場合）
+- 新規 branch 作成（未作成時のみ、base は最新の `origin/main`）
 - `pnpm install`（worktree ルート）
 - `pnpm --dir web install`（worktree の `web/`）
 
