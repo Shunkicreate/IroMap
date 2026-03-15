@@ -10,15 +10,33 @@ test("T-101(ui-foundation): トップページに機能/ドキュメント導線
 });
 
 test("T-102(ui-foundation): モバイル幅でレイアウト崩れがないことを確認", async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  const viewports = [
+    { width: 320, height: 900 },
+    { width: 375, height: 900 },
+    { width: 768, height: 1024 },
+    { width: 1024, height: 900 },
+    { width: 1440, height: 960 },
+  ];
 
-  const overflowDelta = await page.evaluate(() => {
-    return document.documentElement.scrollWidth - document.documentElement.clientWidth;
-  });
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
 
-  expect(overflowDelta).toBeLessThanOrEqual(20);
-  await expect(page.getByRole("heading", { name: "IroMap ワークベンチ" })).toBeVisible();
+    const overflowDelta = await page.evaluate(() => {
+      return document.documentElement.scrollWidth - document.documentElement.clientWidth;
+    });
+
+    expect(overflowDelta).toBeLessThanOrEqual(1);
+    await expect(page.getByRole("heading", { name: "IroMap ワークベンチ" })).toBeVisible();
+
+    const cubeBox = await page.locator(".cubeCanvas").boundingBox();
+    expect(cubeBox).not.toBeNull();
+    expect(cubeBox!.width).toBeLessThanOrEqual(viewport.width - 16);
+
+    const sliceBox = await page.locator(".sliceCanvas").boundingBox();
+    expect(sliceBox).not.toBeNull();
+    expect(sliceBox!.width).toBeLessThanOrEqual(viewport.width - 16);
+  }
 });
 
 test("T-103(ui-foundation): キーボード操作でタブを切替できる", async ({ page }) => {
