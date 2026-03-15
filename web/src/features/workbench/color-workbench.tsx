@@ -307,7 +307,7 @@ type PreviewPanelProps = {
   onSelectionCommit: (bounds: { x: number; y: number; width: number; height: number }) => void;
   onSampleSelect: (sample: PhotoSample) => void;
   onSourceFileSelected: (file: File | null) => void;
-  onPaste: (event: React.ClipboardEvent<HTMLButtonElement>) => void;
+  onPaste: (event: React.ClipboardEvent<HTMLDivElement>) => void;
 };
 
 function PreviewPanel({
@@ -467,7 +467,13 @@ function PreviewPanel({
   return (
     <section className="panel previewWorkbenchPanel">
       <PanelHeader titleKey="photoPreviewTitle" requirementsKey="panelPhotoAnalysisRequirements" />
-      <div className="photoUploadCta">
+      <div
+        className="photoUploadCta"
+        onPaste={onPaste}
+        tabIndex={0}
+        role="button"
+        aria-label={t("photoPasteZoneLabel")}
+      >
         <div className="photoUploadCtaCopy">
           <strong>{t("photoUploadCtaTitle")}</strong>
           <p>{t("photoUploadCtaDescription")}</p>
@@ -487,17 +493,10 @@ function PreviewPanel({
             onChange={(event) => onSourceFileSelected(event.target.files?.[0] ?? null)}
           />
         </label>
-      </div>
-      <div className="previewAuxActions">
-        <button
-          type="button"
-          className="photoPasteZone"
-          onPaste={onPaste}
-          aria-label={t("photoPasteZoneLabel")}
-        >
+        <div className="photoPasteZone">
           <strong>{t("photoPasteZoneTitle")}</strong>
           <p>{t("photoPasteZoneHint")}</p>
-        </button>
+        </div>
       </div>
 
       <div
@@ -875,7 +874,7 @@ export function ColorWorkbench() {
     setHoverState({ targetId: "baseline", sample: null, source: "preview" });
   };
 
-  const handlePhotoPaste = (event: React.ClipboardEvent<HTMLButtonElement>): void => {
+  const handlePhotoPaste = (event: React.ClipboardEvent<HTMLDivElement>): void => {
     const items = Array.from(event.clipboardData?.items ?? []);
     const imageItem = items.find((item) => item.kind === "file" && item.type.startsWith("image/"));
     const file = imageItem?.getAsFile();
