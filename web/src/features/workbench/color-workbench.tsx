@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { PanelHeader } from "@/components/workbench/panel-header";
 import {
-  isHslSliceAxis,
+  toRgbColor,
   type ColorSpace3d,
   type RgbColor,
   type SliceAxis,
@@ -11,11 +13,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ColorCopyPanel } from "@/features/color-copy/color-copy-panel";
 import { ColorInspector } from "@/features/inspector/color-inspector";
-import {
-  analyzePhotoFile,
-  PhotoAnalysisPanel,
-  type AnalysisState,
-} from "@/features/photo-analysis/photo-analysis-panel";
+import { PhotoAnalysisPanel } from "@/features/photo-analysis/photo-analysis-panel";
 import { RgbCubeCanvas } from "@/features/rgb-cube/rgb-cube-canvas";
 import { SliceCanvas } from "@/features/slice/slice-canvas";
 import { t } from "@/i18n/translate";
@@ -28,28 +26,53 @@ type Rotation = {
 const defaultSliceValue = 128;
 const defaultRotation: Rotation = { x: -0.7, y: 0.6 };
 const defaultCubeSize = 520;
+const manualChannelLabels = {
+  r: "R",
+  g: "G",
+  b: "B",
+} as const;
+const defaultSliceAxisBySpace: Record<ColorSpace3d, SliceAxis> = {
+  rgb: "r",
+  hsl: "h",
+  lab: "lab-l",
+};
 
 const clamp = (value: number, min: number, max: number): number => {
   return Math.min(max, Math.max(min, value));
 };
 
-const toRange = (value: number, sourceMax: number, targetMax: number): number => {
-  return Math.round((value / sourceMax) * targetMax);
+const getAxisRange = (axis: SliceAxis): { min: number; max: number } => {
+  if (axis === "h") {
+    return { min: 0, max: 360 };
+  }
+  if (axis === "s" || axis === "l" || axis === "lab-l") {
+    return { min: 0, max: 100 };
+  }
+  if (axis === "lab-a" || axis === "lab-b") {
+    return { min: -128, max: 127 };
+  }
+  return { min: 0, max: 255 };
 };
 
-const getAxisMax = (axis: SliceAxis): number => {
-  if (axis === "h") {
-    return 360;
+const mapAxisValue = (
+  value: number,
+  sourceRange: { min: number; max: number },
+  targetRange: { min: number; max: number }
+): number => {
+  const sourceSpan = sourceRange.max - sourceRange.min;
+  const targetSpan = targetRange.max - targetRange.min;
+  if (sourceSpan === 0) {
+    return targetRange.min;
   }
-  if (axis === "s" || axis === "l") {
-    return 100;
-  }
-  return 255;
+  const ratio = (value - sourceRange.min) / sourceSpan;
+  return Math.round(targetRange.min + ratio * targetSpan);
 };
 
 export function ColorWorkbench() {
   const [hoverColor, setHoverColor] = useState<RgbColor | null>(null);
   const [selectedColor, setSelectedColor] = useState<RgbColor | null>(null);
+  const [analysisSourceFile, setAnalysisSourceFile] = useState<File | null>(null);
+  const [liveMessage, setLiveMessage] = useState<string>("");
   const [sliceAxis, setSliceAxis] = useState<SliceAxis>("r");
   const [sliceValue, setSliceValue] = useState<number>(defaultSliceValue);
   const [space, setSpace] = useState<ColorSpace3d>("rgb");
@@ -57,21 +80,19 @@ export function ColorWorkbench() {
   const [isCubeSizeSliderVisible, setIsCubeSizeSliderVisible] = useState<boolean>(true);
   const [cubeSize, setCubeSize] = useState<number>(defaultCubeSize);
   const [rotation, setRotation] = useState<Rotation>(defaultRotation);
-  const [photoAnalysis, setPhotoAnalysis] = useState<AnalysisState>(null);
-  const [photoFileName, setPhotoFileName] = useState<string>("");
-  const [photoError, setPhotoError] = useState<string>("");
-  const [photoStatusMessage, setPhotoStatusMessage] = useState<string>("");
-  const [isPhotoAnalyzing, setIsPhotoAnalyzing] = useState<boolean>(false);
+  const [manualR, setManualR] = useState<number>(128);
+  const [manualG, setManualG] = useState<number>(128);
+  const [manualB, setManualB] = useState<number>(128);
 
   const normalizeSliceValueForAxis = (nextAxis: SliceAxis, currentValue: number): number => {
-    const nextMax = getAxisMax(nextAxis);
-    const currentMax = getAxisMax(sliceAxis);
+    const nextRange = getAxisRange(nextAxis);
+    const currentRange = getAxisRange(sliceAxis);
 
     if (sliceAxis === nextAxis) {
-      return clamp(currentValue, 0, nextMax);
+      return clamp(currentValue, nextRange.min, nextRange.max);
     }
 
-    return clamp(toRange(currentValue, currentMax, nextMax), 0, nextMax);
+    return clamp(mapAxisValue(currentValue, currentRange, nextRange), nextRange.min, nextRange.max);
   };
 
   const handleSliceAxisChange = (nextAxis: SliceAxis): void => {
@@ -81,57 +102,51 @@ export function ColorWorkbench() {
 
   const handleSpaceChange = (nextSpace: ColorSpace3d): void => {
     setSpace(nextSpace);
+    const nextAxis = defaultSliceAxisBySpace[nextSpace];
+    const sourceRange = getAxisRange(sliceAxis);
+    const targetRange = getAxisRange(nextAxis);
+    setSliceAxis(nextAxis);
+    setSliceValue(
+      clamp(mapAxisValue(sliceValue, sourceRange, targetRange), targetRange.min, targetRange.max)
+    );
+  };
 
-    if (nextSpace === "hsl" && !isHslSliceAxis(sliceAxis)) {
-      setSliceAxis("h");
-      setSliceValue(clamp(toRange(sliceValue, 255, 360), 0, 360));
-      return;
-    }
+  const applyManualColor = (): void => {
+    const nextColor = toRgbColor(
+      clamp(manualR, 0, 255),
+      clamp(manualG, 0, 255),
+      clamp(manualB, 0, 255)
+    );
+    setSelectedColor(nextColor);
+    setLiveMessage(t("workbenchManualApplied"));
+    toast.success(t("workbenchManualApplied"));
+  };
 
-    if (nextSpace !== "hsl" && isHslSliceAxis(sliceAxis)) {
-      setSliceAxis("r");
-      const sourceMax = sliceAxis === "h" ? 360 : 100;
-      setSliceValue(clamp(toRange(sliceValue, sourceMax, 255), 0, 255));
+  const handleStatusChange = (message: string): void => {
+    setLiveMessage(message);
+  };
+
+  const handleSourceFileSelected = (file: File | null): void => {
+    setAnalysisSourceFile(file);
+    if (file) {
+      setLiveMessage(t("photoUploadSelected", { fileName: file.name }));
     }
   };
 
-  const runPhotoAnalysis = async (file: File): Promise<void> => {
-    setPhotoFileName(file.name);
-    setIsPhotoAnalyzing(true);
-    setPhotoError("");
-    setPhotoStatusMessage("");
-    setPhotoAnalysis(null);
-
-    try {
-      const result = await analyzePhotoFile(file);
-      setPhotoAnalysis({
-        fileName: file.name,
-        result,
-      });
-    } catch {
-      setPhotoAnalysis(null);
-      setPhotoError(t("photoError"));
-    } finally {
-      setIsPhotoAnalyzing(false);
-    }
-  };
-
-  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
-    const file = event.target.files?.[0];
+  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>): void => {
+    const file = event.target.files?.[0] ?? null;
     event.target.value = "";
-
-    if (!file) {
-      return;
-    }
-
-    await runPhotoAnalysis(file);
+    handleSourceFileSelected(file);
   };
 
   return (
-    <main className="workbenchRoot">
-      <div className="pageHeader">
-        <h1>{t("workbenchTitle")}</h1>
-        <p>{t("workbenchSteps")}</p>
+    <section className="workbenchRoot">
+      <div className="workbenchTopBar">
+        <div>
+          <h1>{t("workbenchTitle")}</h1>
+          <p>{t("workbenchSteps")}</p>
+        </div>
+        <ThemeToggle />
       </div>
 
       <div className="workbenchMainGrid">
@@ -142,14 +157,14 @@ export function ColorWorkbench() {
               <div className="photoUploadCtaCopy">
                 <strong>{t("photoUploadCtaTitle")}</strong>
                 <p>{t("photoUploadCtaDescription")}</p>
-                {photoFileName ? (
+                {analysisSourceFile ? (
                   <p className="photoUploadCtaStatus">
-                    {t("photoUploadSelected", { fileName: photoFileName })}
+                    {t("photoUploadSelected", { fileName: analysisSourceFile.name })}
                   </p>
                 ) : null}
               </div>
               <label className="photoUploadButton">
-                <span>{isPhotoAnalyzing ? t("photoAnalyzing") : t("photoUploadButton")}</span>
+                <span>{t("photoUploadButton")}</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -177,6 +192,15 @@ export function ColorWorkbench() {
               </TabsList>
             </Tabs>
             <div className="cubeSettings">
+              <label className="fileInputInline">
+                {t("workbenchUploadLabel")}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(event) => handleSourceFileSelected(event.target.files?.[0] ?? null)}
+                />
+                <span>{t("workbenchUploadHint")}</span>
+              </label>
               <div className="cubeToggleRow">
                 <label className="toggleLabel">
                   <input
@@ -194,6 +218,44 @@ export function ColorWorkbench() {
                   />
                   {t("cubeShowSizeSlider")}
                 </label>
+              </div>
+              <div className="manualColorPicker" aria-label={t("workbenchManualPickerTitle")}>
+                <strong>{t("workbenchManualPickerTitle")}</strong>
+                <div className="manualColorInputs">
+                  <label>
+                    {manualChannelLabels.r}
+                    <input
+                      type="number"
+                      min={0}
+                      max={255}
+                      value={manualR}
+                      onChange={(event) => setManualR(Number(event.target.value))}
+                    />
+                  </label>
+                  <label>
+                    {manualChannelLabels.g}
+                    <input
+                      type="number"
+                      min={0}
+                      max={255}
+                      value={manualG}
+                      onChange={(event) => setManualG(Number(event.target.value))}
+                    />
+                  </label>
+                  <label>
+                    {manualChannelLabels.b}
+                    <input
+                      type="number"
+                      min={0}
+                      max={255}
+                      value={manualB}
+                      onChange={(event) => setManualB(Number(event.target.value))}
+                    />
+                  </label>
+                  <button type="button" onClick={applyManualColor}>
+                    {t("workbenchManualApply")}
+                  </button>
+                </div>
               </div>
               {isCubeSizeSliderVisible ? (
                 <label>
@@ -235,20 +297,23 @@ export function ColorWorkbench() {
 
         <aside className="supportPanels">
           <ColorInspector hoverColor={hoverColor} selectedColor={selectedColor} />
-          <ColorCopyPanel selectedColor={selectedColor} onColorPasted={setSelectedColor} />
+          <PhotoAnalysisPanel
+            sourceFile={analysisSourceFile}
+            onColorInspect={setSelectedColor}
+            onStatusChange={handleStatusChange}
+            onImageSelected={handleSourceFileSelected}
+          />
+          <ColorCopyPanel
+            selectedColor={selectedColor}
+            onColorPasted={setSelectedColor}
+            onStatusChange={handleStatusChange}
+          />
         </aside>
       </div>
-      <div className="analysisSection">
-        <PhotoAnalysisPanel
-          analysis={photoAnalysis}
-          currentFileName={photoFileName}
-          isAnalyzing={isPhotoAnalyzing}
-          error={photoError}
-          statusMessage={photoStatusMessage}
-          onImageSelected={runPhotoAnalysis}
-          onPasteFeedback={setPhotoStatusMessage}
-        />
-      </div>
-    </main>
+
+      <p className="srOnly" aria-live="polite">
+        {liveMessage}
+      </p>
+    </section>
   );
 }

@@ -10,7 +10,7 @@ import {
   type RgbColor,
   type SliceAxis,
 } from "@/domain/color/color-types";
-import { hslToRgb } from "@/domain/color/color-conversion";
+import { hslToRgb, labToRgb } from "@/domain/color/color-conversion";
 import {
   colorChannelLevels,
   colorChannelMax,
@@ -39,6 +39,10 @@ const toScaledValue = (value: number, max: number): number => {
   return Math.round((value / colorChannelMax) * max);
 };
 
+const toScaledRangeValue = (value: number, min: number, max: number): number => {
+  return min + Math.round((value / colorChannelMax) * (max - min));
+};
+
 const clamp = (value: number, min: number, max: number): number => {
   return Math.min(max, Math.max(min, value));
 };
@@ -49,6 +53,12 @@ const getAxisRange = (axis: SliceAxis): { min: number; max: number } => {
   }
   if (axis === "s" || axis === "l") {
     return { min: 0, max: 100 };
+  }
+  if (axis === "lab-l") {
+    return { min: 0, max: 100 };
+  }
+  if (axis === "lab-a" || axis === "lab-b") {
+    return { min: -128, max: 127 };
   }
   return { min: colorChannelMin, max: colorChannelMax };
 };
@@ -80,6 +90,28 @@ const buildColorFromPixel = (axis: SliceAxis, value: number, x: number, y: numbe
       l: toPercentage(toScaledValue(colorChannelMax - y, 100)),
     });
   }
+  if (axis === "lab-l") {
+    return labToRgb({
+      l: clamp(value, 0, 100),
+      a: toScaledRangeValue(x, -128, 127),
+      b: toScaledRangeValue(colorChannelMax - y, -128, 127),
+    });
+  }
+  if (axis === "lab-a") {
+    return labToRgb({
+      l: toScaledValue(colorChannelMax - y, 100),
+      a: clamp(value, -128, 127),
+      b: toScaledRangeValue(x, -128, 127),
+    });
+  }
+  if (axis === "lab-b") {
+    return labToRgb({
+      l: toScaledValue(colorChannelMax - y, 100),
+      a: toScaledRangeValue(x, -128, 127),
+      b: clamp(value, -128, 127),
+    });
+  }
+
   const safeLightness = clamp(value, 0, 100);
   return hslToRgb({
     h: toHueDegree(toScaledValue(x, 360)),
@@ -103,6 +135,15 @@ const getPlaneLabels = (axis: SliceAxis): { x: string; y: string; fixed: string 
   }
   if (axis === "s") {
     return { x: "H", y: "L", fixed: "S" };
+  }
+  if (axis === "lab-l") {
+    return { x: "a", y: "b", fixed: "L*" };
+  }
+  if (axis === "lab-a") {
+    return { x: "b", y: "L*", fixed: "a" };
+  }
+  if (axis === "lab-b") {
+    return { x: "a", y: "L*", fixed: "b" };
   }
   return { x: "H", y: "S", fixed: "L" };
 };
@@ -185,6 +226,12 @@ export function SliceCanvas({
                 <option value="s">{t("sliceAxisS")}</option>
                 <option value="l">{t("sliceAxisL")}</option>
               </>
+            ) : space === "lab" ? (
+              <>
+                <option value="lab-l">{t("sliceAxisLabL")}</option>
+                <option value="lab-a">{t("sliceAxisLabA")}</option>
+                <option value="lab-b">{t("sliceAxisLabB")}</option>
+              </>
             ) : (
               <>
                 <option value="r">{t("sliceAxisR")}</option>
@@ -219,6 +266,8 @@ export function SliceCanvas({
             width={colorChannelLevels}
             height={colorChannelLevels}
             className="sliceCanvas"
+            tabIndex={0}
+            aria-label={t("sliceCanvasAriaLabel")}
             onPointerMove={handlePointerMove}
             onPointerLeave={() => onHoverColorChange(null)}
             onClick={handleClick}

@@ -78,6 +78,7 @@
 @layer base {
   * {
     @apply border-border;
+    box-sizing: border-box;
   }
 
   body {
@@ -94,23 +95,56 @@
         transparent 22%
       );
     min-height: 100vh;
+    overflow-x: clip;
   }
 }
 
 :root {
-  --workbench-surface: #132033;
-  --workbench-surface-border: #2a3b57;
-  --workbench-text: #e8edf5;
-  --workbench-muted: #9fb0c7;
-  --workbench-accent: #42d392;
+  --workbench-surface: color-mix(in oklab, var(--card) 96%, var(--foreground) 4%);
+  --workbench-surface-border: color-mix(in oklab, var(--border) 82%, var(--foreground) 18%);
+  --workbench-text: var(--foreground);
+  --workbench-muted: var(--muted-foreground);
+  --workbench-accent: var(--primary);
 }
 
 .workbenchRoot {
-  width: min(1440px, calc(100% - 32px));
-  margin: 12px auto 24px;
+  width: min(1440px, calc(100% - 24px));
+  margin: 8px auto 24px;
   display: grid;
   gap: 10px;
   color: var(--workbench-text);
+}
+
+.workbenchTopBar {
+  border: 1px solid var(--workbench-surface-border);
+  background: color-mix(in oklab, var(--workbench-surface) 95%, var(--background) 5%);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.workbenchTopBar h1 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.workbenchTopBar p {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  color: var(--workbench-muted);
+}
+
+.themeToggleButton {
+  border: 1px solid var(--workbench-surface-border);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--workbench-surface) 85%, var(--primary) 15%);
+  color: var(--workbench-text);
+  font-size: 0.82rem;
+  padding: 6px 10px;
+  line-height: 1.2;
 }
 
 .pageHeader {
@@ -144,7 +178,7 @@
 
 .panel {
   border: 1px solid var(--workbench-surface-border);
-  background: color-mix(in srgb, var(--workbench-surface) 92%, #000 8%);
+  background: color-mix(in oklab, var(--workbench-surface) 94%, var(--background) 6%);
   border-radius: 14px;
   padding: 14px;
 }
@@ -159,7 +193,7 @@
 .workbenchMainGrid {
   display: grid;
   gap: 10px;
-  grid-template-columns: minmax(0, 3fr) minmax(320px, 1fr);
+  grid-template-columns: minmax(0, 3fr) minmax(380px, 1fr);
   align-items: start;
 }
 
@@ -269,13 +303,13 @@
   gap: 4px;
   padding: 4px;
   border-radius: 12px;
-  background: linear-gradient(180deg, #0c1727, #0a1523);
-  border: 1px solid #2d4263;
+  background: color-mix(in oklab, var(--workbench-surface) 92%, var(--foreground) 8%);
+  border: 1px solid var(--workbench-surface-border);
 }
 
 .spaceTabTrigger {
   min-height: 34px;
-  color: #8ea4c4;
+  color: var(--workbench-muted);
   border: 1px solid transparent;
   border-radius: 9px;
   letter-spacing: 0.02em;
@@ -288,8 +322,8 @@
 
 .spaceTabTrigger[data-state="active"] {
   color: var(--workbench-text);
-  background: linear-gradient(180deg, #2b4a78, #20395d);
-  border-color: #6a95cb;
+  background: color-mix(in oklab, var(--primary) 30%, transparent);
+  border-color: color-mix(in oklab, var(--primary) 70%, var(--foreground) 30%);
   box-shadow:
     inset 0 1px 0 #8eb4de44,
     0 0 0 1px #6a95cb33;
@@ -325,14 +359,56 @@
   height: 16px;
 }
 
+.fileInputInline {
+  display: grid;
+  gap: 4px;
+}
+
+.fileInputInline span {
+  font-size: 0.76rem;
+  color: var(--workbench-muted);
+}
+
+.manualColorPicker {
+  display: grid;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.manualColorPicker strong {
+  font-size: 0.8rem;
+  color: var(--workbench-muted);
+}
+
+.manualColorInputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: end;
+}
+
+.manualColorInputs label {
+  gap: 4px;
+  font-size: 0.78rem;
+}
+
+.manualColorInputs input[type="number"] {
+  width: 78px;
+  border: 1px solid var(--workbench-surface-border);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--workbench-surface) 96%, transparent);
+  color: var(--workbench-text);
+  padding: 4px 6px;
+}
+
 .inspectorCards {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .inspectorCard {
-  border: 1px solid #283952;
+  border: 1px solid var(--workbench-surface-border);
   border-radius: 10px;
   padding: 8px;
   display: grid;
@@ -357,8 +433,8 @@
 .workbenchRoot code {
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.88rem;
-  background: #0b1627;
-  border: 1px solid #2b3f5d;
+  background: color-mix(in oklab, var(--workbench-surface) 94%, var(--background) 6%);
+  border: 1px solid var(--workbench-surface-border);
   border-radius: 8px;
   padding: 4px 8px;
 }
@@ -367,12 +443,12 @@
   display: inline-block;
   width: 28px;
   height: 14px;
-  border: 1px solid #d6e2ff66;
+  border: 1px solid color-mix(in oklab, var(--foreground) 35%, transparent);
   border-radius: 4px;
 }
 
 .swatchEmpty {
-  background: #0b1627;
+  background: color-mix(in oklab, var(--workbench-surface) 92%, var(--background) 8%);
   border-style: dashed;
   opacity: 0.8;
 }
@@ -412,10 +488,10 @@
 
 .workbenchRoot select,
 .workbenchRoot button {
-  border: 1px solid #355078;
+  border: 1px solid var(--workbench-surface-border);
   border-radius: 8px;
   padding: 6px 10px;
-  background: #0d1d30;
+  background: color-mix(in oklab, var(--workbench-surface) 88%, var(--background) 12%);
   color: var(--workbench-text);
 }
 
@@ -508,10 +584,10 @@
 }
 
 .analysisGrid article {
-  border: 1px solid #263a57;
+  border: 1px solid var(--workbench-surface-border);
   border-radius: 10px;
   padding: 10px;
-  background: #0a1626;
+  background: color-mix(in oklab, var(--workbench-surface) 90%, var(--background) 10%);
 }
 
 .analysisGrid h3 {
@@ -522,7 +598,7 @@
 .scatterPlot {
   width: 100%;
   height: auto;
-  border: 1px solid #304766;
+  border: 1px solid var(--workbench-surface-border);
   border-radius: 8px;
   display: block;
 }
@@ -538,11 +614,19 @@
 .histogramBars span {
   flex: 1;
   border-radius: 4px 4px 0 0;
-  background: linear-gradient(to top, #2dc5fb, #1f8dff);
+  background: linear-gradient(
+    to top,
+    color-mix(in oklab, var(--primary) 75%, #0094d8 25%),
+    color-mix(in oklab, var(--primary) 60%, #38bdf8 40%)
+  );
 }
 
 .saturationBars span {
-  background: linear-gradient(to top, #49f39a, #13b86b);
+  background: linear-gradient(
+    to top,
+    color-mix(in oklab, var(--accent) 65%, #14b870 35%),
+    color-mix(in oklab, var(--accent) 45%, #5df0a5 55%)
+  );
 }
 
 .areaList {
@@ -555,9 +639,23 @@
 
 .areaList li {
   display: grid;
-  grid-template-columns: 44px 1fr auto;
+  grid-template-columns: 44px 1fr auto auto;
   align-items: center;
   gap: 8px;
+}
+
+.areaInspectButton {
+  font-size: 0.72rem;
+  padding: 3px 6px;
+}
+
+.insightList {
+  margin: 0;
+  padding-left: 1rem;
+  display: grid;
+  gap: 6px;
+  color: var(--workbench-muted);
+  font-size: 0.84rem;
 }
 
 .muted {
@@ -603,6 +701,78 @@
   color: var(--destructive);
 }
 
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.landingRoot {
+  width: min(1480px, calc(100% - 24px));
+  margin: 12px auto 28px;
+  display: grid;
+  gap: 14px;
+}
+
+.landingHero {
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background:
+    radial-gradient(
+      circle at 100% -10%,
+      color-mix(in oklab, var(--primary) 24%, transparent),
+      transparent 40%
+    ),
+    color-mix(in oklab, var(--card) 95%, var(--background) 5%);
+}
+
+.landingHero h1 {
+  margin: 0;
+  font-size: clamp(1.2rem, 1.6vw + 0.6rem, 1.85rem);
+}
+
+.landingHero p {
+  margin: 8px 0 0;
+  max-width: 62ch;
+  color: var(--muted-foreground);
+}
+
+.landingHeroActions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.landingHeroActions a {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 7px 10px;
+  font-size: 0.84rem;
+  text-decoration: none;
+  color: var(--foreground);
+  background: color-mix(in oklab, var(--card) 80%, var(--primary) 20%);
+}
+
+.landingSection {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  background: color-mix(in oklab, var(--card) 96%, var(--background) 4%);
+}
+
+.landingSection h2 {
+  margin: 0 0 10px;
+  font-size: 1rem;
+}
+
 @media (max-width: 640px) {
   .pageHeader p {
     display: none;
@@ -630,6 +800,10 @@
     width: 100%;
   }
 
+  .inspectorCards {
+    grid-template-columns: 1fr;
+  }
+
   .supportPanels {
     gap: 8px;
   }
@@ -642,6 +816,10 @@
 
   .cubeCanvas {
     height: 320px;
+  }
+
+  .graphAxisYLabel {
+    display: none;
   }
 }
 

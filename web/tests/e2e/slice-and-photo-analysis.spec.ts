@@ -17,9 +17,10 @@ test("T-101(slice): 断面表示の確認", async ({ page }) => {
 
 test("T-102(slice): 固定値操作の確認", async ({ page }) => {
   await page.goto("/");
-  const valueSlider = page.getByRole("slider", { name: "固定値: 128" });
+  const slicePanel = getPanel(page, "スライス");
+  const valueSlider = slicePanel.getByRole("slider");
   await valueSlider.fill("200");
-  await expect(page.getByText("R 固定 = 200")).toBeVisible();
+  await expect(slicePanel.getByText(/固定 = 200$/)).toBeVisible();
 });
 
 test("T-103(slice): 3D同期の確認", async ({ page }) => {
