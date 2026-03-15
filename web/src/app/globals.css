@@ -672,6 +672,13 @@
   vector-effect: non-scaling-stroke;
 }
 
+.previewSelectedMarker {
+  fill: none;
+  stroke: #f97316;
+  stroke-width: 0.55;
+  vector-effect: non-scaling-stroke;
+}
+
 .previewStatusGrid {
   display: grid;
   gap: 0.75rem;

@@ -392,11 +392,13 @@ type PreviewPanelProps = {
   target: WorkbenchTarget;
   compareTarget: WorkbenchTarget;
   hoverSample: PhotoSample | null;
+  selectedSample: PhotoSample | null;
   selectionState: TargetSelectionState;
   selectionDraft: SelectionDraft;
   onHoverSampleChange: (sample: PhotoSample | null) => void;
   onSelectionDraftChange: (draft: SelectionDraft) => void;
   onSelectionCommit: (bounds: { x: number; y: number; width: number; height: number }) => void;
+  onSampleSelect: (sample: PhotoSample) => void;
   onSourceFileSelected: (file: File | null) => void;
   onCompareFileSelected: (file: File | null) => void;
   onPaste: (event: React.ClipboardEvent<HTMLButtonElement>) => void;
@@ -406,34 +408,50 @@ function PreviewPanel({
   target,
   compareTarget,
   hoverSample,
+  selectedSample,
   selectionState,
   selectionDraft,
   onHoverSampleChange,
   onSelectionDraftChange,
   onSelectionCommit,
+  onSampleSelect,
   onSourceFileSelected,
   onCompareFileSelected,
   onPaste,
 }: PreviewPanelProps) {
   const imageWrapRef = useRef<HTMLDivElement | null>(null);
+  const imageRef = useRef<HTMLImageElement | null>(null);
+
+  const getPreviewBounds = (): DOMRect | null => {
+    if (imageRef.current) {
+      return imageRef.current.getBoundingClientRect();
+    }
+    return imageWrapRef.current?.getBoundingClientRect() ?? null;
+  };
 
   const mapPointerToSample = (
     event: React.PointerEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement>
   ): PhotoSample | null => {
-    if (!target.result || !imageWrapRef.current) {
+    if (!target.result) {
       return null;
     }
-    const bounds = imageWrapRef.current.getBoundingClientRect();
+    const bounds = getPreviewBounds();
+    if (!bounds) {
+      return null;
+    }
     const x = ((event.clientX - bounds.left) / bounds.width) * target.result.width;
     const y = ((event.clientY - bounds.top) / bounds.height) * target.result.height;
     return findNearestSampleByCoordinate(target.result, x, y);
   };
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>): void => {
-    if (!target.result || !imageWrapRef.current) {
+    if (!target.result) {
       return;
     }
-    const bounds = imageWrapRef.current.getBoundingClientRect();
+    const bounds = getPreviewBounds();
+    if (!bounds) {
+      return;
+    }
     onSelectionDraftChange({
       originXRatio: clamp((event.clientX - bounds.left) / bounds.width, 0, 1),
       originYRatio: clamp((event.clientY - bounds.top) / bounds.height, 0, 1),
@@ -446,10 +464,13 @@ function PreviewPanel({
     const sample = mapPointerToSample(event);
     onHoverSampleChange(sample);
 
-    if (!selectionDraft || !imageWrapRef.current) {
+    if (!selectionDraft) {
       return;
     }
-    const bounds = imageWrapRef.current.getBoundingClientRect();
+    const bounds = getPreviewBounds();
+    if (!bounds) {
+      return;
+    }
     onSelectionDraftChange({
       ...selectionDraft,
       currentXRatio: clamp((event.clientX - bounds.left) / bounds.width, 0, 1),
@@ -457,8 +478,10 @@ function PreviewPanel({
     });
   };
 
-  const commitDraft = (): void => {
-    if (!selectionDraft || !target.result || !imageWrapRef.current) {
+  const commitDraft = (
+    event: React.PointerEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement>
+  ): void => {
+    if (!selectionDraft || !target.result) {
       return;
     }
     const leftRatio = Math.min(selectionDraft.originXRatio, selectionDraft.currentXRatio);
@@ -468,6 +491,10 @@ function PreviewPanel({
 
     onSelectionDraftChange(null);
     if (widthRatio * target.result.width < 4 || heightRatio * target.result.height < 4) {
+      const sample = mapPointerToSample(event);
+      if (sample) {
+        onSampleSelect(sample);
+      }
       return;
     }
 
@@ -514,6 +541,13 @@ function PreviewPanel({
       ? {
           x: (hoverSample.x / target.result.width) * 100,
           y: (hoverSample.y / target.result.height) * 100,
+        }
+      : null;
+  const selectedMarker =
+    selectedSample && target.result
+      ? {
+          x: (selectedSample.x / target.result.width) * 100,
+          y: (selectedSample.y / target.result.height) * 100,
         }
       : null;
 
@@ -583,6 +617,7 @@ function PreviewPanel({
             src={target.previewUrl}
             alt={t("photoPreviewAlt", { fileName: target.file?.name ?? t("photoUploadLabel") })}
             className="photoPreviewImage"
+            ref={imageRef}
             width={640}
             height={480}
             unoptimized
@@ -590,7 +625,12 @@ function PreviewPanel({
         ) : (
           <div className="photoPreviewEmpty">{t("photoPreviewEmpty")}</div>
         )}
-        <svg viewBox="0 0 100 100" className="previewOverlay" aria-hidden="true">
+        <svg
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          className="previewOverlay"
+          aria-hidden="true"
+        >
           {renderSelectionBox("A")}
           {renderSelectionBox("B")}
           {draftRect ? (
@@ -606,6 +646,14 @@ function PreviewPanel({
           ) : null}
           {hoverMarker ? (
             <circle className="previewHoverMarker" cx={hoverMarker.x} cy={hoverMarker.y} r="1.2" />
+          ) : null}
+          {selectedMarker ? (
+            <circle
+              className="previewSelectedMarker"
+              cx={selectedMarker.x}
+              cy={selectedMarker.y}
+              r="1.6"
+            />
           ) : null}
         </svg>
       </div>
@@ -1011,6 +1059,20 @@ export function ColorWorkbench() {
     setLiveMessage(t("workbenchSelectedColorUpdated", { value: rgbToHex(color) }));
   };
 
+  const handlePreviewSampleSelect = (sample: PhotoSample): void => {
+    setSelectedColor(sample.color);
+    setSelectionForCurrentSlot((slot) =>
+      buildPointSelection({
+        result: baselineTarget.result!,
+        targetId: baselineTarget.targetId,
+        slot,
+        sampleId: sample.sampleId,
+        source: "image-point",
+      })
+    );
+    setLiveMessage(t("workbenchSelectedColorUpdated", { value: rgbToHex(sample.color) }));
+  };
+
   const handleSelectionClear = (): void => {
     setSelectionStateByTarget((current) => {
       const state = current.baseline ?? defaultSelectionState;
@@ -1113,6 +1175,7 @@ export function ColorWorkbench() {
           target={baselineTarget}
           compareTarget={compareTarget}
           hoverSample={hoverState.sample}
+          selectedSample={selectedSample}
           selectionState={baselineSelectionState}
           selectionDraft={selectionDraft}
           onHoverSampleChange={(sample) =>
@@ -1120,6 +1183,7 @@ export function ColorWorkbench() {
           }
           onSelectionDraftChange={setSelectionDraft}
           onSelectionCommit={handlePreviewSelectionCommit}
+          onSampleSelect={handlePreviewSampleSelect}
           onSourceFileSelected={handleSourceFileSelected}
           onCompareFileSelected={handleCompareFileSelected}
           onPaste={handlePhotoPaste}
