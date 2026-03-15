@@ -109,12 +109,32 @@ export const getAnalyzeLimits = (): RateLimitPolicy => {
 export const checkAnalyzeRateLimit = async (request: Request): Promise<boolean> => {
   const host =
     request.headers.get("host") ?? request.headers.get("x-forwarded-host") ?? "localhost:3000";
-  const result = await checkRateLimit(rateLimitId, {
-    request,
-    firewallHostForDevelopment: host,
-  });
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  const realIp = request.headers.get("x-real-ip");
+  const rateLimitKey =
+    realIp ??
+    forwardedFor?.split(",")[0]?.trim() ??
+    (process.env.NODE_ENV === "production" ? undefined : "127.0.0.1");
+  try {
+    const result = await checkRateLimit(rateLimitId, {
+      request,
+      firewallHostForDevelopment: host,
+      rateLimitKey,
+    });
 
-  return result.rateLimited;
+    return result.rateLimited;
+  } catch {
+    if (process.env.NODE_ENV !== "production") {
+      return false;
+    }
+
+    throw createErrorResponse(
+      "INTERNAL_ERROR",
+      "Rate limit check failed unexpectedly.",
+      undefined,
+      true
+    );
+  }
 };
 
 export const validateAnalyzeRequest = (

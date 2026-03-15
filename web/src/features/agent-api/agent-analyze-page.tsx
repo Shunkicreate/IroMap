@@ -1,12 +1,14 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import type {
   AnalyzeErrorResponse,
   AnalyzeSuccessResponse,
 } from "@/domain/photo-analysis/agent-api-contract";
+import { AgentAnalyzeExplanations } from "@/features/agent-api/agent-analyze-explanations";
+import { AgentAnalyzeInputCard } from "@/features/agent-api/agent-analyze-input-card";
+import { AgentAnalyzeResultCard } from "@/features/agent-api/agent-analyze-result-card";
 import styles from "./agent-analyze-page.module.css";
 
 const supportedTypes = ["image/jpeg", "image/png", "image/webp"];
@@ -85,93 +87,17 @@ export function AgentAnalyzePage() {
       </section>
 
       <form onSubmit={onSubmit} className={styles.grid}>
-        <section className={styles.card}>
-          <h2 className={styles.titleReset}>Input</h2>
-          <p className={styles.muted}>Supported types: {supportedTypes.join(", ")}</p>
-          <input
-            type="file"
-            accept={supportedTypes.join(",")}
-            onChange={(event) => {
-              setFile(event.target.files?.[0] ?? null);
-            }}
-          />
-          <div className={styles.buttonRow}>
-            <button type="submit" disabled={!file || isSubmitting} className={styles.button}>
-              {isSubmitting ? "Analyzing..." : "Analyze image"}
-            </button>
-          </div>
-          {previewUrl ? (
-            <Image
-              src={previewUrl}
-              alt={file?.name ?? "Uploaded preview"}
-              className={styles.preview}
-              width={800}
-              height={560}
-              unoptimized
-            />
-          ) : null}
-        </section>
-
-        <section className={styles.card}>
-          <h2 className={styles.titleReset}>Response summary</h2>
-          {error ? (
-            <article>
-              <p className={styles.errorCode}>{error.error.code}</p>
-              <p className={styles.errorMessage}>{error.error.message}</p>
-            </article>
-          ) : null}
-          {result ? (
-            <article>
-              <dl className={styles.summaryGrid}>
-                <dt>Size</dt>
-                <dd>
-                  {result.input.width} x {result.input.height}
-                </dd>
-                <dt>Color space</dt>
-                <dd>{result.input.colorSpace}</dd>
-                <dt>Brightness</dt>
-                <dd>{result.summary.avgBrightness}</dd>
-                <dt>Saturation</dt>
-                <dd>{result.summary.avgSaturation}</dd>
-                <dt>Description</dt>
-                <dd>{result.summary.description}</dd>
-              </dl>
-              <div className={styles.swatchRow}>
-                {result.summary.dominantColors.map((color) => (
-                  <div key={color.hex} className={styles.swatchItem}>
-                    <div className={styles.swatch}>
-                      <svg viewBox="0 0 40 40" className={styles.swatchSvg} aria-hidden="true">
-                        <rect x="0" y="0" width="40" height="40" rx="12" ry="12" fill={color.hex} />
-                      </svg>
-                    </div>
-                    <div>
-                      <div className={styles.swatchHex}>{color.hex}</div>
-                      <div className={styles.swatchRatio}>{(color.ratio * 100).toFixed(1)}%</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </article>
-          ) : (
-            <p className={styles.empty}>No analysis result yet.</p>
-          )}
-        </section>
+        <AgentAnalyzeInputCard
+          file={file}
+          isSubmitting={isSubmitting}
+          previewUrl={previewUrl}
+          supportedTypes={supportedTypes}
+          onFileChange={setFile}
+        />
+        <AgentAnalyzeResultCard error={error} result={result} />
       </form>
 
-      {result ? (
-        <article className={`${styles.card} ${styles.explanations}`}>
-          <h2>Visualization explanations</h2>
-          <div className={styles.explanationList}>
-            {result.explanations.map((item) => (
-              <section key={item.id} className={styles.explanationCard}>
-                <h3>{item.title}</h3>
-                <p className={styles.muted}>{item.description}</p>
-                <p>{item.findings}</p>
-              </section>
-            ))}
-          </div>
-        </article>
-      ) : null}
+      {result ? <AgentAnalyzeExplanations result={result} /> : null}
     </main>
   );
 }
