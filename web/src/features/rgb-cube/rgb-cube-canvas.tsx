@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, type CSSProperties } from "react";
 import { clampRgb } from "@/domain/color/color-conversion";
 import {
   type ColorSpace3d,
@@ -82,6 +82,9 @@ export function RgbCubeCanvas({
     y: 0,
   });
   const projectedPointsRef = useRef<ProjectedPoint[]>([]);
+  const canvasWrapStyle = {
+    ["--cube-size"]: `${cubeSize / 16}rem`,
+  } as CSSProperties;
 
   const sampledColors = useMemo(() => {
     const colors: RgbColor[] = [];
@@ -139,7 +142,7 @@ export function RgbCubeCanvas({
     }
 
     context.fillStyle = `rgba(255, 255, 255, ${textAlpha})`;
-    context.font = "12px monospace";
+    context.font = "0.75rem monospace";
     context.fillText(
       t("cubeResolutionOverlay", { levels: rgbCubeColorCount }),
       overlayTextLeft,
@@ -205,16 +208,17 @@ export function RgbCubeCanvas({
   };
 
   return (
-    <canvas
-      ref={canvasRef}
-      className="cubeCanvas"
-      style={{ height: `${cubeSize}px` }}
-      tabIndex={0}
-      aria-label={t("cubeCanvasAriaLabel")}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerLeave={handlePointerLeave}
-    />
+    <div className="cubeCanvasWrap" style={canvasWrapStyle}>
+      <canvas
+        ref={canvasRef}
+        className="cubeCanvas"
+        tabIndex={0}
+        aria-label={t("cubeCanvasAriaLabel")}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerLeave}
+      />
+    </div>
   );
 }
