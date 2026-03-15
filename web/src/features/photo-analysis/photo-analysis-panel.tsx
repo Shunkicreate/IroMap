@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import { ColorSwatch } from "@/components/workbench/color-swatch";
 import { GraphFrame } from "@/components/graph/graph-frame";
 import { PanelHeader } from "@/components/workbench/panel-header";
-import type { RgbColor } from "@/domain/color/color-types";
 import { analyzePhoto, type PhotoAnalysisResult } from "@/domain/photo-analysis/photo-analysis";
 import { t } from "@/i18n/translate";
 
@@ -17,7 +16,6 @@ type AnalysisState = {
 
 type Props = {
   sourceFile: File | null;
-  onColorInspect?: (color: RgbColor) => void;
   onStatusChange?: (message: string) => void;
   onAnalysisComplete?: (result: PhotoAnalysisResult | null) => void;
 };
@@ -217,12 +215,7 @@ const renderHistogramChart = ({
   );
 };
 
-export function PhotoAnalysisPanel({
-  sourceFile,
-  onColorInspect,
-  onStatusChange,
-  onAnalysisComplete,
-}: Props) {
+export function PhotoAnalysisPanel({ sourceFile, onStatusChange, onAnalysisComplete }: Props) {
   const [analysis, setAnalysis] = useState<AnalysisState>(null);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -432,15 +425,6 @@ export function PhotoAnalysisPanel({
                     <ColorSwatch color={area.rgb} />
                     <span>{area.label === "others" ? t("photoOthers") : area.label}</span>
                     <strong>{ratioFormatter.format(area.ratio / 100)}</strong>
-                    {area.label !== "others" ? (
-                      <button
-                        type="button"
-                        onClick={() => onColorInspect?.(area.rgb)}
-                        className="areaInspectButton"
-                      >
-                        {t("photoInspectOnCube")}
-                      </button>
-                    ) : null}
                   </li>
                 ))}
               </ul>

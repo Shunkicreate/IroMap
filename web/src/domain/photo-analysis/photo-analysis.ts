@@ -90,6 +90,33 @@ export type WorkbenchMetricRow = {
   description: string;
 };
 
+type MetricRowHeaderLabels = {
+  group: string;
+  key: string;
+  label: string;
+  value: string;
+  unit: string;
+  description: string;
+};
+
+type HistogramBinHeaderLabels = {
+  metric: string;
+  binIndex: string;
+  start: string;
+  end: string;
+  count: string;
+  ratio: string;
+};
+
+type SerializeMetricRowsOptions = {
+  headerLabels?: MetricRowHeaderLabels;
+};
+
+type SerializeHistogramBinsOptions = {
+  headerLabels?: HistogramBinHeaderLabels;
+  metricLabels?: Partial<Record<WorkbenchHistogramMetric, string>>;
+};
+
 export type PhotoAnalysisResult = {
   hueHistogram: HistogramBin[];
   saturationHistogram: HistogramBin[];
@@ -644,9 +671,28 @@ export const buildCubePointsFromSamples = (samples: PhotoSample[]): RgbCubePoint
   return buildRgbCubePointsCore(samples, maxCubePointCount);
 };
 
-export const serializeMetricRows = (rows: WorkbenchMetricRow[], format: ExportFormat): string => {
+export const serializeMetricRows = (
+  rows: WorkbenchMetricRow[],
+  format: ExportFormat,
+  options?: SerializeMetricRowsOptions
+): string => {
   const separator = format === "tsv" ? "\t" : ",";
-  const header = ["group", "key", "label", "value", "unit", "description"];
+  const headerLabels: MetricRowHeaderLabels = options?.headerLabels ?? {
+    group: "group",
+    key: "key",
+    label: "label",
+    value: "value",
+    unit: "unit",
+    description: "description",
+  };
+  const header = [
+    headerLabels.group,
+    headerLabels.key,
+    headerLabels.label,
+    headerLabels.value,
+    headerLabels.unit,
+    headerLabels.description,
+  ];
   const formatValue = (value: number | null, precision: number): string => {
     if (value == null) {
       return "N/A";
@@ -690,10 +736,27 @@ export const serializeMetricRows = (rows: WorkbenchMetricRow[], format: ExportFo
 
 export const serializeHistogramBins = (
   bins: WorkbenchHistogramBin[],
-  format: ExportFormat
+  format: ExportFormat,
+  options?: SerializeHistogramBinsOptions
 ): string => {
   const separator = format === "tsv" ? "\t" : ",";
-  const header = ["metric", "binIndex", "start", "end", "count", "ratio"];
+  const headerLabels: HistogramBinHeaderLabels = options?.headerLabels ?? {
+    metric: "metric",
+    binIndex: "binIndex",
+    start: "start",
+    end: "end",
+    count: "count",
+    ratio: "ratio",
+  };
+  const metricLabels = options?.metricLabels ?? {};
+  const header = [
+    headerLabels.metric,
+    headerLabels.binIndex,
+    headerLabels.start,
+    headerLabels.end,
+    headerLabels.count,
+    headerLabels.ratio,
+  ];
   if (format === "markdown") {
     const lines = [
       `| ${header.join(" | ")} |`,
@@ -701,7 +764,7 @@ export const serializeHistogramBins = (
       ...bins.map(
         (bin) =>
           `| ${[
-            bin.metric,
+            metricLabels[bin.metric] ?? bin.metric,
             bin.binIndex,
             bin.start.toFixed(2),
             bin.end.toFixed(2),
@@ -716,7 +779,7 @@ export const serializeHistogramBins = (
     .concat(
       bins.map((bin) =>
         [
-          bin.metric,
+          metricLabels[bin.metric] ?? bin.metric,
           bin.binIndex,
           bin.start.toFixed(2),
           bin.end.toFixed(2),

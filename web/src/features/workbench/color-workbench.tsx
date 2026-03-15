@@ -28,7 +28,6 @@ import {
   type PhotoAnalysisResult,
   type PhotoSample,
   type TargetSelectionState,
-  type WorkbenchHistogramMetric,
   type WorkbenchMetricRow,
 } from "@/domain/photo-analysis/photo-analysis";
 import {
@@ -211,6 +210,67 @@ const formatMetricValue = (row: WorkbenchMetricRow, value: number | null): strin
   }
   return value.toFixed(row.precision);
 };
+
+const getMetricLabelKey = (key: WorkbenchMetricRow["key"]) => {
+  switch (key) {
+    case "l_mean":
+      return "workbenchMetricLabelLMean";
+    case "l_stddev":
+      return "workbenchMetricLabelLStddev";
+    case "l_p95":
+      return "workbenchMetricLabelLP95";
+    case "a_mean":
+      return "workbenchMetricLabelAMean";
+    case "b_mean":
+      return "workbenchMetricLabelBMean";
+    case "c_mean":
+      return "workbenchMetricLabelCMean";
+    case "c_p95":
+      return "workbenchMetricLabelCP95";
+    case "neutral_distance_mean":
+      return "workbenchMetricLabelNeutralDistanceMean";
+    case "highlight_b_mean":
+      return "workbenchMetricLabelHighlightBMean";
+    case "highlight_neutral_distance_mean":
+      return "workbenchMetricLabelHighlightNeutralDistanceMean";
+    case "selection_coverage_ratio":
+      return "workbenchMetricLabelSelectionCoverageRatio";
+  }
+};
+
+const getMetricDescriptionKey = (key: WorkbenchMetricRow["key"]) => {
+  switch (key) {
+    case "l_mean":
+      return "workbenchMetricDescriptionLMean";
+    case "l_stddev":
+      return "workbenchMetricDescriptionLStddev";
+    case "l_p95":
+      return "workbenchMetricDescriptionLP95";
+    case "a_mean":
+      return "workbenchMetricDescriptionAMean";
+    case "b_mean":
+      return "workbenchMetricDescriptionBMean";
+    case "c_mean":
+      return "workbenchMetricDescriptionCMean";
+    case "c_p95":
+      return "workbenchMetricDescriptionCP95";
+    case "neutral_distance_mean":
+      return "workbenchMetricDescriptionNeutralDistanceMean";
+    case "highlight_b_mean":
+      return "workbenchMetricDescriptionHighlightBMean";
+    case "highlight_neutral_distance_mean":
+      return "workbenchMetricDescriptionHighlightNeutralDistanceMean";
+    case "selection_coverage_ratio":
+      return "workbenchMetricDescriptionSelectionCoverageRatio";
+  }
+};
+
+const localizeMetricRows = (rows: WorkbenchMetricRow[]): WorkbenchMetricRow[] =>
+  rows.map((row) => ({
+    ...row,
+    label: t(getMetricLabelKey(row.key)),
+    description: t(getMetricDescriptionKey(row.key)),
+  }));
 
 const getHueInsightLabel = (result: PhotoAnalysisResult): string => {
   const activeBins = result.hueHistogram.filter((bin) => bin.count > 0).length;
@@ -588,7 +648,6 @@ export function ColorWorkbench() {
   });
   const [selectedColor, setSelectedColor] = useState<RgbColor | null>(null);
   const [copyFormat, setCopyFormat] = useState<ExportFormat>("markdown");
-  const [histogramMetric, setHistogramMetric] = useState<WorkbenchHistogramMetric>("luminance");
   const [sliceAxis, setSliceAxis] = useState<SliceAxis>("r");
   const [sliceValue, setSliceValue] = useState<number>(defaultSliceValue);
   const [space, setSpace] = useState<ColorSpace3d>("rgb");
@@ -687,9 +746,21 @@ export function ColorWorkbench() {
         : [],
     [baselineTarget.result, baselineSelectionState]
   );
-  const baselineHistogram = useMemo(
-    () => buildHistogramBins(baselineTarget.result?.samples ?? [], histogramMetric),
-    [baselineTarget.result, histogramMetric]
+  const localizedBaselineMetricRows = useMemo(
+    () => localizeMetricRows(baselineMetricRows),
+    [baselineMetricRows]
+  );
+  const baselineLuminanceHistogram = useMemo(
+    () => buildHistogramBins(baselineTarget.result?.samples ?? [], "luminance"),
+    [baselineTarget.result]
+  );
+  const baselineHueHistogram = useMemo(
+    () => buildHistogramBins(baselineTarget.result?.samples ?? [], "hue"),
+    [baselineTarget.result]
+  );
+  const baselineSaturationHistogram = useMemo(
+    () => buildHistogramBins(baselineTarget.result?.samples ?? [], "saturation"),
+    [baselineTarget.result]
   );
 
   const selectionCubePoints = useMemo(
@@ -884,14 +955,41 @@ export function ColorWorkbench() {
   };
 
   const copyMetricTable = async (): Promise<void> => {
-    const payload = serializeMetricRows(baselineMetricRows, copyFormat);
+    const payload = serializeMetricRows(localizedBaselineMetricRows, copyFormat, {
+      headerLabels: {
+        group: t("workbenchTableGroup"),
+        key: t("workbenchTableKey"),
+        label: t("workbenchTableMetric"),
+        value: t("workbenchTableValue"),
+        unit: t("workbenchTableUnit"),
+        description: t("workbenchTableDescription"),
+      },
+    });
     await navigator.clipboard.writeText(payload);
     handleStatusChange(t("workbenchMetricTableCopied", { format: copyFormat }));
     toast.success(t("workbenchMetricTableCopied", { format: copyFormat }));
   };
 
   const copyHistogram = async (): Promise<void> => {
-    const payload = serializeHistogramBins(baselineHistogram, copyFormat);
+    const payload = serializeHistogramBins(
+      [...baselineLuminanceHistogram, ...baselineHueHistogram, ...baselineSaturationHistogram],
+      copyFormat,
+      {
+        headerLabels: {
+          metric: t("workbenchTableMetric"),
+          binIndex: t("graphAxisBin"),
+          start: t("graphAxisStart"),
+          end: t("graphAxisEnd"),
+          count: t("graphAxisCount"),
+          ratio: t("graphAxisRatio"),
+        },
+        metricLabels: {
+          luminance: t("workbenchHistogramCardTitle"),
+          hue: t("photoHueHistogram"),
+          saturation: t("photoSaturationHistogram"),
+        },
+      }
+    );
     await navigator.clipboard.writeText(payload);
     handleStatusChange(t("workbenchHistogramCopied", { format: copyFormat }));
     toast.success(t("workbenchHistogramCopied", { format: copyFormat }));
@@ -1153,20 +1251,6 @@ export function ColorWorkbench() {
 
         <div className="analysisWorkbenchControls">
           <label>
-            {t("workbenchHistogramLabel")}
-            <select
-              value={histogramMetric}
-              onChange={(event) =>
-                setHistogramMetric(event.target.value as WorkbenchHistogramMetric)
-              }
-            >
-              <option value="luminance">{t("workbenchHistogramLuminanceOption")}</option>
-              <option value="hue">{t("workbenchHistogramHueOption")}</option>
-              <option value="saturation">{t("workbenchHistogramSaturationOption")}</option>
-              <option value="chroma">{t("workbenchHistogramChromaOption")}</option>
-            </select>
-          </label>
-          <label>
             {t("workbenchCopyFormatWorkbenchLabel")}
             <select
               value={copyFormat}
@@ -1180,14 +1264,14 @@ export function ColorWorkbench() {
           <button
             type="button"
             onClick={() => void copyMetricTable()}
-            disabled={baselineMetricRows.length === 0}
+            disabled={localizedBaselineMetricRows.length === 0}
           >
             {t("workbenchTableCopy")}
           </button>
           <button
             type="button"
             onClick={() => void copyHistogram()}
-            disabled={baselineHistogram.length === 0}
+            disabled={baselineLuminanceHistogram.length === 0}
           >
             {t("workbenchHistogramCopy")}
           </button>
@@ -1207,7 +1291,7 @@ export function ColorWorkbench() {
                   </tr>
                 </thead>
                 <tbody>
-                  {baselineMetricRows.map((row) => (
+                  {localizedBaselineMetricRows.map((row) => (
                     <tr key={row.key}>
                       <td>{row.group}</td>
                       <td>{row.label}</td>
@@ -1221,11 +1305,20 @@ export function ColorWorkbench() {
           </article>
 
           <article className="analysisCard">
-            <h3>{t("workbenchHistogramCardTitle")}</h3>
-            <GraphFrame xLabel="bin" yLabel="count" className="analysisGraphFrame">
-              {renderHistogramChart({ bins: baselineHistogram })}
-            </GraphFrame>
-            <p className="muted">{t("workbenchHistogramBaselineHint")}</p>
+            <h3>{t("photoColorAreaRatio")}</h3>
+            {baselineTarget.result ? (
+              <ul className="areaList">
+                {baselineTarget.result.colorAreas.map((area) => (
+                  <li key={area.label}>
+                    <ColorSwatch color={area.rgb} />
+                    <span>{area.label === "others" ? t("photoOthers") : area.label}</span>
+                    <strong>{ratioFormatter.format(area.ratio / 100)}</strong>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="muted">{t("photoPreviewEmpty")}</p>
+            )}
           </article>
         </div>
 
@@ -1233,15 +1326,24 @@ export function ColorWorkbench() {
           {baselineTarget.result ? (
             <>
               <article className="analysisCard">
+                <h3>{t("workbenchHistogramCardTitle")}</h3>
+                <GraphFrame
+                  xLabel={t("graphAxisLuminance")}
+                  yLabel={t("graphAxisCount")}
+                  className="analysisGraphFrame"
+                >
+                  {renderHistogramChart({ bins: baselineLuminanceHistogram })}
+                </GraphFrame>
+              </article>
+
+              <article className="analysisCard">
                 <h3>{t("photoHueHistogram")}</h3>
                 <GraphFrame
                   xLabel={t("graphAxisHue")}
                   yLabel={t("graphAxisCount")}
                   className="analysisGraphFrame"
                 >
-                  {renderHistogramChart({
-                    bins: buildHistogramBins(baselineTarget.result.samples, "hue"),
-                  })}
+                  {renderHistogramChart({ bins: baselineHueHistogram })}
                 </GraphFrame>
               </article>
 
@@ -1252,37 +1354,13 @@ export function ColorWorkbench() {
                   yLabel={t("graphAxisCount")}
                   className="analysisGraphFrame"
                 >
-                  {renderHistogramChart({
-                    bins: buildHistogramBins(baselineTarget.result.samples, "saturation"),
-                  })}
+                  {renderHistogramChart({ bins: baselineSaturationHistogram })}
                 </GraphFrame>
-              </article>
-
-              <article className="analysisCard">
-                <h3>{t("photoColorAreaRatio")}</h3>
-                <ul className="areaList">
-                  {baselineTarget.result.colorAreas.map((area) => (
-                    <li key={area.label}>
-                      <ColorSwatch color={area.rgb} />
-                      <span>{area.label === "others" ? t("photoOthers") : area.label}</span>
-                      <strong>{ratioFormatter.format(area.ratio / 100)}</strong>
-                      {area.label !== "others" ? (
-                        <button
-                          type="button"
-                          onClick={() => handleColorSelect(area.rgb)}
-                          className="areaInspectButton"
-                        >
-                          {t("photoInspectOnCube")}
-                        </button>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
               </article>
             </>
           ) : (
             <article className="analysisCard analysisCardEmpty">
-              <h3>{t("photoHueHistogram")}</h3>
+              <h3>{t("workbenchHistogramAllTitle")}</h3>
               <p className="muted">{t("photoPreviewEmpty")}</p>
             </article>
           )}

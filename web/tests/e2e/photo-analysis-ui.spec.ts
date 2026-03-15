@@ -21,11 +21,7 @@ test("T-005(photo-analysis): 画像アップロード操作を写真分析パネ
   await expect(page.getByLabel("画像をアップロード")).toBeVisible();
 
   const analysis = getPanel(page, "写真分析 MVP");
-  await expect(analysis.getByRole("button", { name: "キューブで確認" }).first()).toBeVisible({
-    timeout: 15000,
-  });
-  await analysis.getByRole("button", { name: "キューブで確認" }).first().click();
-
-  const inspector = getPanel(page, "インスペクタ");
-  await expect(inspector.getByText(/^#[0-9A-F]{6}$/i).last()).toBeVisible();
+  await expect(analysis.getByText("色面積比")).toBeVisible({ timeout: 15000 });
+  await expect(analysis.locator(".areaList li").first()).toBeVisible();
+  await expect(analysis.locator(".areaList li strong").first()).toContainText("%");
 });
