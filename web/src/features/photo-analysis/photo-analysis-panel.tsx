@@ -23,6 +23,7 @@ type Props = {
   onColorInspect?: (color: RgbColor) => void;
   onStatusChange?: (message: string) => void;
   onImageSelected?: (file: File | null) => void;
+  onUploadChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
 };
 
 const maxScatterRange = colorChannelLevels / 2;
@@ -263,6 +264,7 @@ export function PhotoAnalysisPanel({
   onColorInspect,
   onStatusChange,
   onImageSelected,
+  onUploadChange,
 }: Props) {
   const [analysis, setAnalysis] = useState<AnalysisState>(null);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
@@ -387,6 +389,27 @@ export function PhotoAnalysisPanel({
 
       <div className={styles.topRow}>
         <div className={styles.controls}>
+          <div className="photoUploadCta">
+            <div className="photoUploadCtaCopy">
+              <strong>{t("photoUploadCtaTitle")}</strong>
+              <p>{t("photoUploadCtaDescription")}</p>
+              {sourceFile ? (
+                <p className="photoUploadCtaStatus">
+                  {t("photoUploadSelected", { fileName: sourceFile.name })}
+                </p>
+              ) : null}
+            </div>
+            <label className="photoUploadButton">
+              <span>{t("photoUploadButton")}</span>
+              <input
+                type="file"
+                accept="image/*"
+                aria-label={t("photoUploadLabel")}
+                className="srOnly"
+                onChange={onUploadChange}
+              />
+            </label>
+          </div>
           <button
             type="button"
             className="photoPasteZone"

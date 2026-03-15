@@ -13,11 +13,13 @@ test("T-105(photo-analysis): 評価基準ヘルプの表示とラベル判定を
   await expect(analysis.getByText(/^分布の広がり:/)).toBeVisible();
 });
 
-test("T-005(photo-analysis): 画像アップロード操作をキューブ近傍で完結できる", async ({ page }) => {
+test("T-005(photo-analysis): 画像アップロード操作を写真分析パネル内で完結できる", async ({
+  page,
+}) => {
   await page.goto("/");
   await uploadRedPng(page);
 
-  await expect(page.getByLabel("写真分析用画像")).toBeVisible();
+  await expect(page.getByLabel("画像をアップロード")).toBeVisible();
 
   const analysis = getPanel(page, "写真分析 MVP");
   await expect(analysis.getByRole("button", { name: "キューブで確認" }).first()).toBeVisible({

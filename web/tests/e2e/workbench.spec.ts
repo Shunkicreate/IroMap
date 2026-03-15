@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test("ワークベンチの主要UIが表示される", async ({ page }) => {
   await page.goto("/");
 
-  await expect(page.getByRole("heading", { name: "IroMap ワークベンチ" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "写真の色構造を一目で理解する" })).toBeVisible();
   await expect(page.getByText("写真をアップロードして分析を始める")).toBeVisible();
   await expect(page.getByText("画像を選ぶ", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "RGBキューブ" })).toBeVisible();
