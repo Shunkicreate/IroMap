@@ -18,6 +18,7 @@ Use only:
 - `git branch *`
 - `git checkout *`
 - `git fetch *`
+- `git pull *`
 - `git status *`
 - `git rev-parse *`
 - `cd *`
@@ -31,7 +32,7 @@ Collect these before creating or switching:
 
 - Target branch name (`BRANCH_NAME`)
 - Target worktree directory (`WORKTREE_DIR`)
-- Base branch (default `develop` unless user specifies)
+- Base branch (default `main` unless user specifies)
 
 ## Create Or Reuse Workflow
 
@@ -43,13 +44,21 @@ Run in this order.
 cd "$(git rev-parse --show-toplevel)"
 ```
 
-2. Check existing worktree.
+2. Sync local `main` with `origin/main`.
+
+```bash
+git fetch origin main
+git checkout main
+git pull --ff-only origin main
+```
+
+3. Check existing worktree.
 
 ```bash
 git worktree list | grep "${WORKTREE_DIR}"
 ```
 
-3. If existing worktree is found, reuse it.
+4. If existing worktree is found, reuse it.
 
 ```bash
 cd "${WORKTREE_DIR}"
@@ -60,12 +69,12 @@ pnpm run setup:hooks
 pnpm run setup:hooks:check
 ```
 
-4. If no existing worktree is found, create one.
+5. If no existing worktree is found, create one.
 
 - New branch from base branch:
 
 ```bash
-git worktree add "${WORKTREE_DIR}" -b "${BRANCH_NAME}" "${BASE_BRANCH:-develop}"
+git worktree add "${WORKTREE_DIR}" -b "${BRANCH_NAME}" "${BASE_BRANCH:-main}"
 ```
 
 - Existing branch:
@@ -74,7 +83,7 @@ git worktree add "${WORKTREE_DIR}" -b "${BRANCH_NAME}" "${BASE_BRANCH:-develop}"
 git worktree add "${WORKTREE_DIR}" "${BRANCH_NAME}"
 ```
 
-5. Move into worktree and verify.
+6. Move into worktree and verify.
 
 ```bash
 cd "${WORKTREE_DIR}"
@@ -84,7 +93,7 @@ pnpm run setup:hooks
 pnpm run setup:hooks:check
 ```
 
-6. If `pnpm --dir web install --frozen-lockfile` fails due to lock mismatch, run:
+7. If `pnpm --dir web install --frozen-lockfile` fails due to lock mismatch, run:
 
 ```bash
 pnpm --dir web install --no-frozen-lockfile
