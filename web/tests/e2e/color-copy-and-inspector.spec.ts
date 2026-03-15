@@ -50,3 +50,20 @@ test("T-103(inspector): 3形式表示の確認", async ({ page }) => {
   await expect(inspector.getByText(/^rgb\(\d+, \d+, \d+\)$/).first()).toBeVisible();
   await expect(inspector.getByText(/^hsl\(\d+, \d+%, \d+%\)$/).first()).toBeVisible();
 });
+
+test("T-104(inspector): デスクトップ幅で2要素が横並び表示される", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+
+  const cards = getPanel(page, "インスペクタ").locator(".inspectorCard");
+  await expect(cards).toHaveCount(2);
+  const first = await cards.nth(0).boundingBox();
+  const second = await cards.nth(1).boundingBox();
+
+  expect(first).not.toBeNull();
+  expect(second).not.toBeNull();
+  if (!first || !second) {
+    return;
+  }
+  expect(Math.abs(first.y - second.y)).toBeLessThan(20);
+});

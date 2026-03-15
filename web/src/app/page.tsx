@@ -1,27 +1,19 @@
 import { ColorWorkbench } from "@/features/workbench/color-workbench";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { t } from "@/i18n/translate";
 
 export default function Home() {
   return (
-    <main className="landingPage">
+    <main className="landingRoot">
       <section className="landingHero">
-        <div className="landingHeroTopBar">
-          <p className="landingEyebrow">{t("landingEyebrow")}</p>
-          <ThemeToggle />
+        <h1>{t("heroTitle")}</h1>
+        <p>{t("heroDescription")}</p>
+        <div className="landingHeroActions">
+          <a href="#workbench">{t("heroStartButton")}</a>
         </div>
-        <h1>{t("landingTitle")}</h1>
-        <p className="landingLead">{t("landingLead")}</p>
-        <a href="#workbench-preview" className="landingCta">
-          {t("landingCta")}
-        </a>
       </section>
 
-      <section id="workbench-preview" className="landingSection">
-        <div className="landingSectionHeader">
-          <h2>{t("landingWorkbenchTitle")}</h2>
-          <p>{t("landingWorkbenchDescription")}</p>
-        </div>
+      <section id="workbench" className="landingSection">
+        <h2>{t("landingWorkbenchHeading")}</h2>
         <ColorWorkbench />
       </section>
     </main>

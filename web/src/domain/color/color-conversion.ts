@@ -45,6 +45,16 @@ const xyzFromRgbYb = 0.0722;
 const xyzFromRgbZr = 0.0193;
 const xyzFromRgbZg = 0.1192;
 const xyzFromRgbZb = 0.9505;
+const rgbFromXyzX = 3.2406;
+const rgbFromXyzY = -1.5372;
+const rgbFromXyzZ = -0.4986;
+const greenFromXyzX = -0.9689;
+const greenFromXyzY = 1.8758;
+const greenFromXyzZ = 0.0415;
+const blueFromXyzX = 0.0557;
+const blueFromXyzY = -0.204;
+const blueFromXyzZ = 1.057;
+const xyzLinearRgbThreshold = 0.0031308;
 
 const srgbPivot = (value: number): number => {
   const normalized = value / colorChannelMax;
@@ -59,6 +69,25 @@ const xyzPivot = (value: number): number => {
     return value ** xyzCubeRootPower;
   }
   return xyzLinearScale * value + xyzOffsetNumerator / xyzOffsetDenominator;
+};
+
+const xyzInversePivot = (value: number): number => {
+  const cubed = value * value * value;
+  if (cubed > xyzThreshold) {
+    return cubed;
+  }
+  return (value - xyzOffsetNumerator / xyzOffsetDenominator) / xyzLinearScale;
+};
+
+const linearToSrgb = (value: number): number => {
+  if (value <= xyzLinearRgbThreshold) {
+    return srgbLinearDivisor * value;
+  }
+  return srgbGammaDivisor * value ** (1 / srgbGammaPower) - srgbOffset;
+};
+
+const clamp01 = (value: number): number => {
+  return Math.max(0, Math.min(1, value));
 };
 
 export const clampRgb = (color: RgbColor): RgbColor => {
@@ -164,6 +193,26 @@ export const rgbToLab = (color: RgbColor): LabColor => {
     a: labAChannelScale * (fx - fy),
     b: labBChannelScale * (fy - fz),
   };
+};
+
+export const labToRgb = (lab: LabColor): RgbColor => {
+  const fy = (lab.l + labLightnessOffset) / labLightnessScale;
+  const fx = fy + lab.a / labAChannelScale;
+  const fz = fy - lab.b / labBChannelScale;
+
+  const x = xyzWhitePointX * xyzInversePivot(fx);
+  const y = xyzWhitePointY * xyzInversePivot(fy);
+  const z = xyzWhitePointZ * xyzInversePivot(fz);
+
+  const linearR = x * rgbFromXyzX + y * rgbFromXyzY + z * rgbFromXyzZ;
+  const linearG = x * greenFromXyzX + y * greenFromXyzY + z * greenFromXyzZ;
+  const linearB = x * blueFromXyzX + y * blueFromXyzY + z * blueFromXyzZ;
+
+  return toRgbColor(
+    clamp01(linearToSrgb(linearR)) * colorChannelMax,
+    clamp01(linearToSrgb(linearG)) * colorChannelMax,
+    clamp01(linearToSrgb(linearB)) * colorChannelMax
+  );
 };
 
 export const rgbToHueAndSaturation = (color: RgbColor): { hue: number; saturation: number } => {

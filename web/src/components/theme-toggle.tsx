@@ -5,17 +5,16 @@ import { t } from "@/i18n/translate";
 
 export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
-  const safeTheme = resolvedTheme ?? "system";
-  const isDark = safeTheme === "dark";
+  const isDark = resolvedTheme === "dark";
 
   return (
     <button
       type="button"
       className="themeToggleButton"
-      aria-label={t("themeToggleAriaLabel")}
+      aria-label={t("workbenchThemeLabel")}
       onClick={() => setTheme(isDark ? "light" : "dark")}
     >
-      {t("themeToggleButtonLabel")}
+      {isDark ? t("workbenchThemeLight") : t("workbenchThemeDark")}
     </button>
   );
 }
