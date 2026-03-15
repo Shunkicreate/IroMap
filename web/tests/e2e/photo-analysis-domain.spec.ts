@@ -1,5 +1,14 @@
 import { expect, test } from "@playwright/test";
-import { analyzePhoto } from "@/domain/photo-analysis/photo-analysis";
+import {
+  analyzePhoto,
+  buildHistogramBins,
+  buildMetricRows,
+  buildPointSelection,
+  getSelectedSamples,
+  serializeHistogramBins,
+  serializeMetricRows,
+  type TargetSelectionState,
+} from "@/domain/photo-analysis/photo-analysis";
 
 const createImageDataLike = (
   width: number,
@@ -20,11 +29,12 @@ const createImageDataLike = (
   return { data, width, height, colorSpace: "srgb" } as ImageData;
 };
 
-test("T-101(photo-analysis): 単色画像でLab scatter表示を確認", async () => {
+test("T-101(photo-analysis): 単色画像で主要ヒストグラムを生成できる", async () => {
   const imageData = createImageDataLike(8, 8, () => ({ r: 255, g: 0, b: 0 }));
   const result = analyzePhoto(imageData);
 
-  expect(result.scatter.length).toBeGreaterThan(0);
+  expect(result.hueHistogram.length).toBeGreaterThan(0);
+  expect(result.saturationHistogram.length).toBeGreaterThan(0);
 });
 
 test("T-102(photo-analysis): 色相が偏った画像でHue histogramを確認", async () => {
@@ -77,5 +87,59 @@ test("T-202(photo-analysis): 同一入力で再分析結果が一致する", asy
   expect(second.hueHistogram).toEqual(first.hueHistogram);
   expect(second.saturationHistogram).toEqual(first.saturationHistogram);
   expect(second.colorAreas).toEqual(first.colorAreas);
-  expect(second.scatter).toEqual(first.scatter);
+  expect(second.cubePoints).toEqual(first.cubePoints);
+});
+
+test("T-203(photo-analysis): 単一 selection の coverage を指標表へ反映できる", async () => {
+  const imageData = createImageDataLike(4, 4, (x) => {
+    if (x < 2) {
+      return { r: 255, g: 0, b: 0 };
+    }
+    return { r: 0, g: 0, b: 255 };
+  });
+  const result = analyzePhoto(imageData);
+  const firstSample = result.samples[0];
+  expect(firstSample).toBeDefined();
+
+  const selection = buildPointSelection({
+    result,
+    targetId: "baseline",
+    sampleId: firstSample!.sampleId,
+    source: "image-point",
+  });
+  const selectionState: TargetSelectionState = {
+    activeSelection: selection,
+  };
+
+  const scopedSamples = getSelectedSamples(result, selectionState);
+  expect(scopedSamples).toHaveLength(1);
+
+  const metricRows = buildMetricRows({
+    result,
+    selectionState,
+  });
+  const coverage = metricRows.find((row) => row.key === "selection_coverage_ratio");
+  expect(coverage?.value).toBeCloseTo((1 / result.samples.length) * 100, 4);
+});
+
+test("T-205(photo-analysis): metric table と histogram を Markdown 形式で export できる", async () => {
+  const imageData = createImageDataLike(4, 4, (x, y) => ({
+    r: x * 50,
+    g: y * 50,
+    b: (x + y) * 20,
+  }));
+  const result = analyzePhoto(imageData);
+  const metricRows = buildMetricRows({
+    result,
+    selectionState: null,
+  });
+  const histogram = buildHistogramBins(result.samples, "luminance");
+
+  const metricMarkdown = serializeMetricRows(metricRows, "markdown");
+  const histogramMarkdown = serializeHistogramBins(histogram, "markdown");
+
+  expect(metricMarkdown).toContain("| group | key | label | value | unit | description |");
+  expect(metricMarkdown).toContain("l_mean");
+  expect(histogramMarkdown).toContain("| metric | binIndex | start | end | count | ratio |");
+  expect(histogramMarkdown).toContain("luminance");
 });

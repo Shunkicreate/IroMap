@@ -16,7 +16,6 @@
 
 ### Phase 2: 分析MVP（完了条件: 写真分析の最小価値提供）
 
-- Lab a-b scatter
 - Hue histogram
 - Saturation histogram
 - Color area ratio
@@ -38,10 +37,9 @@
 ## 優先順位
 
 1. RGB visualization
-2. Lab a-b scatter
-3. Hue histogram / Saturation histogram
-4. Color area ratio
-5. Colorfulness / Cluster analysis
+2. Hue histogram / Saturation histogram
+3. Color area ratio
+4. Colorfulness / Cluster analysis
 
 ## 診断出力の方向性
 

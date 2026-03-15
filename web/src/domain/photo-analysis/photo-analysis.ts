@@ -1,21 +1,42 @@
-import { rgbToHueAndSaturation, rgbToLab } from "@/domain/color/color-conversion";
+import {
+  labToChroma,
+  rgbToHsl,
+  rgbToHueAndSaturation,
+  rgbToLab,
+} from "@/domain/color/color-conversion";
 import { colorChannelMax } from "@/domain/color/color-constants";
-import { toRgbColor, type LabColor, type RgbColor } from "@/domain/color/color-types";
+import {
+  toRgbColor,
+  type HslColor,
+  type LabColor,
+  type RgbColor,
+} from "@/domain/color/color-types";
 
-type PixelSample = {
-  color: RgbColor;
-};
-
-export type ScatterPoint = {
+export type PhotoSample = {
+  sampleId: number;
   x: number;
   y: number;
   color: RgbColor;
+  hsl: HslColor;
+  lab: LabColor;
+  chroma: number;
 };
 
 export type HistogramBin = {
   start: number;
   end: number;
   count: number;
+};
+
+export type WorkbenchHistogramMetric = "luminance" | "hue" | "saturation" | "chroma";
+
+export type WorkbenchHistogramBin = {
+  metric: WorkbenchHistogramMetric;
+  binIndex: number;
+  start: number;
+  end: number;
+  count: number;
+  ratio: number;
 };
 
 export type ColorArea = {
@@ -30,12 +51,80 @@ export type RgbCubePoint = {
   ratio: number;
 };
 
+export type ExportFormat = "markdown" | "csv" | "tsv";
+
+export type PhotoSelection = {
+  selectionId: string;
+  targetId: string;
+  source: "image-rect" | "image-point" | "color-space-pick" | "slice-pick";
+  sampleIds: number[];
+  sampleCount: number;
+  coverageRatio: number;
+  bounds?: { x: number; y: number; width: number; height: number };
+};
+
+export type TargetSelectionState = {
+  activeSelection: PhotoSelection | null;
+};
+
+export type WorkbenchMetricKey =
+  | "l_mean"
+  | "l_stddev"
+  | "l_p95"
+  | "a_mean"
+  | "b_mean"
+  | "c_mean"
+  | "c_p95"
+  | "neutral_distance_mean"
+  | "highlight_b_mean"
+  | "highlight_neutral_distance_mean"
+  | "selection_coverage_ratio";
+
+export type WorkbenchMetricRow = {
+  group: string;
+  key: WorkbenchMetricKey;
+  label: string;
+  value: number | null;
+  unit: string;
+  precision: number;
+  description: string;
+};
+
+type MetricRowHeaderLabels = {
+  group: string;
+  key: string;
+  label: string;
+  value: string;
+  unit: string;
+  description: string;
+};
+
+type HistogramBinHeaderLabels = {
+  metric: string;
+  binIndex: string;
+  start: string;
+  end: string;
+  count: string;
+  ratio: string;
+};
+
+type SerializeMetricRowsOptions = {
+  headerLabels?: MetricRowHeaderLabels;
+};
+
+type SerializeHistogramBinsOptions = {
+  headerLabels?: HistogramBinHeaderLabels;
+  metricLabels?: Partial<Record<WorkbenchHistogramMetric, string>>;
+};
+
 export type PhotoAnalysisResult = {
-  scatter: ScatterPoint[];
   hueHistogram: HistogramBin[];
   saturationHistogram: HistogramBin[];
   colorAreas: ColorArea[];
   cubePoints: RgbCubePoint[];
+  samples: PhotoSample[];
+  width: number;
+  height: number;
   elapsedMs: number;
   sampledPixels: number;
 };
@@ -49,6 +138,19 @@ export type PhotoAnalysisSummary = {
   highlightColorBias: "warm" | "cool" | "neutral";
 };
 
+type MetricSummary = {
+  lMean: number | null;
+  lStddev: number | null;
+  lP95: number | null;
+  aMean: number | null;
+  bMean: number | null;
+  cMean: number | null;
+  cP95: number | null;
+  highlightBMean: number | null;
+  highlightNeutralDistanceMean: number | null;
+  meanLab: LabColor | null;
+};
+
 const hueBinCount = 36;
 const hueMax = 360;
 const saturationBinCount = 20;
@@ -56,7 +158,6 @@ const topAreaCount = 5;
 const quantizeBucketSize = 16;
 const performanceSamplingThreshold = 100_000;
 const maxSampleCount = 200_000;
-const maxScatterPoints = 3000;
 const maxCubePointCount = 3500;
 const rgbaStride = 4;
 const alphaChannelOffset = 3;
@@ -66,16 +167,117 @@ const ratioTolerance = 99.9;
 const othersColorValue = 96;
 const hueBucketDegrees = 10;
 const minimumUnit = 1;
+const luminanceBinCount = 20;
+const luminanceMax = 100;
+const chromaBinCount = 20;
+const chromaMax = 150;
+const highlightThreshold = 80;
+
+const metricDefinitions: Array<{
+  group: string;
+  key: WorkbenchMetricKey;
+  label: string;
+  unit: string;
+  precision: number;
+  description: string;
+}> = [
+  {
+    group: "明度",
+    key: "l_mean",
+    label: "L* mean",
+    unit: "",
+    precision: 2,
+    description: "全体の明るさ",
+  },
+  {
+    group: "明度",
+    key: "l_stddev",
+    label: "L* stddev",
+    unit: "",
+    precision: 2,
+    description: "明暗差の大きさ",
+  },
+  {
+    group: "明度",
+    key: "l_p95",
+    label: "L* p95",
+    unit: "",
+    precision: 2,
+    description: "ハイライトの強さ",
+  },
+  {
+    group: "色被り",
+    key: "a_mean",
+    label: "a* mean",
+    unit: "",
+    precision: 2,
+    description: "緑↔赤方向の偏り",
+  },
+  {
+    group: "色被り",
+    key: "b_mean",
+    label: "b* mean",
+    unit: "",
+    precision: 2,
+    description: "青↔黄方向の偏り",
+  },
+  {
+    group: "彩度",
+    key: "c_mean",
+    label: "C* mean",
+    unit: "",
+    precision: 2,
+    description: "全体の色づき",
+  },
+  {
+    group: "彩度",
+    key: "c_p95",
+    label: "C* p95",
+    unit: "",
+    precision: 2,
+    description: "一部の強い色",
+  },
+  {
+    group: "中立",
+    key: "neutral_distance_mean",
+    label: "Neutral Distance mean",
+    unit: "",
+    precision: 2,
+    description: "中立からの離れ",
+  },
+  {
+    group: "白",
+    key: "highlight_b_mean",
+    label: "Highlight b* mean",
+    unit: "",
+    precision: 2,
+    description: "白の黄ばみ / 青み",
+  },
+  {
+    group: "白",
+    key: "highlight_neutral_distance_mean",
+    label: "Highlight Neutral Distance mean",
+    unit: "",
+    precision: 2,
+    description: "白の清潔感",
+  },
+  {
+    group: "補助情報",
+    key: "selection_coverage_ratio",
+    label: "Selection coverage ratio",
+    unit: "%",
+    precision: 2,
+    description: "選択領域の占有率",
+  },
+];
 
 const createBins = (binCount: number, maxValue: number): HistogramBin[] => {
   const binSize = maxValue / binCount;
-  return Array.from({ length: binCount }, (_, index) => {
-    return {
-      start: index * binSize,
-      end: (index + 1) * binSize,
-      count: 0,
-    };
-  });
+  return Array.from({ length: binCount }, (_, index) => ({
+    start: index * binSize,
+    end: (index + 1) * binSize,
+    count: 0,
+  }));
 };
 
 const quantizeComponent = (value: number): number => {
@@ -93,9 +295,10 @@ const pickSamplingStep = (pixelCount: number): number => {
   return Math.ceil(Math.sqrt(pixelCount / performanceSamplingThreshold));
 };
 
-const samplePixels = (imageData: ImageData, step: number, maxSamples: number): PixelSample[] => {
+const samplePixels = (imageData: ImageData, step: number, maxSamples: number): PhotoSample[] => {
   const { data, width, height } = imageData;
-  const sampled: PixelSample[] = [];
+  const sampled: PhotoSample[] = [];
+  let sampleId = 0;
 
   for (let y = 0; y < height; y += step) {
     for (let x = 0; x < width; x += step) {
@@ -109,34 +312,28 @@ const samplePixels = (imageData: ImageData, step: number, maxSamples: number): P
         continue;
       }
 
+      const color = toRgbColor(data[offset], data[offset + 1], data[offset + 2]);
+      const hsl = rgbToHsl(color);
+      const lab = rgbToLab(color);
+
       sampled.push({
-        color: toRgbColor(data[offset], data[offset + 1], data[offset + 2]),
+        sampleId,
+        x,
+        y,
+        color,
+        hsl,
+        lab,
+        chroma: labToChroma(lab),
       });
+      sampleId += 1;
     }
   }
 
   return sampled;
 };
 
-const buildScatter = (samples: PixelSample[], maxPoints: number): ScatterPoint[] => {
-  const step = Math.max(minimumUnit, Math.ceil(samples.length / maxPoints));
-  const points: ScatterPoint[] = [];
-
-  for (let index = 0; index < samples.length; index += step) {
-    const sample = samples[index];
-    const lab: LabColor = rgbToLab(sample.color);
-    points.push({
-      x: lab.a,
-      y: lab.b,
-      color: sample.color,
-    });
-  }
-
-  return points;
-};
-
 const fillHistograms = (
-  samples: PixelSample[]
+  samples: PhotoSample[]
 ): {
   hue: HistogramBin[];
   saturation: HistogramBin[];
@@ -162,7 +359,7 @@ const fillHistograms = (
   };
 };
 
-const calculateColorAreas = (samples: PixelSample[]): ColorArea[] => {
+const calculateColorAreas = (samples: PhotoSample[]): ColorArea[] => {
   const bucketCounts = new Map<string, number>();
 
   for (const sample of samples) {
@@ -202,7 +399,7 @@ const calculateColorAreas = (samples: PixelSample[]): ColorArea[] => {
   return top;
 };
 
-const buildRgbCubePoints = (samples: PixelSample[], maxPoints: number): RgbCubePoint[] => {
+const buildRgbCubePointsCore = (samples: PhotoSample[], maxPoints: number): RgbCubePoint[] => {
   const bucketCounts = new Map<string, number>();
 
   for (const sample of samples) {
@@ -230,21 +427,386 @@ const buildRgbCubePoints = (samples: PixelSample[], maxPoints: number): RgbCubeP
   });
 };
 
+const mean = (values: number[]): number | null => {
+  if (values.length === 0) {
+    return null;
+  }
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+};
+
+const standardDeviation = (values: number[]): number | null => {
+  const avg = mean(values);
+  if (avg == null) {
+    return null;
+  }
+  const variance =
+    values.reduce((sum, value) => sum + (value - avg) * (value - avg), 0) / values.length;
+  return Math.sqrt(variance);
+};
+
+const percentile = (values: number[], ratio: number): number | null => {
+  if (values.length === 0) {
+    return null;
+  }
+  const sorted = [...values].sort((left, right) => left - right);
+  const index = Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * ratio) - 1));
+  return sorted[index] ?? null;
+};
+
+const selectMetricValue = (sample: PhotoSample, metric: WorkbenchHistogramMetric): number => {
+  if (metric === "luminance") {
+    return sample.lab.l;
+  }
+  if (metric === "hue") {
+    return sample.hsl.h;
+  }
+  if (metric === "saturation") {
+    return sample.hsl.s / ratioPercent;
+  }
+  return sample.chroma;
+};
+
+const getHistogramDefinition = (
+  metric: WorkbenchHistogramMetric
+): { binCount: number; max: number } => {
+  if (metric === "luminance") {
+    return { binCount: luminanceBinCount, max: luminanceMax };
+  }
+  if (metric === "hue") {
+    return { binCount: hueBinCount, max: hueMax };
+  }
+  if (metric === "saturation") {
+    return { binCount: saturationBinCount, max: minimumUnit };
+  }
+  return { binCount: chromaBinCount, max: chromaMax };
+};
+
+const buildMetricSummary = (samples: PhotoSample[]): MetricSummary => {
+  const lValues = samples.map((sample) => sample.lab.l);
+  const aValues = samples.map((sample) => sample.lab.a);
+  const bValues = samples.map((sample) => sample.lab.b);
+  const cValues = samples.map((sample) => sample.chroma);
+  const highlightSamples = samples.filter((sample) => sample.lab.l > highlightThreshold);
+
+  const lMean = mean(lValues);
+  const aMean = mean(aValues);
+  const bMean = mean(bValues);
+
+  return {
+    lMean,
+    lStddev: standardDeviation(lValues),
+    lP95: percentile(lValues, 0.95),
+    aMean,
+    bMean,
+    cMean: mean(cValues),
+    cP95: percentile(cValues, 0.95),
+    highlightBMean: mean(highlightSamples.map((sample) => sample.lab.b)),
+    highlightNeutralDistanceMean: mean(highlightSamples.map((sample) => sample.chroma)),
+    meanLab:
+      lMean == null || aMean == null || bMean == null ? null : { l: lMean, a: aMean, b: bMean },
+  };
+};
+
+const getSelectionIds = (selection: PhotoSelection | null | undefined): Set<number> | null => {
+  if (!selection || selection.sampleIds.length === 0) {
+    return null;
+  }
+  return new Set(selection.sampleIds);
+};
+
+export const getSelectedSamples = (
+  result: PhotoAnalysisResult,
+  selectionState: TargetSelectionState | null | undefined
+): PhotoSample[] => {
+  const selection = selectionState?.activeSelection ?? null;
+  const ids = getSelectionIds(selection);
+  if (!ids) {
+    return [];
+  }
+  return result.samples.filter((sample) => ids.has(sample.sampleId));
+};
+
+export const buildRectangleSelection = ({
+  result,
+  targetId,
+  bounds,
+}: {
+  result: PhotoAnalysisResult;
+  targetId: string;
+  bounds: { x: number; y: number; width: number; height: number };
+}): PhotoSelection => {
+  const minX = Math.min(bounds.x, bounds.x + bounds.width);
+  const maxX = Math.max(bounds.x, bounds.x + bounds.width);
+  const minY = Math.min(bounds.y, bounds.y + bounds.height);
+  const maxY = Math.max(bounds.y, bounds.y + bounds.height);
+  const sampleIds = result.samples
+    .filter(
+      (sample) => sample.x >= minX && sample.x <= maxX && sample.y >= minY && sample.y <= maxY
+    )
+    .map((sample) => sample.sampleId);
+
+  return {
+    selectionId: `${targetId}-${minX}-${minY}-${maxX}-${maxY}`,
+    targetId,
+    source: "image-rect",
+    sampleIds,
+    sampleCount: sampleIds.length,
+    coverageRatio: result.samples.length === 0 ? 0 : sampleIds.length / result.samples.length,
+    bounds: {
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY,
+    },
+  };
+};
+
+export const buildPointSelection = ({
+  result,
+  targetId,
+  sampleId,
+  source,
+}: {
+  result: PhotoAnalysisResult;
+  targetId: string;
+  sampleId: number;
+  source: PhotoSelection["source"];
+}): PhotoSelection => {
+  const sample = result.samples.find((item) => item.sampleId === sampleId);
+  return {
+    selectionId: `${targetId}-${sampleId}`,
+    targetId,
+    source,
+    sampleIds: sample ? [sampleId] : [],
+    sampleCount: sample ? 1 : 0,
+    coverageRatio: result.samples.length === 0 || !sample ? 0 : 1 / result.samples.length,
+    bounds: sample ? { x: sample.x, y: sample.y, width: 1, height: 1 } : undefined,
+  };
+};
+
+export const buildHistogramBins = (
+  samples: PhotoSample[],
+  metric: WorkbenchHistogramMetric
+): WorkbenchHistogramBin[] => {
+  const { binCount, max } = getHistogramDefinition(metric);
+  const bins = createBins(binCount, max);
+  for (const sample of samples) {
+    const value = selectMetricValue(sample, metric);
+    const normalizedMax = metric === "saturation" ? minimumUnit : max;
+    const rawIndex = Math.floor((Math.min(value, normalizedMax) / normalizedMax) * binCount);
+    const index = Math.min(binCount - 1, Math.max(0, rawIndex));
+    bins[index].count += 1;
+  }
+  const total = samples.length || 1;
+  return bins.map((bin, index) => ({
+    metric,
+    binIndex: index,
+    start: bin.start,
+    end: bin.end,
+    count: bin.count,
+    ratio: bin.count / total,
+  }));
+};
+
+export const buildMetricRows = ({
+  result,
+  selectionState,
+}: {
+  result: PhotoAnalysisResult;
+  selectionState: TargetSelectionState | null | undefined;
+}): WorkbenchMetricRow[] => {
+  const summary = buildMetricSummary(result.samples);
+  const selectedSamples = getSelectedSamples(result, selectionState);
+
+  const getMetricValue = (
+    key: WorkbenchMetricKey,
+    sourceSummary: MetricSummary,
+    sampleCount: number
+  ): number | null => {
+    switch (key) {
+      case "l_mean":
+        return sourceSummary.lMean;
+      case "l_stddev":
+        return sourceSummary.lStddev;
+      case "l_p95":
+        return sourceSummary.lP95;
+      case "a_mean":
+        return sourceSummary.aMean;
+      case "b_mean":
+        return sourceSummary.bMean;
+      case "c_mean":
+        return sourceSummary.cMean;
+      case "c_p95":
+        return sourceSummary.cP95;
+      case "neutral_distance_mean":
+        return sourceSummary.cMean;
+      case "highlight_b_mean":
+        return sourceSummary.highlightBMean;
+      case "highlight_neutral_distance_mean":
+        return sourceSummary.highlightNeutralDistanceMean;
+      case "selection_coverage_ratio":
+        return selectedSamples.length > 0 && result.samples.length > 0
+          ? (sampleCount / result.samples.length) * ratioPercent
+          : null;
+      default:
+        return null;
+    }
+  };
+
+  return metricDefinitions.map((definition) => {
+    const sampleCount =
+      definition.key === "selection_coverage_ratio"
+        ? selectedSamples.length
+        : result.samples.length;
+    const baseValue = getMetricValue(definition.key, summary, sampleCount);
+
+    return {
+      ...definition,
+      value: baseValue,
+    };
+  });
+};
+
+export const buildCubePointsFromSamples = (samples: PhotoSample[]): RgbCubePoint[] => {
+  return buildRgbCubePointsCore(samples, maxCubePointCount);
+};
+
+export const serializeMetricRows = (
+  rows: WorkbenchMetricRow[],
+  format: ExportFormat,
+  options?: SerializeMetricRowsOptions
+): string => {
+  const separator = format === "tsv" ? "\t" : ",";
+  const headerLabels: MetricRowHeaderLabels = options?.headerLabels ?? {
+    group: "group",
+    key: "key",
+    label: "label",
+    value: "value",
+    unit: "unit",
+    description: "description",
+  };
+  const header = [
+    headerLabels.group,
+    headerLabels.key,
+    headerLabels.label,
+    headerLabels.value,
+    headerLabels.unit,
+    headerLabels.description,
+  ];
+  const formatValue = (value: number | null, precision: number): string => {
+    if (value == null) {
+      return "N/A";
+    }
+    return value.toFixed(precision);
+  };
+  if (format === "markdown") {
+    const lines = [
+      `| ${header.join(" | ")} |`,
+      `| ${header.map(() => "---").join(" | ")} |`,
+      ...rows.map(
+        (row) =>
+          `| ${[
+            row.group,
+            row.key,
+            row.label,
+            formatValue(row.value, row.precision),
+            row.unit,
+            row.description,
+          ].join(" | ")} |`
+      ),
+    ];
+    return lines.join("\n");
+  }
+
+  return [header.join(separator)]
+    .concat(
+      rows.map((row) =>
+        [
+          row.group,
+          row.key,
+          row.label,
+          formatValue(row.value, row.precision),
+          row.unit,
+          row.description,
+        ].join(separator)
+      )
+    )
+    .join("\n");
+};
+
+export const serializeHistogramBins = (
+  bins: WorkbenchHistogramBin[],
+  format: ExportFormat,
+  options?: SerializeHistogramBinsOptions
+): string => {
+  const separator = format === "tsv" ? "\t" : ",";
+  const headerLabels: HistogramBinHeaderLabels = options?.headerLabels ?? {
+    metric: "metric",
+    binIndex: "binIndex",
+    start: "start",
+    end: "end",
+    count: "count",
+    ratio: "ratio",
+  };
+  const metricLabels = options?.metricLabels ?? {};
+  const header = [
+    headerLabels.metric,
+    headerLabels.binIndex,
+    headerLabels.start,
+    headerLabels.end,
+    headerLabels.count,
+    headerLabels.ratio,
+  ];
+  if (format === "markdown") {
+    const lines = [
+      `| ${header.join(" | ")} |`,
+      `| ${header.map(() => "---").join(" | ")} |`,
+      ...bins.map(
+        (bin) =>
+          `| ${[
+            metricLabels[bin.metric] ?? bin.metric,
+            bin.binIndex,
+            bin.start.toFixed(2),
+            bin.end.toFixed(2),
+            bin.count,
+            bin.ratio.toFixed(4),
+          ].join(" | ")} |`
+      ),
+    ];
+    return lines.join("\n");
+  }
+  return [header.join(separator)]
+    .concat(
+      bins.map((bin) =>
+        [
+          metricLabels[bin.metric] ?? bin.metric,
+          bin.binIndex,
+          bin.start.toFixed(2),
+          bin.end.toFixed(2),
+          bin.count,
+          bin.ratio.toFixed(4),
+        ].join(separator)
+      )
+    )
+    .join("\n");
+};
+
 export const analyzePhoto = (imageData: ImageData): PhotoAnalysisResult => {
   const startAt = performance.now();
   const step = pickSamplingStep(imageData.width * imageData.height);
   const samples = samplePixels(imageData, step, maxSampleCount);
-  const scatter = buildScatter(samples, maxScatterPoints);
   const { hue, saturation } = fillHistograms(samples);
   const colorAreas = calculateColorAreas(samples);
-  const cubePoints = buildRgbCubePoints(samples, maxCubePointCount);
+  const cubePoints = buildRgbCubePointsCore(samples, maxCubePointCount);
 
   return {
-    scatter,
     hueHistogram: hue,
     saturationHistogram: saturation,
     colorAreas,
     cubePoints,
+    samples,
+    width: imageData.width,
+    height: imageData.height,
     elapsedMs: performance.now() - startAt,
     sampledPixels: samples.length,
   };

@@ -248,15 +248,12 @@ const buildExplanations = (
       findings: topCube ? `主要な量子化色は ${topCube}` : "分布は限定的",
     },
     {
-      id: "lab-scatter",
-      title: "Lab Scatter",
-      colorSpace: "Lab",
-      axes: ["a*", "b*"],
-      description: "色相方向の広がりとクラスタ偏りを見る",
-      findings:
-        analysis.scatter.length > 0
-          ? `有効サンプル ${analysis.scatter.length} 点で色分布を確認できる`
-          : "有効サンプルが少ない",
+      id: "hue-histogram",
+      title: "Hue Histogram",
+      colorSpace: "HSL",
+      axes: ["hue", "count"],
+      description: "色相分布の偏りを見る",
+      findings: `有効 bin 数は ${analysis.hueHistogram.filter((bin) => bin.count > 0).length}`,
     },
   ];
 };
@@ -329,18 +326,6 @@ export const toAnalyzeSuccessResponse = ({
         axis: defaultSliceAxis,
         value: defaultSliceValue,
         points: [],
-      },
-      labScatter: {
-        sampleCount: analysis.scatter.length,
-        points: analysis.scatter.map((point) => ({
-          x: roundTo(point.x, 2),
-          y: roundTo(point.y, 2),
-          rgb: {
-            r: point.color.r,
-            g: point.color.g,
-            b: point.color.b,
-          },
-        })),
       },
       hueHistogram: {
         bins: analysis.hueHistogram.map((bin) => ({
