@@ -511,46 +511,54 @@ function PreviewPanel({
     if (!selection?.bounds || !target.result) {
       return null;
     }
-    const left = (selection.bounds.x / target.result.width) * 100;
-    const top = (selection.bounds.y / target.result.height) * 100;
-    const width = (selection.bounds.width / target.result.width) * 100;
-    const height = (selection.bounds.height / target.result.height) * 100;
     return (
       <rect
         key={slot}
         className={`previewSelectionBox previewSelectionBox${slot}`}
-        x={left}
-        y={top}
-        width={width}
-        height={height}
-        rx="1"
-        ry="1"
+        x={selection.bounds.x}
+        y={selection.bounds.y}
+        width={selection.bounds.width}
+        height={selection.bounds.height}
+        rx="4"
+        ry="4"
       />
     );
   };
-  const draftRect = selectionDraft
-    ? {
-        x: Math.min(selectionDraft.originXRatio, selectionDraft.currentXRatio) * 100,
-        y: Math.min(selectionDraft.originYRatio, selectionDraft.currentYRatio) * 100,
-        width: Math.abs(selectionDraft.currentXRatio - selectionDraft.originXRatio) * 100,
-        height: Math.abs(selectionDraft.currentYRatio - selectionDraft.originYRatio) * 100,
-      }
-    : null;
+  const draftRect =
+    selectionDraft && target.result
+      ? {
+          x:
+            Math.min(selectionDraft.originXRatio, selectionDraft.currentXRatio) *
+            target.result.width,
+          y:
+            Math.min(selectionDraft.originYRatio, selectionDraft.currentYRatio) *
+            target.result.height,
+          width:
+            Math.abs(selectionDraft.currentXRatio - selectionDraft.originXRatio) *
+            target.result.width,
+          height:
+            Math.abs(selectionDraft.currentYRatio - selectionDraft.originYRatio) *
+            target.result.height,
+        }
+      : null;
   const hoverMarker =
     hoverSample && target.result
       ? {
-          x: (hoverSample.x / target.result.width) * 100,
-          y: (hoverSample.y / target.result.height) * 100,
+          x: hoverSample.x,
+          y: hoverSample.y,
         }
       : null;
   const previewResult = target.result;
   const selectedMarkers = previewResult
     ? selectedSamples.map((sample) => ({
         sampleId: sample.sampleId,
-        x: (sample.x / previewResult.width) * 100,
-        y: (sample.y / previewResult.height) * 100,
+        x: sample.x,
+        y: sample.y,
       }))
     : [];
+  const markerRadius = previewResult
+    ? Math.max(4, Math.min(previewResult.width, previewResult.height) * 0.01)
+    : 5;
 
   return (
     <section className="panel previewWorkbenchPanel">
@@ -627,8 +635,7 @@ function PreviewPanel({
           <div className="photoPreviewEmpty">{t("photoPreviewEmpty")}</div>
         )}
         <svg
-          viewBox="0 0 100 100"
-          preserveAspectRatio="none"
+          viewBox={`0 0 ${previewResult?.width ?? 100} ${previewResult?.height ?? 100}`}
           className="previewOverlay"
           aria-hidden="true"
         >
@@ -641,12 +648,17 @@ function PreviewPanel({
               y={draftRect.y}
               width={draftRect.width}
               height={draftRect.height}
-              rx="1"
-              ry="1"
+              rx="4"
+              ry="4"
             />
           ) : null}
           {hoverMarker ? (
-            <circle className="previewHoverMarker" cx={hoverMarker.x} cy={hoverMarker.y} r="1.2" />
+            <circle
+              className="previewHoverMarker"
+              cx={hoverMarker.x}
+              cy={hoverMarker.y}
+              r={markerRadius * 0.75}
+            />
           ) : null}
           {selectedMarkers.map((marker) => (
             <circle
@@ -654,7 +666,7 @@ function PreviewPanel({
               className="previewSelectedMarker"
               cx={marker.x}
               cy={marker.y}
-              r="1.6"
+              r={markerRadius}
             />
           ))}
         </svg>
@@ -1350,7 +1362,6 @@ export function ColorWorkbench() {
             mappedSamples={sliceMappedSamples}
             selectedSamples={selectedSamples}
             hoverColor={hoverColor}
-            selectedColor={selectedColor}
             onAxisChange={handleSliceAxisChange}
             onValueChange={setSliceValue}
             onHoverColorChange={(color) => handleColorHover(color, "slice")}

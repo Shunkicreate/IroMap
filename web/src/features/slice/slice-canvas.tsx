@@ -27,7 +27,6 @@ type Props = {
   mappedSamples?: PhotoSample[];
   selectedSamples?: PhotoSample[];
   hoverColor?: RgbColor | null;
-  selectedColor?: RgbColor | null;
   onAxisChange: (axis: SliceAxis) => void;
   onValueChange: (value: number) => void;
   onHoverColorChange: (color: RgbColor | null) => void;
@@ -347,7 +346,6 @@ export function SliceCanvas({
   mappedSamples = [],
   selectedSamples = [],
   hoverColor = null,
-  selectedColor = null,
   onAxisChange,
   onValueChange,
   onHoverColorChange,
@@ -420,23 +418,10 @@ export function SliceCanvas({
 
       const planePoint = projectSampleToSlicePlane(sample, axis);
       const crossSectionRadius = Math.sqrt(sphereRadius ** 2 - axisDistance ** 2);
-      const gradient = context.createRadialGradient(
-        planePoint.x - crossSectionRadius * 0.35,
-        planePoint.y - crossSectionRadius * 0.4,
-        Math.max(crossSectionRadius * 0.1, 0.5),
-        planePoint.x,
-        planePoint.y,
-        crossSectionRadius
-      );
-      gradient.addColorStop(0, "rgba(255, 248, 240, 0.8)");
-      gradient.addColorStop(0.28, "rgba(253, 186, 116, 0.7)");
-      gradient.addColorStop(0.72, "rgba(249, 115, 22, 0.34)");
-      gradient.addColorStop(1, "rgba(194, 65, 12, 0.12)");
-      context.fillStyle = gradient;
+      const opacity = Math.max(0, 1 - axisDistance / sphereRadius);
       context.beginPath();
       context.arc(planePoint.x, planePoint.y, Math.max(crossSectionRadius, 1.2), 0, Math.PI * 2);
-      context.fill();
-      context.strokeStyle = "rgba(251, 146, 60, 0.8)";
+      context.strokeStyle = `rgba(249, 115, 22, ${opacity})`;
       context.lineWidth = 1.2;
       context.stroke();
     }
@@ -487,10 +472,8 @@ export function SliceCanvas({
       context.arc(x, y, radius, 0, Math.PI * 2);
       context.stroke();
     };
-
-    drawMarker(selectedColor, "#f97316", 10);
     drawMarker(hoverColor, "#ffffff", 7);
-  }, [axis, hoverColor, mappedSamples, selectedColor, selectedSamples, value]);
+  }, [axis, hoverColor, mappedSamples, selectedSamples, value]);
 
   const mapPointerToColor = (
     event: React.PointerEvent<HTMLCanvasElement> | React.MouseEvent<HTMLCanvasElement>
