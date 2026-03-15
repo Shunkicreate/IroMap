@@ -40,6 +40,15 @@ export type PhotoAnalysisResult = {
   sampledPixels: number;
 };
 
+export type PhotoAnalysisSummary = {
+  avgBrightness: number;
+  avgSaturation: number;
+  brightnessSpread: number;
+  temperatureBias: "warm" | "cool" | "neutral";
+  shadowColorBias: "warm" | "cool" | "neutral";
+  highlightColorBias: "warm" | "cool" | "neutral";
+};
+
 const hueBinCount = 36;
 const hueMax = 360;
 const saturationBinCount = 20;
