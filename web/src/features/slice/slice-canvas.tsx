@@ -10,7 +10,7 @@ import {
   type RgbColor,
   type SliceAxis,
 } from "@/domain/color/color-types";
-import { hslToRgb, labToRgb } from "@/domain/color/color-conversion";
+import { hslToRgb, labToRgb, rgbToHsl, rgbToLab } from "@/domain/color/color-conversion";
 import {
   colorChannelLevels,
   colorChannelMax,
@@ -23,6 +23,8 @@ type Props = {
   space: ColorSpace3d;
   axis: SliceAxis;
   value: number;
+  hoverColor?: RgbColor | null;
+  selectedColor?: RgbColor | null;
   onAxisChange: (axis: SliceAxis) => void;
   onValueChange: (value: number) => void;
   onHoverColorChange: (color: RgbColor | null) => void;
@@ -152,12 +154,15 @@ export function SliceCanvas({
   space,
   axis,
   value,
+  hoverColor = null,
+  selectedColor = null,
   onAxisChange,
   onValueChange,
   onHoverColorChange,
   onColorSelect,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const overlayRef = useRef<HTMLCanvasElement | null>(null);
   const labels = getPlaneLabels(axis);
   const axisRange = useMemo(() => getAxisRange(axis), [axis]);
 
@@ -186,6 +191,70 @@ export function SliceCanvas({
 
     context.putImageData(imageData, 0, 0);
   }, [axis, value]);
+
+  useEffect(() => {
+    const canvas = overlayRef.current;
+    if (!canvas) {
+      return;
+    }
+
+    const context = canvas.getContext("2d");
+    if (!context) {
+      return;
+    }
+
+    context.clearRect(0, 0, colorChannelLevels, colorChannelLevels);
+
+    const drawMarker = (color: RgbColor | null, strokeStyle: string, radius: number): void => {
+      if (!color) {
+        return;
+      }
+
+      let x = 0;
+      let y = 0;
+      if (axis === "r") {
+        x = color.g;
+        y = colorChannelMax - color.b;
+      } else if (axis === "g") {
+        x = color.r;
+        y = colorChannelMax - color.b;
+      } else if (axis === "b") {
+        x = color.r;
+        y = colorChannelMax - color.g;
+      } else {
+        const hsl = rgbToHsl(color);
+        const lab = rgbToLab(color);
+        if (axis === "h") {
+          x = Math.round((hsl.s / 100) * colorChannelMax);
+          y = colorChannelMax - Math.round((hsl.l / 100) * colorChannelMax);
+        } else if (axis === "s") {
+          x = Math.round((hsl.h / 360) * colorChannelMax);
+          y = colorChannelMax - Math.round((hsl.l / 100) * colorChannelMax);
+        } else if (axis === "l") {
+          x = Math.round((hsl.h / 360) * colorChannelMax);
+          y = colorChannelMax - Math.round((hsl.s / 100) * colorChannelMax);
+        } else if (axis === "lab-l") {
+          x = Math.round(((lab.a + 128) / 255) * colorChannelMax);
+          y = colorChannelMax - Math.round(((lab.b + 128) / 255) * colorChannelMax);
+        } else if (axis === "lab-a") {
+          x = Math.round(((lab.b + 128) / 255) * colorChannelMax);
+          y = colorChannelMax - Math.round((lab.l / 100) * colorChannelMax);
+        } else {
+          x = Math.round(((lab.a + 128) / 255) * colorChannelMax);
+          y = colorChannelMax - Math.round((lab.l / 100) * colorChannelMax);
+        }
+      }
+
+      context.strokeStyle = strokeStyle;
+      context.lineWidth = 3;
+      context.beginPath();
+      context.arc(x, y, radius, 0, Math.PI * 2);
+      context.stroke();
+    };
+
+    drawMarker(selectedColor, "#f97316", 10);
+    drawMarker(hoverColor, "#ffffff", 7);
+  }, [axis, hoverColor, selectedColor]);
 
   const mapPointerToColor = (
     event: React.PointerEvent<HTMLCanvasElement> | React.MouseEvent<HTMLCanvasElement>
@@ -261,17 +330,26 @@ export function SliceCanvas({
           xLabel={t("sliceAxisXLabel", { axis: labels.x })}
           yLabel={t("sliceAxisYLabel", { axis: labels.y })}
         >
-          <canvas
-            ref={canvasRef}
-            width={colorChannelLevels}
-            height={colorChannelLevels}
-            className="sliceCanvas"
-            tabIndex={0}
-            aria-label={t("sliceCanvasAriaLabel")}
-            onPointerMove={handlePointerMove}
-            onPointerLeave={() => onHoverColorChange(null)}
-            onClick={handleClick}
-          />
+          <div className="sliceCanvasStack">
+            <canvas
+              ref={canvasRef}
+              width={colorChannelLevels}
+              height={colorChannelLevels}
+              className="sliceCanvas"
+              tabIndex={0}
+              aria-label={t("sliceCanvasAriaLabel")}
+              onPointerMove={handlePointerMove}
+              onPointerLeave={() => onHoverColorChange(null)}
+              onClick={handleClick}
+            />
+            <canvas
+              ref={overlayRef}
+              width={colorChannelLevels}
+              height={colorChannelLevels}
+              className="sliceCanvas sliceCanvasOverlay"
+              aria-hidden="true"
+            />
+          </div>
         </GraphFrame>
       </div>
     </section>

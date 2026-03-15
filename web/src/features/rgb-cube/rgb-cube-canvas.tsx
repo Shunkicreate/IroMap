@@ -32,6 +32,10 @@ type Props = {
   sliceAxis: SliceAxis;
   sliceValue: number;
   imageCubePoints: RgbCubePoint[];
+  compareCubePoints?: RgbCubePoint[];
+  selectionCubePoints?: RgbCubePoint[];
+  hoverColor?: RgbColor | null;
+  selectedColor?: RgbColor | null;
   overlayMode: "grid" | "image" | "both";
   onRotationChange: (rotation: Rotation) => void;
   onHoverColorChange: (color: RgbColor | null) => void;
@@ -55,6 +59,12 @@ const imageOverlayMinRadius = 2.8;
 const imageOverlayMaxRadius = 7.2;
 const imageOverlayStrokeAlpha = 0.9;
 const imageOverlayStrokeWidth = 0.8;
+const compareOverlayStroke = "#f4b942";
+const selectionOverlayStroke = "#f97316";
+const hoverOverlayStroke = "#ffffff";
+const selectionOverlayRadiusOffset = 2.2;
+const compareOverlayRadiusOffset = 1.6;
+const focusOverlayRadius = 6.5;
 
 const getSliceAxisLabel = (axis: SliceAxis): string => {
   if (axis === "lab-l") {
@@ -85,6 +95,10 @@ export function RgbCubeCanvas({
   sliceAxis,
   sliceValue,
   imageCubePoints,
+  compareCubePoints = [],
+  selectionCubePoints = [],
+  hoverColor = null,
+  selectedColor = null,
   overlayMode,
   onRotationChange,
   onHoverColorChange,
@@ -164,7 +178,23 @@ export function RgbCubeCanvas({
           .sort((left, right) => left.depth - right.depth)
       : [];
 
-    projectedPointsRef.current = [...projectedGrid, ...projectedImage];
+    const projectedCompare = hasImageOverlay
+      ? compareCubePoints
+          .map((point) => ({
+            ...projectColor(point.color, space, rotation, width, height, objectScale),
+            count: point.count,
+          }))
+          .sort((left, right) => left.depth - right.depth)
+      : [];
+
+    const projectedSelection = selectionCubePoints
+      .map((point) => ({
+        ...projectColor(point.color, space, rotation, width, height, objectScale),
+        count: point.count,
+      }))
+      .sort((left, right) => left.depth - right.depth);
+
+    projectedPointsRef.current = [...projectedGrid, ...projectedImage, ...projectedCompare];
 
     for (const point of projectedGrid) {
       context.fillStyle = `rgb(${point.color.r}, ${point.color.g}, ${point.color.b})`;
@@ -187,6 +217,47 @@ export function RgbCubeCanvas({
       context.lineWidth = imageOverlayStrokeWidth;
       context.stroke();
     }
+
+    for (const point of projectedCompare) {
+      const intensity = point.count / maxImageCount;
+      const radius =
+        imageOverlayMinRadius + (imageOverlayMaxRadius - imageOverlayMinRadius) * intensity;
+      context.strokeStyle = compareOverlayStroke;
+      context.lineWidth = 1.4;
+      context.beginPath();
+      context.arc(point.x, point.y, radius + compareOverlayRadiusOffset, 0, fullCircleRadians);
+      context.stroke();
+    }
+
+    const maxSelectionCount = projectedSelection.reduce(
+      (current, point) => Math.max(current, point.count),
+      1
+    );
+    for (const point of projectedSelection) {
+      const intensity = point.count / maxSelectionCount;
+      const radius =
+        imageOverlayMinRadius + (imageOverlayMaxRadius - imageOverlayMinRadius) * intensity;
+      context.strokeStyle = selectionOverlayStroke;
+      context.lineWidth = 1.6;
+      context.beginPath();
+      context.arc(point.x, point.y, radius + selectionOverlayRadiusOffset, 0, fullCircleRadians);
+      context.stroke();
+    }
+
+    const drawFocusRing = (color: RgbColor | null | undefined, strokeStyle: string): void => {
+      if (!color) {
+        return;
+      }
+      const point = projectColor(color, space, rotation, width, height, objectScale);
+      context.strokeStyle = strokeStyle;
+      context.lineWidth = 1.5;
+      context.beginPath();
+      context.arc(point.x, point.y, focusOverlayRadius, 0, fullCircleRadians);
+      context.stroke();
+    };
+
+    drawFocusRing(selectedColor, selectionOverlayStroke);
+    drawFocusRing(hoverColor, hoverOverlayStroke);
 
     context.fillStyle = `rgba(255, 255, 255, ${textAlpha})`;
     context.font = "0.75rem monospace";
@@ -219,10 +290,14 @@ export function RgbCubeCanvas({
     cubeSize,
     hasGridOverlay,
     hasImageOverlay,
+    compareCubePoints,
+    hoverColor,
     imageCubePoints,
     overlayMode,
     rotation,
     sampledColors,
+    selectedColor,
+    selectionCubePoints,
     sliceAxis,
     sliceValue,
     space,
