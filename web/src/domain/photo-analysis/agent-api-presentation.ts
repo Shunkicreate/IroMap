@@ -86,7 +86,11 @@ export const summarizeImageData = (imageData: ImageData): SummarySampleStats => 
       continue;
     }
 
-    const color = toRgbColor(imageData.data[index], imageData.data[index + 1], imageData.data[index + 2]);
+    const color = toRgbColor(
+      imageData.data[index],
+      imageData.data[index + 1],
+      imageData.data[index + 2]
+    );
     const hsl = rgbToHsl(color);
     const brightness = ((color.r + color.g + color.b) / 3 / brightnessDivisor) * percentScale;
     const saturation = hsl.s;
