@@ -767,6 +767,14 @@
     color-mix(in oklab, var(--card) 95%, var(--background) 5%);
 }
 
+.landingHeroHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
 .landingHero h1 {
   margin: 0;
   font-size: clamp(1.2rem, 1.6vw + 0.6rem, 1.85rem);
@@ -776,23 +784,6 @@
   margin: 0.5rem 0 0;
   max-width: 62ch;
   color: var(--muted-foreground);
-}
-
-.landingHeroActions {
-  margin-top: 0.75rem;
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.landingHeroActions a {
-  border: 0.0625rem solid var(--border);
-  border-radius: 0.625rem;
-  padding: 0.4375rem 0.625rem;
-  font-size: 0.84rem;
-  text-decoration: none;
-  color: var(--foreground);
-  background: color-mix(in oklab, var(--card) 80%, var(--primary) 20%);
 }
 
 .landingSection {

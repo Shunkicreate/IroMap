@@ -77,5 +77,5 @@ test("T-204(photo-analysis): 選択画像プレビューを表示できる", asy
 
   await expect(previewImage).toBeVisible();
   await expect(previewImage).toHaveAttribute("alt", "分析対象画像: red.png");
-  await expect(panel.getByText("red.png")).toBeVisible();
+  await expect(panel.getByText("red.png", { exact: true }).last()).toBeVisible();
 });
