@@ -8,6 +8,7 @@ import {
   type RgbColor,
   type SliceAxis,
 } from "@/domain/color/color-types";
+import { type RgbCubePoint } from "@/domain/photo-analysis/photo-analysis";
 import { t } from "@/i18n/translate";
 import {
   drawAxisGuide,
@@ -30,6 +31,8 @@ type Props = {
   axisGuideMode: "visible" | "hidden";
   sliceAxis: SliceAxis;
   sliceValue: number;
+  imageCubePoints: RgbCubePoint[];
+  overlayMode: "grid" | "image" | "both";
   onRotationChange: (rotation: Rotation) => void;
   onHoverColorChange: (color: RgbColor | null) => void;
   onColorSelect: (color: RgbColor) => void;
@@ -40,11 +43,16 @@ const rotationSensitivity = 0.01;
 const overlayTextLeft = 14;
 const resolutionTextTop = 22;
 const secondOverlayTextTop = 40;
+const thirdOverlayTextTop = 58;
 const textAlpha = 0.85;
 const defaultCubeSize = 400;
 const minCubeSize = 320;
 const maxCubeSize = 900;
 const cubeSizeStep = 10;
+const imageOverlayMinAlpha = 0.2;
+const imageOverlayMaxAlpha = 0.95;
+const imageOverlayMinRadius = 2.2;
+const imageOverlayMaxRadius = 6.2;
 
 const getSliceAxisLabel = (axis: SliceAxis): string => {
   if (axis === "lab-l") {
@@ -74,6 +82,8 @@ export function RgbCubeCanvas({
   axisGuideMode,
   sliceAxis,
   sliceValue,
+  imageCubePoints,
+  overlayMode,
   onRotationChange,
   onHoverColorChange,
   onColorSelect,
@@ -101,6 +111,9 @@ export function RgbCubeCanvas({
     }
     return colors;
   }, []);
+
+  const hasGridOverlay = overlayMode === "grid" || overlayMode === "both";
+  const hasImageOverlay = overlayMode === "image" || overlayMode === "both";
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -132,16 +145,41 @@ export function RgbCubeCanvas({
     }
     drawSlicePlane(context, space, rotation, width, height, sliceAxis, sliceValue, objectScale);
 
-    const projected = sampledColors
-      .map((color) => projectColor(color, space, rotation, width, height, objectScale))
-      .sort((left, right) => left.depth - right.depth);
+    const projectedGrid = hasGridOverlay
+      ? sampledColors
+          .map((color) => projectColor(color, space, rotation, width, height, objectScale))
+          .sort((left, right) => left.depth - right.depth)
+      : [];
 
-    projectedPointsRef.current = projected;
+    const maxImageCount = imageCubePoints.reduce((max, point) => Math.max(max, point.count), 1);
+    const projectedImage = hasImageOverlay
+      ? imageCubePoints
+          .map((point) => ({
+            ...projectColor(point.color, space, rotation, width, height, objectScale),
+            count: point.count,
+            ratio: point.ratio,
+          }))
+          .sort((left, right) => left.depth - right.depth)
+      : [];
 
-    for (const point of projected) {
+    projectedPointsRef.current = [...projectedGrid, ...projectedImage];
+
+    for (const point of projectedGrid) {
       context.fillStyle = `rgb(${point.color.r}, ${point.color.g}, ${point.color.b})`;
       context.beginPath();
       context.arc(point.x, point.y, markerRadius, 0, fullCircleRadians);
+      context.fill();
+    }
+
+    for (const point of projectedImage) {
+      const intensity = point.count / maxImageCount;
+      const radius =
+        imageOverlayMinRadius + (imageOverlayMaxRadius - imageOverlayMinRadius) * intensity;
+      const alpha =
+        imageOverlayMinAlpha + (imageOverlayMaxAlpha - imageOverlayMinAlpha) * intensity;
+      context.fillStyle = `rgba(${point.color.r}, ${point.color.g}, ${point.color.b}, ${alpha})`;
+      context.beginPath();
+      context.arc(point.x, point.y, radius, 0, fullCircleRadians);
       context.fill();
     }
 
@@ -157,7 +195,33 @@ export function RgbCubeCanvas({
       overlayTextLeft,
       secondOverlayTextTop
     );
-  }, [axisGuideMode, cubeSize, rotation, sampledColors, sliceAxis, sliceValue, space]);
+    context.fillText(
+      t("cubeOverlayStatus", {
+        mode: t(
+          overlayMode === "grid"
+            ? "cubeOverlayModeGrid"
+            : overlayMode === "image"
+              ? "cubeOverlayModeImage"
+              : "cubeOverlayModeBoth"
+        ),
+        points: imageCubePoints.length,
+      }),
+      overlayTextLeft,
+      thirdOverlayTextTop
+    );
+  }, [
+    axisGuideMode,
+    cubeSize,
+    hasGridOverlay,
+    hasImageOverlay,
+    imageCubePoints,
+    overlayMode,
+    rotation,
+    sampledColors,
+    sliceAxis,
+    sliceValue,
+    space,
+  ]);
 
   const findNearestColor = (offsetX: number, offsetY: number): RgbColor | null => {
     return getNearestProjectedColor(

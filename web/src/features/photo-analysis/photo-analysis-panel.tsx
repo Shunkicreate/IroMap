@@ -23,6 +23,7 @@ type Props = {
   onColorInspect?: (color: RgbColor) => void;
   onStatusChange?: (message: string) => void;
   onImageSelected?: (file: File | null) => void;
+  onAnalysisComplete?: (result: PhotoAnalysisResult | null) => void;
   onUploadChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
 };
 
@@ -264,6 +265,7 @@ export function PhotoAnalysisPanel({
   onColorInspect,
   onStatusChange,
   onImageSelected,
+  onAnalysisComplete,
   onUploadChange,
 }: Props) {
   const [analysis, setAnalysis] = useState<AnalysisState>(null);
@@ -287,7 +289,11 @@ export function PhotoAnalysisPanel({
 
   useEffect(() => {
     if (!sourceFile) {
+      setAnalysis(null);
+      setError("");
+      setStatusMessage("");
       setPreviewUrl("");
+      onAnalysisComplete?.(null);
       return undefined;
     }
 
@@ -296,7 +302,7 @@ export function PhotoAnalysisPanel({
     return () => {
       URL.revokeObjectURL(objectUrl);
     };
-  }, [sourceFile]);
+  }, [onAnalysisComplete, sourceFile]);
 
   useEffect(() => {
     if (!sourceFile) {
@@ -325,6 +331,7 @@ export function PhotoAnalysisPanel({
           fileName: sourceFile.name,
           result,
         });
+        onAnalysisComplete?.(result);
 
         const success = t("photoSummary", {
           fileName: sourceFile.name,
@@ -342,6 +349,7 @@ export function PhotoAnalysisPanel({
         const failed = t("photoError");
         setError(failed);
         setAnalysis(null);
+        onAnalysisComplete?.(null);
         setStatusMessage(failed);
         onStatusChangeRef.current?.(failed);
         toast.error(failed);
@@ -355,7 +363,7 @@ export function PhotoAnalysisPanel({
     return () => {
       isCancelled = true;
     };
-  }, [sourceFile]);
+  }, [onAnalysisComplete, sourceFile]);
 
   const handlePaste = async (event: React.ClipboardEvent<HTMLButtonElement>): Promise<void> => {
     const items = Array.from(event.clipboardData?.items ?? []);
