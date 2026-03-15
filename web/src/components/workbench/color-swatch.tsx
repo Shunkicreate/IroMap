@@ -1,4 +1,3 @@
-import type { CSSProperties } from "react";
 import type { RgbColor } from "@/domain/color/color-types";
 
 type Props = {
@@ -11,9 +10,15 @@ const toCssRgb = (color: RgbColor): string => {
 };
 
 export function ColorSwatch({ color, className = "swatch" }: Props) {
-  const style: CSSProperties = {
-    backgroundColor: toCssRgb(color),
-  };
-
-  return <span className={className} style={style} />;
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 28 14"
+      aria-hidden="true"
+      focusable="false"
+      preserveAspectRatio="none"
+    >
+      <rect x="0" y="0" width="28" height="14" rx="4" fill={toCssRgb(color)} />
+    </svg>
+  );
 }

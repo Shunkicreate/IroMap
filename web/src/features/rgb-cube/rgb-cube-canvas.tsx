@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { clampRgb } from "@/domain/color/color-conversion";
 import {
   type ColorSpace3d,
@@ -42,6 +42,9 @@ const resolutionTextTop = 22;
 const secondOverlayTextTop = 40;
 const textAlpha = 0.85;
 const defaultCubeSize = 400;
+const minCubeSize = 320;
+const maxCubeSize = 900;
+const cubeSizeStep = 10;
 
 const getSliceAxisLabel = (axis: SliceAxis): string => {
   if (axis === "lab-l") {
@@ -82,9 +85,10 @@ export function RgbCubeCanvas({
     y: 0,
   });
   const projectedPointsRef = useRef<ProjectedPoint[]>([]);
-  const canvasWrapStyle = {
-    ["--cube-size"]: `${cubeSize / 16}rem`,
-  } as CSSProperties;
+  const normalizedCubeSize =
+    Math.round(Math.min(maxCubeSize, Math.max(minCubeSize, cubeSize)) / cubeSizeStep) *
+    cubeSizeStep;
+  const canvasWrapClassName = `cubeCanvasWrap cubeCanvasWrapSize${normalizedCubeSize}`;
 
   const sampledColors = useMemo(() => {
     const colors: RgbColor[] = [];
@@ -208,7 +212,7 @@ export function RgbCubeCanvas({
   };
 
   return (
-    <div className="cubeCanvasWrap" style={canvasWrapStyle}>
+    <div className={canvasWrapClassName}>
       <canvas
         ref={canvasRef}
         className="cubeCanvas"

@@ -1,0 +1,55 @@
+.topRow {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(13.75rem, 1fr));
+  align-items: start;
+  margin-bottom: 0.75rem;
+}
+
+.controls {
+  min-width: 0;
+}
+
+.previewCard {
+  border: 0.0625rem solid #263a57;
+  border-radius: 0.625rem;
+  padding: 0.625rem;
+  background: #0a1626;
+}
+
+.previewHeader {
+  margin-bottom: 0.625rem;
+}
+
+.previewHeader h3 {
+  margin: 0;
+}
+
+.previewFileName {
+  margin: 0.25rem 0 0;
+  color: var(--workbench-muted);
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
+.previewImage,
+.previewEmpty {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 0.5rem;
+  border: 0.0625rem solid #304766;
+  background: #08111d;
+}
+
+.previewImage {
+  object-fit: cover;
+}
+
+.previewEmpty {
+  display: grid;
+  place-items: center;
+  padding: 0.75rem;
+  text-align: center;
+  color: var(--workbench-muted);
+  font-size: 0.85rem;
+}
