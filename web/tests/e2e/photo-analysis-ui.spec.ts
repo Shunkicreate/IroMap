@@ -6,7 +6,7 @@ test("T-105(photo-analysis): 評価基準ヘルプの表示とラベル判定を
   await uploadRedPng(page);
 
   const analysis = getPanel(page, "写真分析 MVP");
-  await expect(analysis.locator(".photoPasteStatus")).toContainText("file=red.png", {
+  await expect(analysis.locator(".photoPreviewHeader p")).toHaveText("red.png", {
     timeout: 15000,
   });
   await expect(analysis.getByText("分析結果の見方")).toBeVisible();
