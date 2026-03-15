@@ -21,6 +21,7 @@ type Props = {
   sourceFile: File | null;
   onColorInspect?: (color: RgbColor) => void;
   onStatusChange?: (message: string) => void;
+  onAnalysisComplete?: (result: PhotoAnalysisResult | null) => void;
 };
 
 const maxScatterRange = colorChannelLevels / 2;
@@ -42,6 +43,8 @@ const ratioFormatter = new Intl.NumberFormat(undefined, {
   minimumFractionDigits: 1,
   maximumFractionDigits: 1,
 });
+const histogramChartViewboxWidth = 100;
+const histogramChartViewboxHeight = 100;
 
 const drawSourceToImageData = (
   width: number,
@@ -196,13 +199,76 @@ const getSpreadInsightLabel = (result: PhotoAnalysisResult): string => {
   return t("photoInsightSpreadNarrow");
 };
 
-export function PhotoAnalysisPanel({ sourceFile, onColorInspect, onStatusChange }: Props) {
+const renderHistogramChart = ({
+  bins,
+  maxCount,
+  gradientId,
+  gradientStops,
+  titleFormatter,
+  variantClassName = "",
+}: {
+  bins: PhotoAnalysisResult["hueHistogram"] | PhotoAnalysisResult["saturationHistogram"];
+  maxCount: number;
+  gradientId: string;
+  gradientStops: { offset: string; color: string }[];
+  titleFormatter: (bin: { start: number; end: number; count: number }) => string;
+  variantClassName?: string;
+}) => {
+  const barWidth = histogramChartViewboxWidth / bins.length;
+
+  return (
+    <svg
+      viewBox={`0 0 ${histogramChartViewboxWidth} ${histogramChartViewboxHeight}`}
+      className={`histogramBars${variantClassName ? ` ${variantClassName}` : ""}`}
+      role="img"
+      preserveAspectRatio="none"
+    >
+      <defs>
+        <linearGradient id={gradientId} x1="0" y1="1" x2="0" y2="0">
+          {gradientStops.map((stop) => (
+            <stop key={stop.offset} offset={stop.offset} stopColor={stop.color} />
+          ))}
+        </linearGradient>
+      </defs>
+      {bins.map((bin, index) => {
+        const height = Math.max(
+          histogramMinHeightPercent,
+          (bin.count / maxCount) * histogramHeightPercent
+        );
+
+        return (
+          <rect
+            key={`${bin.start}-${bin.end}`}
+            className="histogramBar"
+            x={index * barWidth}
+            y={histogramChartViewboxHeight - height}
+            width={Math.max(barWidth - 0.4, barWidth * 0.72)}
+            height={height}
+            fill={`url(#${gradientId})`}
+            rx="0.5"
+            ry="0.5"
+          >
+            <title>{titleFormatter(bin)}</title>
+          </rect>
+        );
+      })}
+    </svg>
+  );
+};
+
+export function PhotoAnalysisPanel({
+  sourceFile,
+  onColorInspect,
+  onStatusChange,
+  onAnalysisComplete,
+}: Props) {
   const [analysis, setAnalysis] = useState<AnalysisState>(null);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const onStatusChangeRef = useRef(onStatusChange);
+  const onAnalysisCompleteRef = useRef(onAnalysisComplete);
 
   const maxHueCount = useMemo(() => {
     return Math.max(1, ...(analysis?.result.hueHistogram.map((bin) => bin.count) ?? [1]));
@@ -214,11 +280,16 @@ export function PhotoAnalysisPanel({ sourceFile, onColorInspect, onStatusChange 
 
   useEffect(() => {
     onStatusChangeRef.current = onStatusChange;
-  }, [onStatusChange]);
+    onAnalysisCompleteRef.current = onAnalysisComplete;
+  }, [onAnalysisComplete, onStatusChange]);
 
   useEffect(() => {
     if (!sourceFile) {
+      setAnalysis(null);
+      setError("");
+      setStatusMessage("");
       setPreviewUrl("");
+      onAnalysisCompleteRef.current?.(null);
       return undefined;
     }
 
@@ -256,6 +327,7 @@ export function PhotoAnalysisPanel({ sourceFile, onColorInspect, onStatusChange 
           fileName: sourceFile.name,
           result,
         });
+        onAnalysisCompleteRef.current?.(result);
 
         const success = t("photoSummary", {
           fileName: sourceFile.name,
@@ -273,6 +345,7 @@ export function PhotoAnalysisPanel({ sourceFile, onColorInspect, onStatusChange 
         const failed = t("photoError");
         setError(failed);
         setAnalysis(null);
+        onAnalysisCompleteRef.current?.(null);
         setStatusMessage(failed);
         onStatusChangeRef.current?.(failed);
         toast.error(failed);
@@ -391,21 +464,17 @@ export function PhotoAnalysisPanel({ sourceFile, onColorInspect, onStatusChange 
                 yLabel={t("graphAxisCount")}
                 className="analysisGraphFrame"
               >
-                <div className="histogramBars">
-                  {analysis.result.hueHistogram.map((bin) => {
-                    const height = Math.max(
-                      histogramMinHeightPercent,
-                      (bin.count / maxHueCount) * histogramHeightPercent
-                    );
-                    return (
-                      <span
-                        key={`${bin.start}-${bin.end}`}
-                        style={{ height: `${height}%` }}
-                        title={`${Math.round(bin.start)}-${Math.round(bin.end)}: ${bin.count}`}
-                      />
-                    );
-                  })}
-                </div>
+                {renderHistogramChart({
+                  bins: analysis.result.hueHistogram,
+                  maxCount: maxHueCount,
+                  gradientId: "photo-hue-histogram-gradient",
+                  gradientStops: [
+                    { offset: "0%", color: "#1f9bd1" },
+                    { offset: "100%", color: "#60d1ff" },
+                  ],
+                  titleFormatter: (bin) =>
+                    `${Math.round(bin.start)}-${Math.round(bin.end)}: ${bin.count}`,
+                })}
               </GraphFrame>
             </article>
 
@@ -416,23 +485,20 @@ export function PhotoAnalysisPanel({ sourceFile, onColorInspect, onStatusChange 
                 yLabel={t("graphAxisCount")}
                 className="analysisGraphFrame"
               >
-                <div className="histogramBars saturationBars">
-                  {analysis.result.saturationHistogram.map((bin) => {
-                    const height = Math.max(
-                      histogramMinHeightPercent,
-                      (bin.count / maxSaturationCount) * histogramHeightPercent
-                    );
-                    return (
-                      <span
-                        key={`${bin.start}-${bin.end}`}
-                        style={{ height: `${height}%` }}
-                        title={`${bin.start.toFixed(histogramTooltipPrecision)}-${bin.end.toFixed(
-                          histogramTooltipPrecision
-                        )}: ${bin.count}`}
-                      />
-                    );
-                  })}
-                </div>
+                {renderHistogramChart({
+                  bins: analysis.result.saturationHistogram,
+                  maxCount: maxSaturationCount,
+                  gradientId: "photo-saturation-histogram-gradient",
+                  gradientStops: [
+                    { offset: "0%", color: "#2bbd79" },
+                    { offset: "100%", color: "#7bf0b8" },
+                  ],
+                  titleFormatter: (bin) =>
+                    `${bin.start.toFixed(histogramTooltipPrecision)}-${bin.end.toFixed(
+                      histogramTooltipPrecision
+                    )}: ${bin.count}`,
+                  variantClassName: "saturationBars",
+                })}
               </GraphFrame>
             </article>
 

@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const ROOT_DIR = fileURLToPath(new URL("../src/", import.meta.url));
 const TARGET_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".css"]);
-const FILE_NAME_PATTERN = /^[a-z0-9-]+\.(ts|tsx|js|jsx|css)$/;
+const FILE_NAME_PATTERN = /^[a-z0-9-]+(\.module)?\.(ts|tsx|js|jsx|css)$/;
 
 const violations = [];
 
