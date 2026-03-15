@@ -80,3 +80,21 @@ test("T-305(agent-api): docs と machine-readable endpoints を公開する", as
   expect(llmsResponse.status()).toBe(200);
   expect(await llmsResponse.text()).toContain("/api/analyze");
 });
+
+test("T-306(agent-api): llms.txt は forwarded host を使って absolute URL を返す", async ({
+  request,
+}) => {
+  const response = await request.get("/llms.txt", {
+    headers: {
+      "X-Forwarded-Host": "agents.example.test",
+      "X-Forwarded-Proto": "https",
+    },
+  });
+
+  expect(response.status()).toBe(200);
+  const body = await response.text();
+  expect(body).toContain("https://agents.example.test/api/analyze");
+  expect(body).toContain("https://agents.example.test/docs/agent-api");
+  expect(body).toContain("https://agents.example.test/openapi.json");
+  expect(body).not.toContain("localhost:3000");
+});
