@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { ColorSwatch } from "@/components/workbench/color-swatch";
 import { PanelHeader } from "@/components/workbench/panel-header";
 import { analyzePhoto, type PhotoAnalysisResult } from "@/domain/photo-analysis/photo-analysis";
@@ -86,6 +87,8 @@ export function PhotoAnalysisPanel() {
   const [analysis, setAnalysis] = useState<AnalysisState>(null);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [previewFileName, setPreviewFileName] = useState<string>("");
 
   const maxHueCount = useMemo(() => {
     return Math.max(1, ...(analysis?.result.hueHistogram.map((bin) => bin.count) ?? [1]));
@@ -95,12 +98,27 @@ export function PhotoAnalysisPanel() {
     return Math.max(1, ...(analysis?.result.saturationHistogram.map((bin) => bin.count) ?? [1]));
   }, [analysis]);
 
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
     const file = event.target.files?.[0];
     if (!file) {
       return;
     }
 
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+
+    const nextPreviewUrl = URL.createObjectURL(file);
+    setPreviewUrl(nextPreviewUrl);
+    setPreviewFileName(file.name);
     setIsAnalyzing(true);
     setError("");
 
@@ -123,13 +141,36 @@ export function PhotoAnalysisPanel() {
     <section className="panel">
       <PanelHeader titleKey="panelPhotoAnalysis" requirementsKey="panelPhotoAnalysisRequirements" />
 
-      <label className="fileInput">
-        {t("photoUploadLabel")}
-        <input type="file" accept="image/*" onChange={handleFileChange} />
-      </label>
+      <div className="photoAnalysisTopRow">
+        <div className="photoAnalysisControls">
+          <label className="fileInput">
+            {t("photoUploadLabel")}
+            <input type="file" accept="image/*" onChange={handleFileChange} />
+          </label>
 
-      {isAnalyzing ? <p className="muted">{t("photoAnalyzing")}</p> : null}
-      {error ? <p className="errorText">{error}</p> : null}
+          {isAnalyzing ? <p className="muted">{t("photoAnalyzing")}</p> : null}
+          {error ? <p className="errorText">{error}</p> : null}
+        </div>
+
+        <article className="photoPreviewCard">
+          <div className="photoPreviewHeader">
+            <h3>{t("photoPreviewTitle")}</h3>
+            {previewFileName ? <p>{previewFileName}</p> : null}
+          </div>
+          {previewUrl ? (
+            <Image
+              src={previewUrl}
+              alt={t("photoPreviewAlt", { fileName: previewFileName || t("photoUploadLabel") })}
+              className="photoPreviewImage"
+              width={320}
+              height={240}
+              unoptimized
+            />
+          ) : (
+            <div className="photoPreviewEmpty">{t("photoPreviewEmpty")}</div>
+          )}
+        </article>
+      </div>
 
       {analysis ? (
         <div className="analysisGrid">

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { getPanel, getSliceCanvas } from "./helpers";
+import { getPanel, getSliceCanvas, uploadRedPng } from "./helpers";
 
 test("T-101(slice): 断面表示の確認", async ({ page }) => {
   await page.goto("/");
@@ -27,4 +27,16 @@ test("T-103(slice): 3D同期の確認", async ({ page }) => {
   });
   await expect(slider).toHaveValue("180");
   await expect(page.locator(".cubeCanvas")).toBeVisible();
+});
+
+test("T-105(photo-analysis): アップロード画像のプレビューを表示できる", async ({ page }) => {
+  await page.goto("/");
+  await uploadRedPng(page);
+
+  const photoPanel = getPanel(page, "写真分析 MVP");
+  const previewImage = photoPanel.locator(".photoPreviewImage");
+
+  await expect(previewImage).toBeVisible();
+  await expect(previewImage).toHaveAttribute("alt", "分析対象画像: red.png");
+  await expect(photoPanel.getByText("red.png")).toBeVisible();
 });
