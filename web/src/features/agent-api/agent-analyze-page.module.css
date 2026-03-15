@@ -1,0 +1,176 @@
+.page {
+  margin: 0 auto;
+  max-width: 68.75rem;
+  padding: 3rem 1.5rem 5rem;
+}
+
+.hero {
+  background: linear-gradient(135deg, #f8fafc 0%, #fff7ed 100%);
+  border: 0.0625rem solid rgb(15 23 42 / 8%);
+  border-radius: 1.5rem;
+  padding: 1.5rem;
+}
+
+.eyebrow {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.heroTitle {
+  font-size: 2.5rem;
+  line-height: 1.1;
+  margin: 0.75rem 0;
+}
+
+.heroDescription {
+  color: #475569;
+  margin: 0;
+  max-width: 47.5rem;
+}
+
+.grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(17.5rem, 1fr));
+  margin-top: 1.5rem;
+}
+
+.card {
+  background-color: #fff;
+  border: 0.0625rem solid rgb(15 23 42 / 8%);
+  border-radius: 1.5rem;
+  padding: 1.5rem;
+}
+
+.titleReset {
+  margin-top: 0;
+}
+
+.muted {
+  color: #475569;
+}
+
+.button {
+  background-color: #0f172a;
+  border: none;
+  border-radius: 999rem;
+  color: #fff;
+  cursor: pointer;
+  padding: 0.75rem 1.125rem;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.buttonRow {
+  margin-top: 1rem;
+}
+
+.preview {
+  border-radius: 1.25rem;
+  margin-top: 1.25rem;
+  object-fit: cover;
+  width: 100%;
+}
+
+.errorCode {
+  color: #991b1b;
+  font-weight: 700;
+}
+
+.errorMessage {
+  color: #7f1d1d;
+}
+
+.summaryGrid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: max-content 1fr;
+}
+
+.summaryGrid dd {
+  margin: 0;
+}
+
+.swatchRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.swatchItem {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.swatch {
+  border: 0.0625rem solid rgb(15 23 42 / 8%);
+  border-radius: 0.75rem;
+  height: 2.5rem;
+  overflow: hidden;
+  width: 2.5rem;
+}
+
+.swatchSvg {
+  display: block;
+  height: 2.5rem;
+  width: 2.5rem;
+}
+
+.swatchHex {
+  font-weight: 700;
+}
+
+.swatchRatio {
+  color: #475569;
+  font-size: 0.75rem;
+}
+
+.explanations {
+  margin-top: 1.5rem;
+}
+
+.explanationList {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.explanationCard {
+  background-color: #f8fafc;
+  border-radius: 1.25rem;
+  padding: 1.125rem;
+}
+
+.explanationCard h3 {
+  margin-top: 0;
+}
+
+.explanationCard p:last-child {
+  margin-bottom: 0;
+}
+
+.empty {
+  color: #64748b;
+}
+
+.docsPage {
+  margin: 0 auto;
+  max-width: 60rem;
+  padding: 3rem 1.5rem 5rem;
+}
+
+.docsPre {
+  background-color: #0f172a;
+  border-radius: 1rem;
+  color: #e2e8f0;
+  overflow-x: auto;
+  padding: 1rem;
+}
