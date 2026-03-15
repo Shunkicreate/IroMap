@@ -577,6 +577,64 @@
   margin-bottom: 8px;
 }
 
+.photoAnalysisTopRow {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1.6fr) minmax(220px, 0.9fr);
+  align-items: start;
+  margin-bottom: 12px;
+}
+
+.photoAnalysisControls {
+  min-width: 0;
+}
+
+.photoPreviewCard {
+  border: 1px solid #263a57;
+  border-radius: 10px;
+  padding: 10px;
+  background: #0a1626;
+}
+
+.photoPreviewHeader {
+  margin-bottom: 10px;
+}
+
+.photoPreviewHeader h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.photoPreviewHeader p {
+  margin: 4px 0 0;
+  color: var(--workbench-muted);
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
+.photoPreviewImage,
+.photoPreviewEmpty {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 8px;
+  border: 1px solid #304766;
+  background: #08111d;
+}
+
+.photoPreviewImage {
+  display: block;
+  object-fit: cover;
+}
+
+.photoPreviewEmpty {
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  text-align: center;
+  color: var(--workbench-muted);
+  font-size: 0.85rem;
+}
+
 .analysisGrid {
   display: grid;
   gap: 12px;
@@ -820,6 +878,10 @@
 
   .graphAxisYLabel {
     display: none;
+  }
+
+  .photoAnalysisTopRow {
+    grid-template-columns: 1fr;
   }
 }
 

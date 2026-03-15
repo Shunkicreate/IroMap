@@ -69,6 +69,9 @@ export const i18nMessages = {
     sliceAxisXLabel: "X軸: {axis} (左→右)",
     sliceAxisYLabel: "Y軸: {axis} (下→上)",
     photoUploadLabel: "画像をアップロード",
+    photoPreviewTitle: "選択画像プレビュー",
+    photoPreviewAlt: "分析対象画像: {fileName}",
+    photoPreviewEmpty: "画像を選択するとここにプレビューを表示します",
     photoPasteZoneLabel: "画像貼り付けエリア",
     photoPasteZoneTitle: "画像を貼り付けて分析",
     photoPasteZoneHint:
@@ -179,6 +182,9 @@ export const i18nMessages = {
     sliceAxisXLabel: "X axis: {axis} (left to right)",
     sliceAxisYLabel: "Y axis: {axis} (bottom to top)",
     photoUploadLabel: "Upload image",
+    photoPreviewTitle: "Selected image preview",
+    photoPreviewAlt: "Image selected for analysis: {fileName}",
+    photoPreviewEmpty: "Choose an image to preview it here",
     photoPasteZoneLabel: "Image paste area",
     photoPasteZoneTitle: "Paste image to analyze",
     photoPasteZoneHint:

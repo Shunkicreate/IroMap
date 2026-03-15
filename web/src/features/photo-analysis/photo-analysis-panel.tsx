@@ -1,15 +1,16 @@
 "use client";
 
+import NextImage from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ColorSwatch } from "@/components/workbench/color-swatch";
-import { PanelHeader } from "@/components/workbench/panel-header";
-import { analyzePhoto, type PhotoAnalysisResult } from "@/domain/photo-analysis/photo-analysis";
-import { rgbToHex } from "@/domain/color/color-format";
-import { colorChannelLevels } from "@/domain/color/color-constants";
-import { GraphFrame } from "@/components/graph/graph-frame";
-import type { RgbColor } from "@/domain/color/color-types";
-import { t } from "@/i18n/translate";
 import { toast } from "sonner";
+import { ColorSwatch } from "@/components/workbench/color-swatch";
+import { GraphFrame } from "@/components/graph/graph-frame";
+import { PanelHeader } from "@/components/workbench/panel-header";
+import { colorChannelLevels } from "@/domain/color/color-constants";
+import { rgbToHex } from "@/domain/color/color-format";
+import type { RgbColor } from "@/domain/color/color-types";
+import { analyzePhoto, type PhotoAnalysisResult } from "@/domain/photo-analysis/photo-analysis";
+import { t } from "@/i18n/translate";
 
 type AnalysisState = {
   fileName: string;
@@ -76,7 +77,7 @@ const readFileAsImageData = async (file: File): Promise<ImageData> => {
     const objectUrl = URL.createObjectURL(file);
     try {
       const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-        const node = new Image();
+        const node = new window.Image();
         node.onload = () => resolve(node);
         node.onerror = () => reject(new Error("image-load-failed"));
         node.src = objectUrl;
@@ -207,6 +208,7 @@ export function PhotoAnalysisPanel({
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [statusMessage, setStatusMessage] = useState<string>("");
+  const [previewUrl, setPreviewUrl] = useState<string>("");
   const onStatusChangeRef = useRef(onStatusChange);
 
   const maxHueCount = useMemo(() => {
@@ -223,6 +225,19 @@ export function PhotoAnalysisPanel({
 
   useEffect(() => {
     if (!sourceFile) {
+      setPreviewUrl("");
+      return undefined;
+    }
+
+    const objectUrl = URL.createObjectURL(sourceFile);
+    setPreviewUrl(objectUrl);
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [sourceFile]);
+
+  useEffect(() => {
+    if (!sourceFile) {
       return;
     }
 
@@ -231,6 +246,7 @@ export function PhotoAnalysisPanel({
 
     setIsAnalyzing(true);
     setError("");
+    setStatusMessage(inProgress);
     setAnalysis(null);
     onStatusChangeRef.current?.(inProgress);
     toast(inProgress);
@@ -253,6 +269,7 @@ export function PhotoAnalysisPanel({
           sampledPixels: result.sampledPixels,
           elapsedMs: result.elapsedMs.toFixed(fileSummaryPrecision),
         });
+        setStatusMessage(success);
         onStatusChangeRef.current?.(success);
         toast.success(success);
       } catch {
@@ -263,6 +280,7 @@ export function PhotoAnalysisPanel({
         const failed = t("photoError");
         setError(failed);
         setAnalysis(null);
+        setStatusMessage(failed);
         onStatusChangeRef.current?.(failed);
         toast.error(failed);
       } finally {
@@ -307,24 +325,47 @@ export function PhotoAnalysisPanel({
     <section className="panel">
       <PanelHeader titleKey="panelPhotoAnalysis" requirementsKey="panelPhotoAnalysisRequirements" />
 
-      <button
-        type="button"
-        className="photoPasteZone"
-        onPaste={handlePaste}
-        aria-label={t("photoPasteZoneLabel")}
-      >
-        <strong>{t("photoPasteZoneTitle")}</strong>
-        <p>{t("photoPasteZoneHint")}</p>
-      </button>
+      <div className="photoAnalysisTopRow">
+        <div className="photoAnalysisControls">
+          <button
+            type="button"
+            className="photoPasteZone"
+            onPaste={handlePaste}
+            aria-label={t("photoPasteZoneLabel")}
+          >
+            <strong>{t("photoPasteZoneTitle")}</strong>
+            <p>{t("photoPasteZoneHint")}</p>
+          </button>
 
-      {isAnalyzing ? <p className="muted">{t("photoAnalyzing")}</p> : null}
-      {statusMessage ? (
-        <p className="muted photoPasteStatus" aria-live="polite">
-          {statusMessage}
-        </p>
-      ) : null}
-      {error ? <p className="errorText">{error}</p> : null}
-      {!sourceFile && !analysis ? <p className="muted">{t("photoUploadLabel")}</p> : null}
+          {isAnalyzing ? <p className="muted">{t("photoAnalyzing")}</p> : null}
+          {statusMessage ? (
+            <p className="muted photoPasteStatus" aria-live="polite">
+              {statusMessage}
+            </p>
+          ) : null}
+          {error ? <p className="errorText">{error}</p> : null}
+          {!sourceFile && !analysis ? <p className="muted">{t("photoUploadLabel")}</p> : null}
+        </div>
+
+        <article className="photoPreviewCard">
+          <div className="photoPreviewHeader">
+            <h3>{t("photoPreviewTitle")}</h3>
+            {sourceFile ? <p>{sourceFile.name}</p> : null}
+          </div>
+          {previewUrl ? (
+            <NextImage
+              src={previewUrl}
+              alt={t("photoPreviewAlt", { fileName: sourceFile?.name ?? t("photoUploadLabel") })}
+              className="photoPreviewImage"
+              width={320}
+              height={240}
+              unoptimized
+            />
+          ) : (
+            <div className="photoPreviewEmpty">{t("photoPreviewEmpty")}</div>
+          )}
+        </article>
+      </div>
 
       <div className="analysisGrid">
         {analysis ? (
