@@ -650,6 +650,7 @@ export function ColorWorkbench() {
   });
   const [selectedColor, setSelectedColor] = useState<RgbColor | null>(null);
   const [selectionScope, setSelectionScope] = useState<SelectionScope>("full-image");
+  const [sliceMappingScope, setSliceMappingScope] = useState<SelectionScope>("full-image");
   const [comparisonScope, setComparisonScope] = useState<ComparisonScope>("full-image");
   const [copyFormat, setCopyFormat] = useState<ExportFormat>("markdown");
   const [histogramMetric, setHistogramMetric] = useState<WorkbenchHistogramMetric>("luminance");
@@ -836,6 +837,13 @@ export function ColorWorkbench() {
         : [],
     [baselineSelectionState, baselineTarget.result, selectionScope]
   );
+  const sliceMappedSamples = useMemo(
+    () =>
+      baselineTarget.result
+        ? getScopedSamples(baselineTarget.result, baselineSelectionState, sliceMappingScope)
+        : [],
+    [baselineSelectionState, baselineTarget.result, sliceMappingScope]
+  );
   const baselineMetricRows = useMemo(
     () =>
       baselineTarget.result
@@ -919,6 +927,11 @@ export function ColorWorkbench() {
     setSliceValue(normalizeSliceValueForAxis(nextAxis, sliceValue));
   };
 
+  const handleSelectionScopeChange = (scope: SelectionScope): void => {
+    setSelectionScope(scope);
+    setSliceMappingScope(scope);
+  };
+
   const setSelectionForCurrentSlot = (
     selectionFactory: (
       slot: SelectionSlot
@@ -940,7 +953,6 @@ export function ColorWorkbench() {
         },
       };
     });
-    setSelectionScope("selected-region");
   };
 
   const handlePreviewSelectionCommit = (bounds: {
@@ -960,6 +972,7 @@ export function ColorWorkbench() {
         bounds,
       })
     );
+    handleSelectionScopeChange("selected-region");
     setLiveMessage(t("workbenchSelectionUpdated"));
   };
 
@@ -1006,7 +1019,7 @@ export function ColorWorkbench() {
         },
       };
     });
-    setSelectionScope("full-image");
+    handleSelectionScopeChange("full-image");
   };
 
   const handleSelectionSlotChange = (slot: SelectionSlot): void => {
@@ -1245,7 +1258,7 @@ export function ColorWorkbench() {
             space={space}
             axis={sliceAxis}
             value={sliceValue}
-            mappedSamples={scopedBaselineSamples}
+            mappedSamples={sliceMappedSamples}
             hoverColor={hoverColor}
             selectedColor={selectedColor}
             onAxisChange={handleSliceAxisChange}
@@ -1295,14 +1308,14 @@ export function ColorWorkbench() {
                   <button
                     type="button"
                     className={selectionScope === "full-image" ? "segmentedActive" : ""}
-                    onClick={() => setSelectionScope("full-image")}
+                    onClick={() => handleSelectionScopeChange("full-image")}
                   >
                     {t("workbenchScopeFullImage")}
                   </button>
                   <button
                     type="button"
                     className={selectionScope === "selected-region" ? "segmentedActive" : ""}
-                    onClick={() => setSelectionScope("selected-region")}
+                    onClick={() => handleSelectionScopeChange("selected-region")}
                   >
                     {t("workbenchScopeSelectedRegion")}
                   </button>
