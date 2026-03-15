@@ -13,6 +13,7 @@ fi
 
 branch="$1"
 base_ref="${2:-main}"
+resolved_base_ref="$base_ref"
 
 if [[ "$branch" != feature/* ]]; then
   echo "ERROR: branch name must start with feature/: $branch" >&2
@@ -29,10 +30,16 @@ if [[ -e "$worktree_path" ]]; then
   exit 1
 fi
 
+if [[ "$base_ref" == "main" || "$base_ref" == "origin/main" ]]; then
+  echo "Fetching latest origin/main"
+  git fetch origin main
+  resolved_base_ref="refs/remotes/origin/main"
+fi
+
 if git show-ref --verify --quiet "refs/heads/$branch"; then
   git worktree add "$worktree_path" "$branch"
 else
-  git worktree add -b "$branch" "$worktree_path" "$base_ref"
+  git worktree add -b "$branch" "$worktree_path" "$resolved_base_ref"
 fi
 
 echo "Running pnpm setup in: $worktree_path"

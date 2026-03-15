@@ -7,24 +7,23 @@ description: Create, reuse, list, and remove Git worktrees for isolated parallel
 
 ## Overview
 
-Manage isolated workspaces by using `git worktree` so the main working tree stays clean.
+Manage isolated workspaces by using the repository worktree entrypoint so the main working tree stays clean.
 Prefer deterministic command sequences and report exactly what was created, reused, or removed.
 
 ## Command Scope
 
 Use only:
 
-- `git worktree *`
 - `git branch *`
-- `git checkout *`
-- `git fetch *`
-- `git pull *`
 - `git status *`
 - `git rev-parse *`
 - `cd *`
+- `pnpm run worktree:add *`
 - `pnpm --dir web install *`
 - `pnpm run setup:hooks`
 - `pnpm run setup:hooks:check`
+- `git worktree remove *`
+- `git worktree prune`
 
 ## Inputs To Collect
 
@@ -44,46 +43,13 @@ Run in this order.
 cd "$(git rev-parse --show-toplevel)"
 ```
 
-2. Sync local `main` with `origin/main`.
+2. Check existing worktree.
 
 ```bash
-git fetch origin main
-git checkout main
-git pull --ff-only origin main
+git rev-parse --verify --quiet "refs/heads/${BRANCH_NAME}"
 ```
 
-3. Check existing worktree.
-
-```bash
-git worktree list | grep "${WORKTREE_DIR}"
-```
-
-4. If existing worktree is found, reuse it.
-
-```bash
-cd "${WORKTREE_DIR}"
-git fetch origin
-git status
-pnpm --dir web install --frozen-lockfile
-pnpm run setup:hooks
-pnpm run setup:hooks:check
-```
-
-5. If no existing worktree is found, create one.
-
-- New branch from base branch:
-
-```bash
-git worktree add "${WORKTREE_DIR}" -b "${BRANCH_NAME}" "${BASE_BRANCH:-main}"
-```
-
-- Existing branch:
-
-```bash
-git worktree add "${WORKTREE_DIR}" "${BRANCH_NAME}"
-```
-
-6. Move into worktree and verify.
+3. If existing worktree is found, reuse it.
 
 ```bash
 cd "${WORKTREE_DIR}"
@@ -93,7 +59,23 @@ pnpm run setup:hooks
 pnpm run setup:hooks:check
 ```
 
-7. If `pnpm --dir web install --frozen-lockfile` fails due to lock mismatch, run:
+4. If no existing worktree is found, create one only through the package entrypoint.
+
+```bash
+pnpm run worktree:add "${BRANCH_NAME}" "${BASE_BRANCH:-main}"
+```
+
+5. Move into worktree and verify.
+
+```bash
+cd "${WORKTREE_DIR}"
+git status
+pnpm --dir web install --frozen-lockfile
+pnpm run setup:hooks
+pnpm run setup:hooks:check
+```
+
+6. If `pnpm --dir web install --frozen-lockfile` fails due to lock mismatch, run:
 
 ```bash
 pnpm --dir web install --no-frozen-lockfile
@@ -108,13 +90,13 @@ pnpm run setup:hooks:check
 
 ## Branch Conflict Handling
 
-When `-b "${BRANCH_NAME}"` fails because the branch already exists:
+When worktree creation fails because the branch already exists:
 
 1. Stop automatic creation.
 2. Report conflict clearly.
 3. Ask user whether to:
 
-- reuse existing branch with `git worktree add "${WORKTREE_DIR}" "${BRANCH_NAME}"`, or
+- reuse the existing worktree for `"${BRANCH_NAME}"`, or
 - choose another branch name.
 
 ## Remove Workflow
