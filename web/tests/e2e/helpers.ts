@@ -32,7 +32,7 @@ export const hoverColorOnSlice = async (page: Page): Promise<void> => {
 };
 
 const setFile = async (page: Page, fileName: string, base64: string): Promise<void> => {
-  await page.getByLabel("写真分析用画像").setInputFiles({
+  await page.getByLabel("画像をアップロード").setInputFiles({
     name: fileName,
     mimeType: "image/png",
     buffer: Buffer.from(base64, "base64"),
