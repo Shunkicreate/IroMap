@@ -39,6 +39,25 @@
 - `Workbench State`: 現在画像、比較対象、選択状態、コピー形式、表示モードを保持する
 - `Presentation`: preview / 3D / slice / metrics table / histogram / compare panel を描画する
 
+## 3.1 UI コンポーネント責務
+
+- `WorkbenchShell`
+  - 全体レイアウト、panel visibility、responsive 切替を管理する
+- `PreviewPanel`
+  - 画像表示、hover overlay、矩形選択、selection clear を担当する
+- `ColorSpacePanel`
+  - 3D 色空間表示、hover / pick、comparison overlay を担当する
+- `SlicePanel`
+  - slice 軸操作、hover / pick、fixed axis 表示を担当する
+- `InspectorPanel`
+  - hover / selected sample の数値表示を担当する
+- `MetricsTablePanel`
+  - 指標表表示、差分列、コピー形式切替、コピー実行を担当する
+- `HistogramPanel`
+  - metric 切替、selection scope に応じた histogram、comparison overlay、bin コピーを担当する
+- `ComparePanel`
+  - baseline / compare target の選択、comparison scope の切替、空状態を担当する
+
 ## 4. ドメインモデル
 
 - `PixelSample`
@@ -103,6 +122,14 @@
 - baseline selection のみ存在し、compare selection が無い場合は `matched-selection` を成立させない
 - 将来の `snapshot vs snapshot` 比較も内部的には `ComparisonPair` へ正規化する
 
+## 4.4 レスポンシブ状態ルール
+
+- デスクトップ
+  - 上段 3 ペインを横並びで維持する
+- タブレット以下
+  - `preview -> 3D -> slice+inspector` の縦積みを許可する
+- responsive 崩しは presentation のみで吸収し、state 構造は変えない
+
 ## 5. シーケンス
 
 1. 画像を読み込み、既存の sampling pipeline で `PixelSample[]` を生成する
@@ -130,7 +157,7 @@
   - `serializeTable(rows, format): string`
   - `serializeHistogramBins(bins, format): string`
 
-## 6.3 指標仕様
+## 6.1 指標仕様
 
 - 指標の入力範囲
   - `selectionScope = full-image` のときは target 全 sample
@@ -142,7 +169,7 @@
   - 分母 0、対象 sample 0、highlight sample 0 の場合は `N/A`
   - `N/A` はコピー時も文字列 `N/A` を出力する
 
-### 6.3.1 ベース指標
+### 6.1.1 ベース指標
 
 - `l_mean`
   - `mean(L*)`
@@ -167,7 +194,7 @@
 - `selection_coverage_ratio`
   - `selected sample count / target sample count`
 
-### 6.3.2 比較指標
+### 6.1.2 比較指標
 
 - `delta_l_mean`
   - `compare.l_mean - baseline.l_mean`
@@ -184,7 +211,7 @@
   - 同一 target 内で `selection A` と `selection B` を比較する将来指標
   - MVP では active selection が 1 件のみのため、表にはプレースホルダを置かず未表示でもよい
 
-### 6.3.3 表の既定表示順
+### 6.1.3 表の既定表示順
 
 1. 明度
 2. 色被り
@@ -193,7 +220,7 @@
 5. 白
 6. 補助情報
 
-## 6.4 Histogram 仕様
+## 6.2 Histogram 仕様
 
 - P0 必須
   - `L* histogram`
@@ -216,7 +243,7 @@
   - baseline と compare を同じ bin 定義で集計する
   - 差分表示用の追加 bin は MVP では持たず、2 系列重ね表示で視認させる
 
-## 6.5 コピー仕様
+## 6.3 コピー仕様
 
 - 指標表コピー
   - 内部列順: `group, key, label, value, unit, delta, description`
@@ -231,7 +258,7 @@
 - 失敗時
   - clipboard API が失敗したら toast で失敗理由を表示する
 
-## 6.6 比較・差分仕様
+## 6.4 比較・差分仕様
 
 - baseline / compare の役割
   - すべての差分は `compare - baseline`
@@ -248,7 +275,62 @@
   - MVP では画像位置の厳密対応を前提にしない
   - `matched-selection` は各 target 上の個別 selection を比較し、ピクセル単位対応は要求しない
 
-## 6.1 選択・相互ハイライト仕様
+## 6.5 UI レイアウト仕様
+
+- 上段
+  - 左: `PreviewPanel`
+  - 中央: `ColorSpacePanel`
+  - 右: `SlicePanel + InspectorPanel`
+- 下段
+  - 1 行目: `MetricsTablePanel + HistogramPanel`
+  - 2 行目: `ComparePanel + History/Snapshot placeholder`
+- 優先順位
+  - 上段は常時見えることを優先する
+  - 下段は情報量増加に備え、独立スクロールまたはページスクロールで許容する
+
+## 6.6 主要操作フロー
+
+### 6.6.1 単一画像分析
+
+1. target を読み込む
+2. 上段 3 ペインで分布を確認する
+3. Preview または色空間上で hover して sample 情報を見る
+4. 矩形選択または pick で selection を確定する
+5. 下段の指標表と histogram を selection scope で確認する
+6. 必要に応じて表または histogram をコピーする
+
+### 6.6.2 2 件比較
+
+1. baseline target を開く
+2. compare target を追加する
+3. comparison scope を `full-image` または `matched-selection` に切り替える
+4. 3D 色空間の重ね表示と histogram の 2 系列比較を見る
+5. 指標表の delta 列で差分を確認する
+
+### 6.6.3 選択解除
+
+1. PreviewPanel または InspectorPanel から `clear selection` を実行する
+2. active selection を解除する
+3. selection scope が `selected-region` の場合は `full-image` へ戻す
+
+## 6.7 操作優先順位ルール
+
+- hover は常に最も軽い操作で、selection を上書きしない
+- drag 中は新規 hover を無視し、drag 完了時に selection だけを更新する
+- compare target 未設定時は compare panel の操作以外でエラーを出さない
+- histogram metric 切替は selection scope を維持する
+- responsive 崩しで panel 順が変わっても、active state は不変とする
+
+## 6.8 空状態ルール
+
+- target 未読込
+  - Preview / ColorSpace / Slice は empty state を表示する
+- compare target 未設定
+  - ComparePanel は追加導線だけを見せる
+- selection 未設定で `selected-region` を要求
+  - panel 内で案内を表示し、自動的に新 selection を作らない
+
+## 6.9 選択・相互ハイライト仕様
 
 - event sources
   - `image-hover`
@@ -269,7 +351,7 @@
   - 3D / slice 起点の hover は画像上に点または小領域として表示する
   - hover 表示は selection 表示より弱い visual weight にする
 
-## 6.2 選択正規化ルール
+## 6.10 選択正規化ルール
 
 - 画像矩形選択
   - image pixel bounds を target の `sampleIds` へ変換する
@@ -289,6 +371,8 @@
 - 比較対象が未設定の場合は、差分列や重ね表示を非表示にする
 - hover 対象が空になった場合は highlight だけを解除し、selection は保持する
 - baseline / compare 間で selection scope が成立しない場合は、自動で `full-image` 比較へフォールバックしない
+- クリップボード書き込み拒否時は再試行を強制せず失敗通知のみ返す
+- 狭幅レイアウト切替時に drag selection が中断された場合は selection を確定しない
 
 ## 8. セキュリティ考慮
 
@@ -301,6 +385,41 @@
 - サンプル数、選択領域サンプル数、histogram bin 数を確認可能にする
 - 指標計算ごとの入力 sample 数と `N/A` 発生件数を確認可能にする
 
+## 9.1 性能設計
+
+- 再計算トリガー
+  - target 変更
+  - selection 確定
+  - selection clear
+  - comparison scope 変更
+  - histogram metric 変更
+- 再計算しない操作
+  - hover 移動
+  - panel 開閉
+  - copy format 切替だけの表示変更
+- 計算最適化方針
+  - target 単位で sample / projection をキャッシュする
+  - histogram は `(targetId, selectionId, metric)` 単位で再利用できるようにする
+  - delta 計算は表示中 metric 群だけに限定する
+- worker 利用方針
+  - 既存 photo-analysis worker を再利用し、重い再集計は worker 側へ寄せる
+  - hover 処理は UI thread で完結させる
+- サンプル上限
+  - MVP では既存の間引き戦略を使い、selection 再集計時も同じ sample 集合を用いる
+
+## 9.2 テスト戦略
+
+- domain test
+  - 指標計算、bin 定義、差分方向、`N/A` ルールを検証する
+- component test
+  - panel ごとの empty state、delta 列、copy format 切替、selection clear を検証する
+- e2e test
+  - 3 ペイン導線、矩形選択、2 件比較、コピー成功通知、responsive 崩し後の状態保持を検証する
+- 非回帰重点
+  - hover が再集計を発火しない
+  - compare 未設定時に baseline 分析が壊れない
+  - selection clear 後に full-image へ正しく戻る
+
 ## 10. トレードオフ
 
 - MVP では自由度の高いブラシ選択より、再現性と実装コストに優れる矩形選択を優先する
@@ -309,6 +428,7 @@
 - 3D 選択を完全な幾何選択にすると複雑になるため、初期は hover / nearest sample / slice 連携中心でもよい
 - hover と selection を同じ state にすると再集計が過剰発火するため、意図的に分離する
 - `ΔE` は画素対応ベースではなく平均 Lab ベースで始めることで、比較仕様を先に成立させる
+- 下段情報を増やしても上段 3 ペインを守るため、ページ全体の均等配置より主戦場固定を優先する
 
 ## 11. 関連ADR
 
