@@ -73,7 +73,7 @@ test("T-204(photo-analysis): 選択画像プレビューを表示できる", asy
   await uploadRedPng(page);
 
   const panel = getPanel(page, "写真分析 MVP");
-  const previewImage = panel.locator(".photoPreviewImage");
+  const previewImage = panel.getByRole("img", { name: "分析対象画像: red.png" });
 
   await expect(previewImage).toBeVisible();
   await expect(previewImage).toHaveAttribute("alt", "分析対象画像: red.png");
