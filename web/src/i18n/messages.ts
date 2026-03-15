@@ -6,7 +6,7 @@ export const i18nMessages = {
   ja: {
     workbenchTitle: "IroMap ワークベンチ",
     workbenchSteps:
-      "Step1 RGBキューブ、Step2 インスペクタ、Step3 コピー、Step4 スライス、Step5 写真分析",
+      "Step1 画像を選ぶ、Step2 RGBキューブ、Step3 インスペクタ、Step4 コピー、Step5 スライス、Step6 写真分析",
     panelRgbCube: "RGBキューブ",
     panelRgbCubeRequirements: "FR-1 / FR-2 / FR-3 / FR-4",
     panelInspector: "インスペクタ",
@@ -53,6 +53,17 @@ export const i18nMessages = {
     sliceAxisXLabel: "X軸: {axis} (左→右)",
     sliceAxisYLabel: "Y軸: {axis} (下→上)",
     photoUploadLabel: "画像をアップロード",
+    photoPasteZoneLabel: "画像貼り付けエリア",
+    photoPasteZoneTitle: "画像を貼り付けて分析",
+    photoPasteZoneHint:
+      "このエリアを選択して Cmd+V / Ctrl+V。画像ファイルのアップロードもそのまま使えます。",
+    photoUploadCtaTitle: "写真をアップロードして分析を始める",
+    photoUploadCtaDescription:
+      "入口はここです。選んだ画像の分析結果は下の写真分析パネルに表示されます。",
+    photoUploadButton: "画像を選ぶ",
+    photoUploadSelected: "選択中: {fileName}",
+    photoPasteApplied: "クリップボード画像を適用しました",
+    photoPasteNoImage: "クリップボード内に画像がありません",
     photoAnalyzing: "分析中...",
     photoError: "画像のデコードまたは分析に失敗しました",
     photoLabScatter: "Lab a-b 散布図",
@@ -73,7 +84,7 @@ export const i18nMessages = {
   en: {
     workbenchTitle: "IroMap Workbench",
     workbenchSteps:
-      "Step1 RGB cube, Step2 Inspector, Step3 Copy, Step4 Slice, Step5 Photo Analysis",
+      "Step1 Choose image, Step2 RGB cube, Step3 Inspector, Step4 Copy, Step5 Slice, Step6 Photo Analysis",
     panelRgbCube: "RGB Cube",
     panelRgbCubeRequirements: "FR-1 / FR-2 / FR-3 / FR-4",
     panelInspector: "Inspector",
@@ -120,6 +131,17 @@ export const i18nMessages = {
     sliceAxisXLabel: "X axis: {axis} (left to right)",
     sliceAxisYLabel: "Y axis: {axis} (bottom to top)",
     photoUploadLabel: "Upload image",
+    photoPasteZoneLabel: "Image paste area",
+    photoPasteZoneTitle: "Paste image to analyze",
+    photoPasteZoneHint:
+      "Focus this area and press Cmd+V / Ctrl+V. File upload remains available as well.",
+    photoUploadCtaTitle: "Upload a photo to start analysis",
+    photoUploadCtaDescription:
+      "Start here. The selected image will be analyzed in the Photo Analysis panel below.",
+    photoUploadButton: "Choose image",
+    photoUploadSelected: "Selected: {fileName}",
+    photoPasteApplied: "Applied clipboard image",
+    photoPasteNoImage: "No image found in clipboard",
     photoAnalyzing: "Analyzing...",
     photoError: "Failed to decode image or compute analysis",
     photoLabScatter: "Lab a-b scatter",

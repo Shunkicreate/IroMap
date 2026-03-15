@@ -238,6 +238,40 @@
   font-size: 0.78rem;
 }
 
+.photoPasteZone {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border: 1px dashed #4a678f;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #102137, #0d1b2d);
+  color: var(--workbench-text);
+  cursor: text;
+  text-align: left;
+}
+
+.photoPasteZone strong {
+  font-size: 0.94rem;
+}
+
+.photoPasteZone p {
+  margin: 0;
+  color: var(--workbench-muted);
+  font-size: 0.82rem;
+}
+
+.photoPasteZone:focus-visible {
+  outline: 2px solid #91f0bf;
+  outline-offset: 2px;
+  border-color: #91f0bf;
+}
+
+.photoPasteStatus {
+  margin: 8px 0 0;
+}
+
 .sliceControls {
   display: grid;
   gap: 10px;

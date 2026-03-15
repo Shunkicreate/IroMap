@@ -46,3 +46,34 @@ export const uploadRedPng = async (page: Page): Promise<void> => {
 export const uploadGrayPng = async (page: Page): Promise<void> => {
   await setFile(page, "gray.png", grayPngBase64);
 };
+
+export const pasteRedPngToPhotoAnalysis = async (page: Page): Promise<void> => {
+  const panel = getPanel(page, "写真分析 MVP");
+  const pasteZone = panel.getByRole("button", { name: "画像貼り付けエリア" });
+  await expect(pasteZone).toBeVisible();
+  await pasteZone.focus();
+
+  await page.evaluate(
+    async ({ targetLabel, base64 }: { targetLabel: string; base64: string }) => {
+      const target = Array.from(document.querySelectorAll<HTMLElement>("[aria-label]")).find(
+        (element) => element.getAttribute("aria-label") === targetLabel
+      );
+      if (!target) {
+        throw new Error("paste target not found");
+      }
+
+      const response = await fetch(`data:image/png;base64,${base64}`);
+      const blob = await response.blob();
+      const file = new File([blob], "clipboard-image.png", { type: "image/png" });
+      const clipboardData = new DataTransfer();
+      clipboardData.items.add(file);
+      const pasteEvent = new Event("paste", { bubbles: true, cancelable: true });
+      Object.defineProperty(pasteEvent, "clipboardData", {
+        value: clipboardData,
+      });
+
+      target.dispatchEvent(pasteEvent);
+    },
+    { targetLabel: "画像貼り付けエリア", base64: redPngBase64 }
+  );
+};

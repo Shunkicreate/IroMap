@@ -11,7 +11,11 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ColorCopyPanel } from "@/features/color-copy/color-copy-panel";
 import { ColorInspector } from "@/features/inspector/color-inspector";
-import { PhotoAnalysisPanel } from "@/features/photo-analysis/photo-analysis-panel";
+import {
+  analyzePhotoFile,
+  PhotoAnalysisPanel,
+  type AnalysisState,
+} from "@/features/photo-analysis/photo-analysis-panel";
 import { RgbCubeCanvas } from "@/features/rgb-cube/rgb-cube-canvas";
 import { SliceCanvas } from "@/features/slice/slice-canvas";
 import { t } from "@/i18n/translate";
@@ -53,6 +57,11 @@ export function ColorWorkbench() {
   const [isCubeSizeSliderVisible, setIsCubeSizeSliderVisible] = useState<boolean>(true);
   const [cubeSize, setCubeSize] = useState<number>(defaultCubeSize);
   const [rotation, setRotation] = useState<Rotation>(defaultRotation);
+  const [photoAnalysis, setPhotoAnalysis] = useState<AnalysisState>(null);
+  const [photoFileName, setPhotoFileName] = useState<string>("");
+  const [photoError, setPhotoError] = useState<string>("");
+  const [photoStatusMessage, setPhotoStatusMessage] = useState<string>("");
+  const [isPhotoAnalyzing, setIsPhotoAnalyzing] = useState<boolean>(false);
 
   const normalizeSliceValueForAxis = (nextAxis: SliceAxis, currentValue: number): number => {
     const nextMax = getAxisMax(nextAxis);
@@ -86,6 +95,38 @@ export function ColorWorkbench() {
     }
   };
 
+  const runPhotoAnalysis = async (file: File): Promise<void> => {
+    setPhotoFileName(file.name);
+    setIsPhotoAnalyzing(true);
+    setPhotoError("");
+    setPhotoStatusMessage("");
+    setPhotoAnalysis(null);
+
+    try {
+      const result = await analyzePhotoFile(file);
+      setPhotoAnalysis({
+        fileName: file.name,
+        result,
+      });
+    } catch {
+      setPhotoAnalysis(null);
+      setPhotoError(t("photoError"));
+    } finally {
+      setIsPhotoAnalyzing(false);
+    }
+  };
+
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    await runPhotoAnalysis(file);
+  };
+
   return (
     <main className="workbenchRoot">
       <div className="pageHeader">
@@ -97,6 +138,27 @@ export function ColorWorkbench() {
         <div className="visualizationGrid">
           <section className="panel">
             <PanelHeader titleKey="panelRgbCube" requirementsKey="panelRgbCubeRequirements" />
+            <div className="photoUploadCta">
+              <div className="photoUploadCtaCopy">
+                <strong>{t("photoUploadCtaTitle")}</strong>
+                <p>{t("photoUploadCtaDescription")}</p>
+                {photoFileName ? (
+                  <p className="photoUploadCtaStatus">
+                    {t("photoUploadSelected", { fileName: photoFileName })}
+                  </p>
+                ) : null}
+              </div>
+              <label className="photoUploadButton">
+                <span>{isPhotoAnalyzing ? t("photoAnalyzing") : t("photoUploadButton")}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  aria-label={t("photoUploadLabel")}
+                  className="srOnly"
+                  onChange={handlePhotoUpload}
+                />
+              </label>
+            </div>
             <Tabs
               value={space}
               onValueChange={(value) => handleSpaceChange(value as ColorSpace3d)}
@@ -177,7 +239,15 @@ export function ColorWorkbench() {
         </aside>
       </div>
       <div className="analysisSection">
-        <PhotoAnalysisPanel />
+        <PhotoAnalysisPanel
+          analysis={photoAnalysis}
+          currentFileName={photoFileName}
+          isAnalyzing={isPhotoAnalyzing}
+          error={photoError}
+          statusMessage={photoStatusMessage}
+          onImageSelected={runPhotoAnalysis}
+          onPasteFeedback={setPhotoStatusMessage}
+        />
       </div>
     </main>
   );
