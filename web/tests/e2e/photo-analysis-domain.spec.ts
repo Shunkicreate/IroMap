@@ -185,3 +185,28 @@ test("T-205(photo-analysis): metric table と histogram を Markdown 形式で e
   expect(histogramMarkdown).toContain("| metric | binIndex | start | end | count | ratio |");
   expect(histogramMarkdown).toContain("luminance");
 });
+
+test("T-206(photo-analysis): compare 時に平均Lab ΔE76 行を指標表へ含める", async () => {
+  const baseline = analyzePhoto(
+    createImageDataLike(2, 1, (x) => (x === 0 ? { r: 255, g: 0, b: 0 } : { r: 0, g: 255, b: 0 }))
+  );
+  const compare = analyzePhoto(
+    createImageDataLike(2, 1, (x) =>
+      x === 0 ? { r: 255, g: 255, b: 0 } : { r: 0, g: 255, b: 255 }
+    )
+  );
+
+  const rows = buildMetricRows({
+    result: baseline,
+    selectionState: null,
+    scope: "full-image",
+    compareResult: compare,
+    compareSelectionState: null,
+    comparisonScope: "full-image",
+  });
+
+  const deltaERow = rows.find((row) => row.key === "compare_to_baseline_mean_lab_delta_e76");
+  expect(deltaERow).toBeDefined();
+  expect(deltaERow?.value).toBeGreaterThan(0);
+  expect(deltaERow?.delta).toBeNull();
+});

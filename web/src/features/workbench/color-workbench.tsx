@@ -221,7 +221,7 @@ const mirrorSelectionState = (
 
   const mirror = (slot: SelectionSlot) => {
     const selection = slot === "A" ? baselineState.selectionA : baselineState.selectionB;
-    if (!selection?.bounds) {
+    if (!selection?.bounds || selection.source !== "image-rect") {
       return null;
     }
     const normalized = {
@@ -673,6 +673,7 @@ export function ColorWorkbench() {
   useEffect(() => {
     const file = baselineTarget.file;
     let objectUrl = "";
+    let isStale = false;
     const loadTarget = async (): Promise<void> => {
       if (!file) {
         setBaselineTarget((current) => ({ ...emptyTarget("baseline", current.label), file: null }));
@@ -693,6 +694,9 @@ export function ColorWorkbench() {
       try {
         const imageData = await readFileAsImageData(file);
         const result = await analyzePhotoInWorker(imageData);
+        if (isStale) {
+          return;
+        }
         const success = t("photoSummary", {
           fileName: file.name,
           sampledPixels: result.sampledPixels,
@@ -708,6 +712,9 @@ export function ColorWorkbench() {
           error: "",
         }));
       } catch {
+        if (isStale) {
+          return;
+        }
         setBaselineTarget((current) => ({
           ...current,
           file,
@@ -722,6 +729,7 @@ export function ColorWorkbench() {
 
     void loadTarget();
     return () => {
+      isStale = true;
       if (objectUrl) {
         URL.revokeObjectURL(objectUrl);
       }
@@ -731,6 +739,7 @@ export function ColorWorkbench() {
   useEffect(() => {
     const file = compareTarget.file;
     let objectUrl = "";
+    let isStale = false;
     const loadTarget = async (): Promise<void> => {
       if (!file) {
         setCompareTarget((current) => ({ ...emptyTarget("compare", current.label), file: null }));
@@ -749,6 +758,9 @@ export function ColorWorkbench() {
       try {
         const imageData = await readFileAsImageData(file);
         const result = await analyzePhotoInWorker(imageData);
+        if (isStale) {
+          return;
+        }
         const success = t("photoSummary", {
           fileName: file.name,
           sampledPixels: result.sampledPixels,
@@ -764,6 +776,9 @@ export function ColorWorkbench() {
           error: "",
         }));
       } catch {
+        if (isStale) {
+          return;
+        }
         setCompareTarget((current) => ({
           ...current,
           file,
@@ -778,6 +793,7 @@ export function ColorWorkbench() {
 
     void loadTarget();
     return () => {
+      isStale = true;
       if (objectUrl) {
         URL.revokeObjectURL(objectUrl);
       }
@@ -795,6 +811,22 @@ export function ColorWorkbench() {
       ),
     [baselineSelectionState, baselineTarget.result, compareTarget.result, compareTarget.targetId]
   );
+  const activeBaselineSelection = getSelectionBySlot(
+    baselineSelectionState,
+    baselineSelectionState.activeSelectionSlot
+  );
+  const activeCompareSelection = getSelectionBySlot(
+    compareSelectionState,
+    compareSelectionState.activeSelectionSlot
+  );
+  const canUseMatchedSelection =
+    Boolean(compareTarget.result) &&
+    activeBaselineSelection?.source === "image-rect" &&
+    activeCompareSelection?.source === "image-rect";
+  const effectiveComparisonScope =
+    canUseMatchedSelection && comparisonScope === "matched-selection"
+      ? "matched-selection"
+      : "full-image";
   const scopedBaselineSamples = useMemo(
     () =>
       baselineTarget.result
@@ -811,7 +843,7 @@ export function ColorWorkbench() {
             scope: selectionScope,
             compareResult: compareTarget.result,
             compareSelectionState: compareSelectionState,
-            comparisonScope,
+            comparisonScope: effectiveComparisonScope,
           })
         : [],
     [
@@ -820,7 +852,7 @@ export function ColorWorkbench() {
       selectionScope,
       compareTarget.result,
       compareSelectionState,
-      comparisonScope,
+      effectiveComparisonScope,
     ]
   );
   const baselineHistogram = useMemo(
@@ -831,10 +863,11 @@ export function ColorWorkbench() {
     if (!compareTarget.result) {
       return [];
     }
-    const scope = comparisonScope === "matched-selection" ? "selected-region" : "full-image";
+    const scope =
+      effectiveComparisonScope === "matched-selection" ? "selected-region" : "full-image";
     const samples = getScopedSamples(compareTarget.result, compareSelectionState, scope);
     return buildHistogramBins(samples, histogramMetric);
-  }, [compareTarget.result, compareSelectionState, comparisonScope, histogramMetric]);
+  }, [compareTarget.result, compareSelectionState, effectiveComparisonScope, histogramMetric]);
 
   const selectionCubePoints = useMemo(
     () => buildCubePointsFromSamples(scopedBaselineSamples),
@@ -847,11 +880,11 @@ export function ColorWorkbench() {
             getScopedSamples(
               compareTarget.result,
               compareSelectionState,
-              comparisonScope === "matched-selection" ? "selected-region" : "full-image"
+              effectiveComparisonScope === "matched-selection" ? "selected-region" : "full-image"
             )
           )
         : [],
-    [compareTarget.result, compareSelectionState, comparisonScope]
+    [compareTarget.result, compareSelectionState, effectiveComparisonScope]
   );
 
   const hoverColor = hoverState.sample?.color ?? null;
@@ -1355,16 +1388,20 @@ export function ColorWorkbench() {
               </button>
               <button
                 type="button"
-                className={comparisonScope === "matched-selection" ? "segmentedActive" : ""}
+                className={
+                  effectiveComparisonScope === "matched-selection" ? "segmentedActive" : ""
+                }
                 onClick={() => setComparisonScope("matched-selection")}
-                disabled={!compareTarget.result}
+                disabled={!canUseMatchedSelection}
               >
                 matched-selection
               </button>
             </div>
             <p className="muted photoPasteStatus" aria-live="polite">
               {compareTarget.result
-                ? compareTarget.statusMessage
+                ? canUseMatchedSelection || effectiveComparisonScope === "full-image"
+                  ? compareTarget.statusMessage
+                  : "matched-selection は矩形選択後に有効になります。現在は full-image 比較のみです。"
                 : "比較対象未選択時は、baseline 分析のみを表示します。"}
             </p>
           </article>

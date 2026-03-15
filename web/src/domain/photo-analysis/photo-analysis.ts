@@ -272,6 +272,14 @@ const metricDefinitions: Array<{
     precision: 2,
     description: "同一画像内の選択領域分離",
   },
+  {
+    group: "比較",
+    key: "compare_to_baseline_mean_lab_delta_e76",
+    label: "Baseline-Compare mean Lab ΔE76",
+    unit: "",
+    precision: 2,
+    description: "baseline と compare の平均 Lab 差",
+  },
 ];
 
 const createBins = (binCount: number, maxValue: number): HistogramBin[] => {
@@ -690,6 +698,10 @@ export const buildMetricRows = ({
         ? compareResult.samples
         : [];
   const compareSummary = compareResult ? buildMetricSummary(comparisonSamples) : null;
+  const compareToBaselineDeltaE =
+    summary.meanLab && compareSummary?.meanLab
+      ? deltaE76(summary.meanLab, compareSummary.meanLab)
+      : null;
 
   const getMetricValue = (
     key: WorkbenchMetricKey,
@@ -723,15 +735,13 @@ export const buildMetricRows = ({
           : null;
       case "selection_a_b_delta_e":
         return selectionDeltaE;
+      case "compare_to_baseline_mean_lab_delta_e76":
+        return compareToBaselineDeltaE;
       case "delta_l_mean":
       case "delta_a_mean":
       case "delta_b_mean":
       case "delta_c_mean":
         return null;
-      case "compare_to_baseline_mean_lab_delta_e76":
-        return sourceSummary.meanLab && compareSummary?.meanLab
-          ? deltaE76(sourceSummary.meanLab, compareSummary.meanLab)
-          : null;
       default:
         return null;
     }
@@ -743,14 +753,14 @@ export const buildMetricRows = ({
       ? getMetricValue(definition.key, compareSummary, comparisonSamples.length)
       : null;
     const delta =
-      compareResult &&
-      definition.key !== "selection_a_b_delta_e" &&
-      definition.key !== "selection_coverage_ratio" &&
-      baseValue != null &&
-      compareValue != null
-        ? compareValue - baseValue
-        : definition.key === "compare_to_baseline_mean_lab_delta_e76"
-          ? compareValue
+      definition.key === "compare_to_baseline_mean_lab_delta_e76"
+        ? null
+        : compareResult &&
+            definition.key !== "selection_a_b_delta_e" &&
+            definition.key !== "selection_coverage_ratio" &&
+            baseValue != null &&
+            compareValue != null
+          ? compareValue - baseValue
           : null;
 
     return {
