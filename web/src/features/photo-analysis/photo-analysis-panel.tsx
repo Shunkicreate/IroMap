@@ -6,8 +6,6 @@ import { toast } from "sonner";
 import { ColorSwatch } from "@/components/workbench/color-swatch";
 import { GraphFrame } from "@/components/graph/graph-frame";
 import { PanelHeader } from "@/components/workbench/panel-header";
-import { colorChannelLevels } from "@/domain/color/color-constants";
-import { rgbToHex } from "@/domain/color/color-format";
 import type { RgbColor } from "@/domain/color/color-types";
 import { analyzePhoto, type PhotoAnalysisResult } from "@/domain/photo-analysis/photo-analysis";
 import { t } from "@/i18n/translate";
@@ -24,20 +22,14 @@ type Props = {
   onAnalysisComplete?: (result: PhotoAnalysisResult | null) => void;
 };
 
-const maxScatterRange = colorChannelLevels / 2;
-const scatterViewboxSize = 100;
 const histogramHeightPercent = 100;
 const histogramMinHeightPercent = 2;
-const pointRadius = 0.7;
-const pointOpacity = 0.8;
 const fileSummaryPrecision = 1;
 const histogramTooltipPrecision = 2;
 const hueDiverseThreshold = 8;
 const hueModerateThreshold = 4;
 const saturationHighThreshold = 0.55;
 const saturationLowThreshold = 0.25;
-const spreadWideThreshold = 48;
-const spreadMediumThreshold = 24;
 const ratioFormatter = new Intl.NumberFormat(undefined, {
   style: "percent",
   minimumFractionDigits: 1,
@@ -91,10 +83,6 @@ const readFileAsImageData = async (file: File): Promise<ImageData> => {
       URL.revokeObjectURL(objectUrl);
     }
   }
-};
-
-const toScatterPosition = (value: number): number => {
-  return ((value + maxScatterRange) / (maxScatterRange * 2)) * scatterViewboxSize;
 };
 
 const analyzePhotoInWorker = (imageData: ImageData): Promise<PhotoAnalysisResult> => {
@@ -170,33 +158,6 @@ const getSaturationInsightLabel = (result: PhotoAnalysisResult): string => {
     return t("photoInsightSatLow");
   }
   return t("photoInsightSatMid");
-};
-
-const getSpreadInsightLabel = (result: PhotoAnalysisResult): string => {
-  if (result.scatter.length === 0) {
-    return t("photoInsightSpreadMedium");
-  }
-
-  let minA = Number.POSITIVE_INFINITY;
-  let maxA = Number.NEGATIVE_INFINITY;
-  let minB = Number.POSITIVE_INFINITY;
-  let maxB = Number.NEGATIVE_INFINITY;
-
-  for (const point of result.scatter) {
-    minA = Math.min(minA, point.x);
-    maxA = Math.max(maxA, point.x);
-    minB = Math.min(minB, point.y);
-    maxB = Math.max(maxB, point.y);
-  }
-
-  const spread = (maxA - minA + (maxB - minB)) / 2;
-  if (spread >= spreadWideThreshold) {
-    return t("photoInsightSpreadWide");
-  }
-  if (spread >= spreadMediumThreshold) {
-    return t("photoInsightSpreadMedium");
-  }
-  return t("photoInsightSpreadNarrow");
 };
 
 const renderHistogramChart = ({
@@ -411,13 +372,6 @@ export function PhotoAnalysisPanel({
                   : t("photoInsightSatMid"),
               })}
             </li>
-            <li>
-              {t("photoInsightSpread", {
-                label: analysis
-                  ? getSpreadInsightLabel(analysis.result)
-                  : t("photoInsightSpreadMedium"),
-              })}
-            </li>
           </ul>
         </article>
       </div>
@@ -425,39 +379,6 @@ export function PhotoAnalysisPanel({
       <div className="analysisGrid">
         {analysis ? (
           <>
-            <article className="analysisCard analysisCardScatter">
-              <h3>{t("photoLabScatter")}</h3>
-              <GraphFrame
-                xLabel={t("graphAxisLabA")}
-                yLabel={t("graphAxisLabB")}
-                className="analysisGraphFrame"
-              >
-                <svg
-                  viewBox={`0 0 ${scatterViewboxSize} ${scatterViewboxSize}`}
-                  className="scatterPlot"
-                  role="img"
-                >
-                  <rect
-                    x="0"
-                    y="0"
-                    width={scatterViewboxSize}
-                    height={scatterViewboxSize}
-                    fill="#0f172a"
-                  />
-                  {analysis.result.scatter.map((point, index) => (
-                    <circle
-                      key={`${index}-${point.x}-${point.y}`}
-                      cx={toScatterPosition(point.x)}
-                      cy={scatterViewboxSize - toScatterPosition(point.y)}
-                      r={pointRadius}
-                      fill={rgbToHex(point.color)}
-                      opacity={pointOpacity}
-                    />
-                  ))}
-                </svg>
-              </GraphFrame>
-            </article>
-
             <article className="analysisCard">
               <h3>{t("photoHueHistogram")}</h3>
               <GraphFrame
@@ -527,7 +448,7 @@ export function PhotoAnalysisPanel({
           </>
         ) : (
           <article className="analysisCard analysisCardEmpty">
-            <h3>{t("photoLabScatter")}</h3>
+            <h3>{t("photoHueHistogram")}</h3>
             <p className="muted">{t("photoPreviewEmpty")}</p>
           </article>
         )}

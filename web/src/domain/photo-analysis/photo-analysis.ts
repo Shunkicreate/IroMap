@@ -23,12 +23,6 @@ export type PhotoSample = {
   chroma: number;
 };
 
-export type ScatterPoint = {
-  x: number;
-  y: number;
-  color: RgbColor;
-};
-
 export type HistogramBin = {
   start: number;
   end: number;
@@ -105,7 +99,6 @@ export type WorkbenchMetricRow = {
 };
 
 export type PhotoAnalysisResult = {
-  scatter: ScatterPoint[];
   hueHistogram: HistogramBin[];
   saturationHistogram: HistogramBin[];
   colorAreas: ColorArea[];
@@ -146,7 +139,6 @@ const topAreaCount = 5;
 const quantizeBucketSize = 16;
 const performanceSamplingThreshold = 100_000;
 const maxSampleCount = 200_000;
-const maxScatterPoints = 3000;
 const maxCubePointCount = 3500;
 const rgbaStride = 4;
 const alphaChannelOffset = 3;
@@ -327,22 +319,6 @@ const samplePixels = (imageData: ImageData, step: number, maxSamples: number): P
   }
 
   return sampled;
-};
-
-const buildScatter = (samples: PhotoSample[], maxPoints: number): ScatterPoint[] => {
-  const step = Math.max(minimumUnit, Math.ceil(samples.length / maxPoints));
-  const points: ScatterPoint[] = [];
-
-  for (let index = 0; index < samples.length; index += step) {
-    const sample = samples[index];
-    points.push({
-      x: sample.lab.a,
-      y: sample.lab.b,
-      color: sample.color,
-    });
-  }
-
-  return points;
 };
 
 const fillHistograms = (
@@ -809,13 +785,11 @@ export const analyzePhoto = (imageData: ImageData): PhotoAnalysisResult => {
   const startAt = performance.now();
   const step = pickSamplingStep(imageData.width * imageData.height);
   const samples = samplePixels(imageData, step, maxSampleCount);
-  const scatter = buildScatter(samples, maxScatterPoints);
   const { hue, saturation } = fillHistograms(samples);
   const colorAreas = calculateColorAreas(samples);
   const cubePoints = buildRgbCubePointsCore(samples, maxCubePointCount);
 
   return {
-    scatter,
     hueHistogram: hue,
     saturationHistogram: saturation,
     colorAreas,

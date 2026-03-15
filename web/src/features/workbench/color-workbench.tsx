@@ -80,8 +80,6 @@ const clipboardImageFileName = "clipboard-image.png";
 const histogramHeightPercent = 100;
 const histogramMinHeightPercent = 3;
 const fileSummaryPrecision = 1;
-const pointRadius = 0.7;
-const pointOpacity = 0.8;
 const ratioFormatter = new Intl.NumberFormat(undefined, {
   style: "percent",
   minimumFractionDigits: 1,
@@ -253,31 +251,6 @@ const getSaturationInsightLabel = (result: PhotoAnalysisResult): string => {
     return t("photoInsightSatLow");
   }
   return t("photoInsightSatMid");
-};
-
-const getSpreadInsightLabel = (result: PhotoAnalysisResult): string => {
-  if (result.scatter.length === 0) {
-    return t("photoInsightSpreadMedium");
-  }
-
-  let minA = Number.POSITIVE_INFINITY;
-  let maxA = Number.NEGATIVE_INFINITY;
-  let minB = Number.POSITIVE_INFINITY;
-  let maxB = Number.NEGATIVE_INFINITY;
-  for (const point of result.scatter) {
-    minA = Math.min(minA, point.x);
-    maxA = Math.max(maxA, point.x);
-    minB = Math.min(minB, point.y);
-    maxB = Math.max(maxB, point.y);
-  }
-  const spread = (maxA - minA + (maxB - minB)) / 2;
-  if (spread >= 48) {
-    return t("photoInsightSpreadWide");
-  }
-  if (spread >= 24) {
-    return t("photoInsightSpreadMedium");
-  }
-  return t("photoInsightSpreadNarrow");
 };
 
 const renderHistogramChart = ({
@@ -1273,9 +1246,6 @@ export function ColorWorkbench() {
                     label: getSaturationInsightLabel(baselineTarget.result),
                   })}
                 </li>
-                <li>
-                  {t("photoInsightSpread", { label: getSpreadInsightLabel(baselineTarget.result) })}
-                </li>
               </ul>
             ) : (
               <p className="muted">{t("photoPreviewEmpty")}</p>
@@ -1366,29 +1336,6 @@ export function ColorWorkbench() {
         <div className="analysisGrid">
           {baselineTarget.result ? (
             <>
-              <article className="analysisCard analysisCardScatter">
-                <h3>{t("photoLabScatter")}</h3>
-                <GraphFrame
-                  xLabel={t("graphAxisLabA")}
-                  yLabel={t("graphAxisLabB")}
-                  className="analysisGraphFrame"
-                >
-                  <svg viewBox="0 0 100 100" className="scatterPlot" role="img">
-                    <rect x="0" y="0" width="100" height="100" fill="#0f172a" />
-                    {baselineTarget.result.scatter.map((point, index) => (
-                      <circle
-                        key={`${index}-${point.x}-${point.y}`}
-                        cx={((point.x + 128) / 255) * 100}
-                        cy={100 - ((point.y + 128) / 255) * 100}
-                        r={pointRadius}
-                        fill={rgbToHex(point.color)}
-                        opacity={pointOpacity}
-                      />
-                    ))}
-                  </svg>
-                </GraphFrame>
-              </article>
-
               <article className="analysisCard">
                 <h3>{t("photoHueHistogram")}</h3>
                 <GraphFrame
@@ -1439,7 +1386,7 @@ export function ColorWorkbench() {
             </>
           ) : (
             <article className="analysisCard analysisCardEmpty">
-              <h3>{t("photoLabScatter")}</h3>
+              <h3>{t("photoHueHistogram")}</h3>
               <p className="muted">{t("photoPreviewEmpty")}</p>
             </article>
           )}

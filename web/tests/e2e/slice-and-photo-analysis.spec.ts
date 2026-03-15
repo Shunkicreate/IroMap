@@ -44,7 +44,7 @@ test("T-201(photo-analysis): 上部CTAからアップロードして結果表示
   const previewPanel = getPanel(page, "選択画像プレビュー");
   const panel = getPanel(page, "写真分析 MVP");
   await expect(page.getByText("選択中: red.png")).toBeVisible();
-  await expect(panel.getByText("Lab a-b 散布図")).toBeVisible();
+  await expect(panel.getByText("色相ヒストグラム")).toBeVisible();
   await expect(previewPanel.locator(".previewStatusGrid")).toContainText("file=red.png");
 });
 
@@ -55,7 +55,7 @@ test("T-202(photo-analysis): クリップボード画像貼り付けで結果表
 
   const previewPanel = getPanel(page, "選択画像プレビュー");
   const panel = getPanel(page, "写真分析 MVP");
-  await expect(panel.getByText("Lab a-b 散布図")).toBeVisible();
+  await expect(panel.getByText("色相ヒストグラム")).toBeVisible();
   await expect(previewPanel.locator(".previewStatusGrid")).toContainText(
     "file=clipboard-image.png"
   );
@@ -68,7 +68,7 @@ test("T-203(photo-analysis): クリップボードJPEG貼り付けで結果表�
 
   const previewPanel = getPanel(page, "選択画像プレビュー");
   const panel = getPanel(page, "写真分析 MVP");
-  await expect(panel.getByText("Lab a-b 散布図")).toBeVisible();
+  await expect(panel.getByText("色相ヒストグラム")).toBeVisible();
   await expect(previewPanel.locator(".previewStatusGrid")).toContainText(
     "file=clipboard-image.jpg"
   );

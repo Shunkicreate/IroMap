@@ -29,11 +29,12 @@ const createImageDataLike = (
   return { data, width, height, colorSpace: "srgb" } as ImageData;
 };
 
-test("T-101(photo-analysis): 単色画像でLab scatter表示を確認", async () => {
+test("T-101(photo-analysis): 単色画像で主要ヒストグラムを生成できる", async () => {
   const imageData = createImageDataLike(8, 8, () => ({ r: 255, g: 0, b: 0 }));
   const result = analyzePhoto(imageData);
 
-  expect(result.scatter.length).toBeGreaterThan(0);
+  expect(result.hueHistogram.length).toBeGreaterThan(0);
+  expect(result.saturationHistogram.length).toBeGreaterThan(0);
 });
 
 test("T-102(photo-analysis): 色相が偏った画像でHue histogramを確認", async () => {
@@ -86,7 +87,7 @@ test("T-202(photo-analysis): 同一入力で再分析結果が一致する", asy
   expect(second.hueHistogram).toEqual(first.hueHistogram);
   expect(second.saturationHistogram).toEqual(first.saturationHistogram);
   expect(second.colorAreas).toEqual(first.colorAreas);
-  expect(second.scatter).toEqual(first.scatter);
+  expect(second.cubePoints).toEqual(first.cubePoints);
 });
 
 test("T-203(photo-analysis): selected-region scope で選択サンプルだけ再集計できる", async () => {
