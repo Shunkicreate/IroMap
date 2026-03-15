@@ -56,8 +56,7 @@ export const pasteRedPngToPhotoAnalysis = async (page: Page): Promise<void> => {
 };
 
 export const pasteRedJpegToPhotoAnalysis = async (page: Page): Promise<void> => {
-  const panel = getPanel(page, "写真分析 MVP");
-  const pasteZone = panel.getByRole("button", { name: "画像貼り付けエリア" });
+  const pasteZone = page.getByRole("button", { name: "画像貼り付けエリア" });
   await expect(pasteZone).toBeVisible();
   await pasteZone.focus();
 
@@ -110,8 +109,7 @@ const pasteImageToPhotoAnalysis = async (
   page: Page,
   payload: { fileName: string; mimeType: string; base64: string }
 ): Promise<void> => {
-  const panel = getPanel(page, "写真分析 MVP");
-  const pasteZone = panel.getByRole("button", { name: "画像貼り付けエリア" });
+  const pasteZone = page.getByRole("button", { name: "画像貼り付けエリア" });
   await expect(pasteZone).toBeVisible();
   await pasteZone.focus();
 

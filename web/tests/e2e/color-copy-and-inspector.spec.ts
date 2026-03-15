@@ -13,14 +13,16 @@ test("T-102(color-copy): コピー形式の確認", async ({ page }) => {
   await page.goto("/");
   await selectColorFromSlice(page);
 
-  const copyPanel = getPanel(page, "カラーコピー");
-  await expect(copyPanel.locator("code.copyValue")).toHaveText(/^#[0-9A-F]{6}$/i);
-
-  await copyPanel.getByLabel("形式").selectOption("rgb");
-  await expect(copyPanel.locator("code.copyValue")).toHaveText(/^rgb\(\d+, \d+, \d+\)$/);
-
-  await copyPanel.getByLabel("形式").selectOption("hsl");
-  await expect(copyPanel.locator("code.copyValue")).toHaveText(/^hsl\(\d+, \d+%, \d+%\)$/);
+  const inspector = getPanel(page, "インスペクタ");
+  await expect(
+    inspector.locator(".copyValueRow").filter({ hasText: "HEX" }).locator("code")
+  ).toHaveText(/^#[0-9A-F]{6}$/i);
+  await expect(
+    inspector.locator(".copyValueRow").filter({ hasText: "rgb()" }).locator("code")
+  ).toHaveText(/^rgb\(\d+, \d+, \d+\)$/);
+  await expect(
+    inspector.locator(".copyValueRow").filter({ hasText: "hsl()" }).locator("code")
+  ).toHaveText(/^hsl\(\d+, \d+%, \d+%\)$/);
 });
 
 test("T-101(inspector): プレビュー表示の確認", async ({ page }) => {
