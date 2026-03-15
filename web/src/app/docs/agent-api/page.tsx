@@ -32,8 +32,8 @@ export default function AgentApiDocsPage() {
     <main className={styles.docsPage}>
       <h1>Agent API</h1>
       <p>
-        The API accepts raw image bytes and returns structured JSON. This endpoint is public and currently guarded by
-        Vercel Rate Limiting on the caller IP.
+        The API accepts raw image bytes and returns structured JSON. This endpoint is public and
+        currently guarded by Vercel Rate Limiting on the caller IP.
       </p>
 
       <section>
@@ -63,8 +63,9 @@ export default function AgentApiDocsPage() {
       <section>
         <h2>Response</h2>
         <p>
-          Successful responses return <code>200 OK</code> with JSON containing <code>input</code>, <code>summary</code>
-          , <code>analysis</code>, <code>visualization</code>, and <code>explanations</code>.
+          Successful responses return <code>200 OK</code> with JSON containing <code>input</code>,{" "}
+          <code>summary</code>, <code>analysis</code>, <code>visualization</code>, and{" "}
+          <code>explanations</code>.
         </p>
         <pre className={styles.docsPre}>{responseExample}</pre>
       </section>
@@ -93,8 +94,8 @@ export default function AgentApiDocsPage() {
       <section>
         <h2>Rate limiting</h2>
         <p>
-          Initial policy: <code>{limits.ipPerMinute} requests / minute / IP</code>. This is intentionally conservative
-          for the first public release.
+          Initial policy: <code>{limits.ipPerMinute} requests / minute / IP</code>. This is
+          intentionally conservative for the first public release.
         </p>
       </section>
     </main>

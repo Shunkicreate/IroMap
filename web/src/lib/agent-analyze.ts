@@ -73,7 +73,10 @@ export const createErrorResponse = (
   };
 };
 
-const determineTemperatureBias = (warmCount: number, coolCount: number): "warm" | "cool" | "neutral" => {
+const determineTemperatureBias = (
+  warmCount: number,
+  coolCount: number
+): "warm" | "cool" | "neutral" => {
   const total = warmCount + coolCount;
   if (total <= 0) {
     return "neutral";
@@ -379,7 +382,9 @@ const toSuccessResponse = (
   };
 };
 
-const decodeImage = async (input: AnalyzePhotoInput): Promise<{
+const decodeImage = async (
+  input: AnalyzePhotoInput
+): Promise<{
   width: number;
   height: number;
   imageData: ImageData;
@@ -414,7 +419,14 @@ const runWithTimeout = async <T>(work: Promise<T>): Promise<T> => {
   let timeoutId: NodeJS.Timeout | undefined;
   const timeout = new Promise<never>((_, reject) => {
     timeoutId = setTimeout(() => {
-      reject(createErrorResponse("ANALYSIS_TIMEOUT", "Analysis exceeded the time limit.", { timeoutMs }, true));
+      reject(
+        createErrorResponse(
+          "ANALYSIS_TIMEOUT",
+          "Analysis exceeded the time limit.",
+          { timeoutMs },
+          true
+        )
+      );
     }, timeoutMs);
   });
 
@@ -437,7 +449,8 @@ export const getAnalyzeLimits = (): RateLimitPolicy => {
 };
 
 export const checkAnalyzeRateLimit = async (request: Request): Promise<boolean> => {
-  const host = request.headers.get("host") ?? request.headers.get("x-forwarded-host") ?? "localhost:3000";
+  const host =
+    request.headers.get("host") ?? request.headers.get("x-forwarded-host") ?? "localhost:3000";
   const result = await checkRateLimit(rateLimitId, {
     request,
     firewallHostForDevelopment: host,
@@ -462,10 +475,14 @@ export const validateAnalyzeRequest = (
   }
 
   if (bodySize !== undefined && bodySize > maxBodyBytes) {
-    return createErrorResponse("PAYLOAD_TOO_LARGE", "Image body exceeds the maximum allowed size.", {
-      maxBodyBytes,
-      bodySize,
-    });
+    return createErrorResponse(
+      "PAYLOAD_TOO_LARGE",
+      "Image body exceeds the maximum allowed size.",
+      {
+        maxBodyBytes,
+        bodySize,
+      }
+    );
   }
 
   return null;
@@ -489,7 +506,12 @@ export const analyzeImageBytes = async (
       return createErrorResponse("IMAGE_DECODE_FAILED", "Failed to decode image bytes.");
     }
 
-    return createErrorResponse("INTERNAL_ERROR", "Unexpected server error during analysis.", undefined, true);
+    return createErrorResponse(
+      "INTERNAL_ERROR",
+      "Unexpected server error during analysis.",
+      undefined,
+      true
+    );
   }
 };
 

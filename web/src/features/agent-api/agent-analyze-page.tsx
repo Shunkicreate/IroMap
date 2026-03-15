@@ -76,8 +76,8 @@ export function AgentAnalyzePage() {
         <p className={styles.eyebrow}>Analyze</p>
         <h1 className={styles.heroTitle}>AI agent image analysis</h1>
         <p className={styles.heroDescription}>
-          Upload an image to call the same raw-body API that agents use. The page renders a structured HTML result
-          while the API returns JSON.
+          Upload an image to call the same raw-body API that agents use. The page renders a
+          structured HTML result while the API returns JSON.
         </p>
       </section>
 

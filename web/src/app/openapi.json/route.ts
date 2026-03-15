@@ -22,7 +22,9 @@ export function GET(): Response {
   };
   responses["400"] = { description: "Unsupported content type" };
   responses["413"] = { description: `Payload larger than ${limits.maxBodyBytes} bytes` };
-  responses["422"] = { description: `Decode failure or pixel count larger than ${limits.maxPixels}` };
+  responses["422"] = {
+    description: `Decode failure or pixel count larger than ${limits.maxPixels}`,
+  };
   responses["429"] = { description: `Rate limited at ${limits.ipPerMinute} req/min/IP` };
 
   const requestContent: Record<string, unknown> = {};
