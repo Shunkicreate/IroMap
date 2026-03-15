@@ -7,16 +7,10 @@ export const i18nMessages = {
     heroTitle: "写真の色構造を一目で理解する",
     heroDescription:
       "IroMap は RGB / HSL / Lab 可視化と写真分析を1画面で往復できる Photo Color Analyzer です。",
-    heroStartButton: "ワークベンチを開く",
     landingWorkbenchHeading: "Workbench Preview",
-    workbenchTitle: "IroMap ワークベンチ",
-    workbenchSteps:
-      "Step1 画像を選ぶ、Step2 RGBキューブ、Step3 インスペクタ、Step4 コピー、Step5 スライス、Step6 写真分析",
     workbenchThemeLabel: "テーマ",
     workbenchThemeLight: "ライト",
     workbenchThemeDark: "ダーク",
-    workbenchUploadLabel: "写真分析用画像",
-    workbenchUploadHint: "この画像が右側の分析パネルで自動分析されます",
     workbenchManualPickerTitle: "キーボード色選択",
     workbenchManualApply: "選択色に反映",
     workbenchManualApplied: "キーボード入力から選択色を更新しました",
@@ -120,16 +114,10 @@ export const i18nMessages = {
     heroTitle: "Understand your photo color structure at a glance",
     heroDescription:
       "IroMap is a Photo Color Analyzer where RGB / HSL / Lab visualization and photo analysis stay in one workflow.",
-    heroStartButton: "Open Workbench",
     landingWorkbenchHeading: "Workbench Preview",
-    workbenchTitle: "IroMap Workbench",
-    workbenchSteps:
-      "Step1 Choose image, Step2 RGB cube, Step3 Inspector, Step4 Copy, Step5 Slice, Step6 Photo Analysis",
     workbenchThemeLabel: "Theme",
     workbenchThemeLight: "Light",
     workbenchThemeDark: "Dark",
-    workbenchUploadLabel: "Photo input",
-    workbenchUploadHint: "This image will be analyzed in the panel automatically.",
     workbenchManualPickerTitle: "Keyboard Color Picker",
     workbenchManualApply: "Apply as selected color",
     workbenchManualApplied: "Selected color updated from keyboard input",

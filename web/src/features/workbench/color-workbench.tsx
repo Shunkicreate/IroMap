@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { PanelHeader } from "@/components/workbench/panel-header";
 import {
   toRgbColor,
@@ -141,39 +140,10 @@ export function ColorWorkbench() {
 
   return (
     <section className="workbenchRoot">
-      <div className="workbenchTopBar">
-        <div>
-          <h1>{t("workbenchTitle")}</h1>
-          <p className="workbenchSteps">{t("workbenchSteps")}</p>
-        </div>
-        <ThemeToggle />
-      </div>
-
       <div className="workbenchMainGrid">
         <div className="visualizationGrid">
           <section className="panel">
             <PanelHeader titleKey="panelRgbCube" requirementsKey="panelRgbCubeRequirements" />
-            <div className="photoUploadCta">
-              <div className="photoUploadCtaCopy">
-                <strong>{t("photoUploadCtaTitle")}</strong>
-                <p>{t("photoUploadCtaDescription")}</p>
-                {analysisSourceFile ? (
-                  <p className="photoUploadCtaStatus">
-                    {t("photoUploadSelected", { fileName: analysisSourceFile.name })}
-                  </p>
-                ) : null}
-              </div>
-              <label className="photoUploadButton">
-                <span>{t("photoUploadButton")}</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  aria-label={t("photoUploadLabel")}
-                  className="srOnly"
-                  onChange={handlePhotoUpload}
-                />
-              </label>
-            </div>
             <Tabs
               value={space}
               onValueChange={(value) => handleSpaceChange(value as ColorSpace3d)}
@@ -192,15 +162,6 @@ export function ColorWorkbench() {
               </TabsList>
             </Tabs>
             <div className="cubeSettings">
-              <label className="fileInputInline">
-                {t("workbenchUploadLabel")}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(event) => handleSourceFileSelected(event.target.files?.[0] ?? null)}
-                />
-                <span>{t("workbenchUploadHint")}</span>
-              </label>
               <div className="cubeToggleRow">
                 <label className="toggleLabel">
                   <input
@@ -302,6 +263,7 @@ export function ColorWorkbench() {
             onColorInspect={setSelectedColor}
             onStatusChange={handleStatusChange}
             onImageSelected={handleSourceFileSelected}
+            onUploadChange={handlePhotoUpload}
           />
           <ColorCopyPanel
             selectedColor={selectedColor}
