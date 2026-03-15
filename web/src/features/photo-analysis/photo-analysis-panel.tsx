@@ -1,7 +1,7 @@
 "use client";
 
 import NextImage from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { toast } from "sonner";
 import { ColorSwatch } from "@/components/workbench/color-swatch";
 import { GraphFrame } from "@/components/graph/graph-frame";
@@ -39,6 +39,51 @@ const saturationLowThreshold = 0.25;
 const spreadWideThreshold = 48;
 const spreadMediumThreshold = 24;
 const clipboardFileName = "clipboard-image.png";
+const topRowStyle: CSSProperties = {
+  display: "grid",
+  gap: "0.75rem",
+  gridTemplateColumns: "repeat(auto-fit, minmax(13.75rem, 1fr))",
+  alignItems: "start",
+  marginBottom: "0.75rem",
+};
+const controlsStyle: CSSProperties = {
+  minWidth: 0,
+};
+const previewCardStyle: CSSProperties = {
+  border: "0.0625rem solid #263a57",
+  borderRadius: "0.625rem",
+  padding: "0.625rem",
+  background: "#0a1626",
+};
+const previewHeaderStyle: CSSProperties = {
+  marginBottom: "0.625rem",
+};
+const previewHeaderTextStyle: CSSProperties = {
+  margin: "0.25rem 0 0",
+  color: "var(--workbench-muted)",
+  fontSize: "0.82rem",
+  overflowWrap: "anywhere",
+};
+const previewSurfaceStyle: CSSProperties = {
+  width: "100%",
+  aspectRatio: "4 / 3",
+  borderRadius: "0.5rem",
+  border: "0.0625rem solid #304766",
+  background: "#08111d",
+};
+const previewImageStyle: CSSProperties = {
+  ...previewSurfaceStyle,
+  objectFit: "cover",
+};
+const previewEmptyStyle: CSSProperties = {
+  ...previewSurfaceStyle,
+  display: "grid",
+  placeItems: "center",
+  padding: "0.75rem",
+  textAlign: "center",
+  color: "var(--workbench-muted)",
+  fontSize: "0.85rem",
+};
 const ratioFormatter = new Intl.NumberFormat(undefined, {
   style: "percent",
   minimumFractionDigits: 1,
@@ -325,8 +370,8 @@ export function PhotoAnalysisPanel({
     <section className="panel">
       <PanelHeader titleKey="panelPhotoAnalysis" requirementsKey="panelPhotoAnalysisRequirements" />
 
-      <div className="photoAnalysisTopRow">
-        <div className="photoAnalysisControls">
+      <div style={topRowStyle}>
+        <div style={controlsStyle}>
           <button
             type="button"
             className="photoPasteZone"
@@ -347,22 +392,22 @@ export function PhotoAnalysisPanel({
           {!sourceFile && !analysis ? <p className="muted">{t("photoUploadLabel")}</p> : null}
         </div>
 
-        <article className="photoPreviewCard">
-          <div className="photoPreviewHeader">
+        <article style={previewCardStyle}>
+          <div style={previewHeaderStyle}>
             <h3>{t("photoPreviewTitle")}</h3>
-            {sourceFile ? <p>{sourceFile.name}</p> : null}
+            {sourceFile ? <p style={previewHeaderTextStyle}>{sourceFile.name}</p> : null}
           </div>
           {previewUrl ? (
             <NextImage
               src={previewUrl}
               alt={t("photoPreviewAlt", { fileName: sourceFile?.name ?? t("photoUploadLabel") })}
-              className="photoPreviewImage"
+              style={previewImageStyle}
               width={320}
               height={240}
               unoptimized
             />
           ) : (
-            <div className="photoPreviewEmpty">{t("photoPreviewEmpty")}</div>
+            <div style={previewEmptyStyle}>{t("photoPreviewEmpty")}</div>
           )}
         </article>
       </div>

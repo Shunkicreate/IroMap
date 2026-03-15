@@ -144,7 +144,7 @@ export function ColorWorkbench() {
       <div className="workbenchTopBar">
         <div>
           <h1>{t("workbenchTitle")}</h1>
-          <p>{t("workbenchSteps")}</p>
+          <p className="workbenchSteps">{t("workbenchSteps")}</p>
         </div>
         <ThemeToggle />
       </div>
