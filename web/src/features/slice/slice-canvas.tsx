@@ -38,6 +38,7 @@ const redOffset = 0;
 const greenOffset = 1;
 const blueOffset = 2;
 const alphaOffset = 3;
+const mappedSampleHitRadius = 8;
 
 const toScaledValue = (value: number, max: number): number => {
   return Math.round((value / colorChannelMax) * max);
@@ -355,6 +356,14 @@ export function SliceCanvas({
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
   const labels = getPlaneLabels(axis);
   const axisRange = useMemo(() => getAxisRange(axis), [axis]);
+  const projectedMappedSamples = useMemo(
+    () =>
+      mappedSamples.flatMap((sample) => {
+        const point = projectSampleToSlice(sample, axis, value);
+        return point ? [{ sample, point }] : [];
+      }),
+    [axis, mappedSamples, value]
+  );
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -486,7 +495,19 @@ export function SliceCanvas({
       return null;
     }
 
-    return buildColorFromPixel(axis, value, x, y);
+    let nearestColor: RgbColor | null = null;
+    let nearestDistanceSquared = mappedSampleHitRadius ** 2;
+    for (const projected of projectedMappedSamples) {
+      const dx = projected.point.x - x;
+      const dy = projected.point.y - y;
+      const distanceSquared = dx * dx + dy * dy;
+      if (distanceSquared <= nearestDistanceSquared) {
+        nearestDistanceSquared = distanceSquared;
+        nearestColor = projected.sample.color;
+      }
+    }
+
+    return nearestColor;
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>): void => {
