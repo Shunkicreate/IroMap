@@ -20,6 +20,8 @@
 - TC-005: 2 件比較で `ΔL* / Δa* / Δb* / ΔC* / ΔE` が表示される（FR-4）
 - TC-006: 指標表を Markdown Table / CSV / TSV でコピーできる（FR-6）
 - TC-007: L* histogram の bin データをコピーできる（FR-6, FR-7）
+- TC-008: 指標表の数値が小数第 2 位、histogram ratio が小数第 4 位でコピーされる（FR-5, FR-6）
+- TC-009: baseline と compare の histogram が同じ 20 bins で重ね表示される（FR-4, FR-7）
 
 ## 異常系
 
@@ -28,3 +30,4 @@
 - TC-103: 画像読み込み失敗時に比較対象へ追加されず、エラー表示される（FR-4）
 - TC-104: 単色画像でも histogram と差分計算 UI が破綻しない（FR-5, FR-7）
 - TC-105: 比較対象未設定時に差分列や重ね表示が誤って表示されない（FR-4）
+- TC-106: baseline または compare の値が `N/A` のとき差分列も `N/A` になる（FR-4, FR-5）

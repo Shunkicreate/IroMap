@@ -90,6 +90,8 @@
   - `Highlight b* mean / Highlight Neutral Distance mean`
   - `Selection A-B ΔE`
 - 各行は `区分 / 指標 / 値 / 意味` を確認できる
+- MVP での表示精度は、統計値を小数第 2 位まで表示する
+- 値が算出不能な場合は `N/A` を表示し、空文字や 0 に置き換えない
 - 比較モードでは、基準対象との差分列を追加表示できる
 
 ### FR-6: 指標表とヒストグラムをコピーできる
@@ -99,6 +101,8 @@
 - 指標表は `Markdown Table / CSV / TSV` の 3 形式でコピーできる
 - デフォルトのコピー形式は `Markdown Table` とする
 - ヒストグラムは各 bin について `start / end / count / ratio` をコピーできる
+- 指標表コピーの列順は `group, key, label, value, unit, delta, description` を基準とする
+- histogram コピーの列順は `metric, binIndex, start, end, count, ratio` を基準とする
 - コピー成功時に利用者へ明示的なフィードバックを表示できる
 
 ### FR-7: L* を中心としたヒストグラム表示を提供できる
@@ -106,6 +110,7 @@
 #### 受け入れ条件
 
 - `L* histogram` を表示できる
+- MVP での `L* histogram` は 20 bins の固定幅集計とする
 - P0 では `L* histogram` を必須とし、`Hue / Saturation / C* or Neutral Distance` は既存導線と併存または段階追加できる
 - ヒストグラム比較時は、対象間の分布差を視認できる
 
@@ -132,6 +137,7 @@
 - サンプルモードは将来 `全画素 / 間引き / 選択領域のみ` を持てる設計にするが、MVP では既存の間引き戦略を再利用してよい
 - `hover` は一時状態、`selection` は明示操作で確定する状態として扱う
 - `comparison` の差分方向は常に `compare - baseline` とする
+- `L* histogram` の bin 境界は `0 <= L* <= 100` の等幅分割とする
 
 ## 8. エッジケース
 

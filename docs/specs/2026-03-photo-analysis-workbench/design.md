@@ -130,6 +130,124 @@
   - `serializeTable(rows, format): string`
   - `serializeHistogramBins(bins, format): string`
 
+## 6.3 指標仕様
+
+- 指標の入力範囲
+  - `selectionScope = full-image` のときは target 全 sample
+  - `selectionScope = selected-region` のときは active selection の sample のみ
+- 表示精度
+  - MVP では数値表示を小数第 2 位で丸める
+  - 元計算値は内部で保持し、UI 表示時とコピー時に丸める
+- 欠損ルール
+  - 分母 0、対象 sample 0、highlight sample 0 の場合は `N/A`
+  - `N/A` はコピー時も文字列 `N/A` を出力する
+
+### 6.3.1 ベース指標
+
+- `l_mean`
+  - `mean(L*)`
+- `l_stddev`
+  - `stddev(L*)`
+- `l_p95`
+  - `95th percentile(L*)`
+- `a_mean`
+  - `mean(a*)`
+- `b_mean`
+  - `mean(b*)`
+- `c_mean`
+  - `mean(C*)`
+- `c_p95`
+  - `95th percentile(C*)`
+- `neutral_distance_mean`
+  - MVP では `mean(C*)` と同値を返す
+- `highlight_b_mean`
+  - `mean(b*) where L* > 80`
+- `highlight_neutral_distance_mean`
+  - `mean(C*) where L* > 80`
+- `selection_coverage_ratio`
+  - `selected sample count / target sample count`
+
+### 6.3.2 比較指標
+
+- `delta_l_mean`
+  - `compare.l_mean - baseline.l_mean`
+- `delta_a_mean`
+  - `compare.a_mean - baseline.a_mean`
+- `delta_b_mean`
+  - `compare.b_mean - baseline.b_mean`
+- `delta_c_mean`
+  - `compare.c_mean - baseline.c_mean`
+- `delta_e_mean`
+  - `mean(DeltaE76(baselineMeanLab, compareMeanLab))`
+  - MVP では平均 Lab 同士の単一点比較として扱う
+- `selection_a_b_delta_e`
+  - 同一 target 内で `selection A` と `selection B` を比較する将来指標
+  - MVP では active selection が 1 件のみのため、表にはプレースホルダを置かず未表示でもよい
+
+### 6.3.3 表の既定表示順
+
+1. 明度
+2. 色被り
+3. 彩度
+4. 中立
+5. 白
+6. 補助情報
+
+## 6.4 Histogram 仕様
+
+- P0 必須
+  - `L* histogram`
+- P1 拡張候補
+  - `Hue`
+  - `Saturation`
+  - `C* / Neutral Distance`
+- `L* histogram`
+  - domain: `0..100`
+  - bins: `20`
+  - bin width: `5`
+  - count: bin 範囲に含まれる sample 数
+  - ratio: `count / total count`
+- 境界ルール
+  - 下端含む、上端は最終 bin のみ含む
+  - 例: `[0,5)`, `[5,10)`, ..., `[95,100]`
+- 0 件 bin
+  - UI とコピーの両方で省略しない
+- 比較表示
+  - baseline と compare を同じ bin 定義で集計する
+  - 差分表示用の追加 bin は MVP では持たず、2 系列重ね表示で視認させる
+
+## 6.5 コピー仕様
+
+- 指標表コピー
+  - 内部列順: `group, key, label, value, unit, delta, description`
+  - Markdown ではヘッダ行と区切り行を含む
+  - CSV / TSV では UTF-8 文字列として出力する
+- histogram コピー
+  - 内部列順: `metric, binIndex, start, end, count, ratio`
+  - ratio は `0..1` の実数を小数第 4 位まで出力する
+- コピー対象
+  - 指標表: 現在表示している scope の表だけをコピーする
+  - histogram: 現在選択している metric だけをコピーする
+- 失敗時
+  - clipboard API が失敗したら toast で失敗理由を表示する
+
+## 6.6 比較・差分仕様
+
+- baseline / compare の役割
+  - すべての差分は `compare - baseline`
+- `full-image`
+  - 両 target 全体で同一 metric 群を比較する
+- `matched-selection`
+  - 両 target に active selection があり、かつ selection sample count が閾値以上の場合のみ比較する
+- 差分列
+  - 指標表では `value` に加えて `delta` を持つ
+  - histogram は差分列を持たず、系列の重ね表示で比較する
+- 差分欠損ルール
+  - baseline か compare のどちらかが `N/A` の場合、delta も `N/A`
+- target 間の座標対応
+  - MVP では画像位置の厳密対応を前提にしない
+  - `matched-selection` は各 target 上の個別 selection を比較し、ピクセル単位対応は要求しない
+
 ## 6.1 選択・相互ハイライト仕様
 
 - event sources
@@ -181,6 +299,7 @@
 
 - 画像読込時間、再集計時間、比較計算時間を開発時ログで観測できる
 - サンプル数、選択領域サンプル数、histogram bin 数を確認可能にする
+- 指標計算ごとの入力 sample 数と `N/A` 発生件数を確認可能にする
 
 ## 10. トレードオフ
 
@@ -189,6 +308,7 @@
 - 2 件比較を先に成立させ、多件比較や履歴管理は後続へ分離する
 - 3D 選択を完全な幾何選択にすると複雑になるため、初期は hover / nearest sample / slice 連携中心でもよい
 - hover と selection を同じ state にすると再集計が過剰発火するため、意図的に分離する
+- `ΔE` は画素対応ベースではなく平均 Lab ベースで始めることで、比較仕様を先に成立させる
 
 ## 11. 関連ADR
 
