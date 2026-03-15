@@ -153,8 +153,7 @@
   color: var(--muted-foreground);
 }
 
-.landingCta,
-.landingDocsLink {
+.landingCta {
   width: fit-content;
   display: inline-flex;
   align-items: center;
@@ -180,31 +179,6 @@
 .landingSectionHeader p {
   margin: 6px 0 0;
   color: var(--muted-foreground);
-}
-
-.featureCards {
-  margin-top: 12px;
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-}
-
-.featureCard {
-  border: 1px solid var(--landing-border);
-  border-radius: 12px;
-  padding: 12px;
-  background: color-mix(in oklab, var(--card) 92%, var(--background) 8%);
-}
-
-.featureCard h3 {
-  margin: 0;
-  font-size: 1rem;
-}
-
-.featureCard p {
-  margin: 6px 0 0;
-  color: var(--muted-foreground);
-  font-size: 0.92rem;
 }
 
 :root {

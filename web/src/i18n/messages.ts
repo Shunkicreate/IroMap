@@ -102,16 +102,6 @@ export const i18nMessages = {
     landingCta: "ワークベンチを試す",
     landingWorkbenchTitle: "Workbench Preview",
     landingWorkbenchDescription: "RGBキューブ、スライス、分析パネルを同一画面で操作できます。",
-    landingFeaturesTitle: "Feature Cards",
-    landingFeature1Title: "3D Color Space",
-    landingFeature1Description: "RGB / HSL / Lab を切り替えながら色分布を立体的に探索。",
-    landingFeature2Title: "Slice + Inspector",
-    landingFeature2Description: "断面表示と数値インスペクタで、色の位置と値を同時確認。",
-    landingFeature3Title: "Photo Analysis",
-    landingFeature3Description: "Lab散布図・ヒストグラム・面積比で写真全体の傾向を要約。",
-    landingDocsTitle: "Docs",
-    landingDocsDescription: "仕様・設計・開発ルールは docs に集約しています。",
-    landingDocsLink: "ドキュメントを見る",
   },
   en: {
     workbenchTitle: "IroMap Workbench",
@@ -216,17 +206,6 @@ export const i18nMessages = {
     landingWorkbenchTitle: "Workbench Preview",
     landingWorkbenchDescription:
       "Use RGB cube, slice, and analysis panels together in one surface.",
-    landingFeaturesTitle: "Feature Cards",
-    landingFeature1Title: "3D Color Space",
-    landingFeature1Description: "Explore distribution in RGB / HSL / Lab with direct switching.",
-    landingFeature2Title: "Slice + Inspector",
-    landingFeature2Description: "Read location and values simultaneously with slice and inspector.",
-    landingFeature3Title: "Photo Analysis",
-    landingFeature3Description:
-      "Summarize image tendencies through Lab scatter, histograms, and area ratio.",
-    landingDocsTitle: "Docs",
-    landingDocsDescription: "Specifications, design, and development rules are stored in docs.",
-    landingDocsLink: "Open docs",
   },
 } as const;
 
