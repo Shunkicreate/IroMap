@@ -140,7 +140,7 @@ test("T-205(photo-analysis): metric table と histogram を Markdown 形式で e
   const metricMarkdown = serializeMetricRows(metricRows, "markdown");
   const histogramMarkdown = serializeHistogramBins(histogram, "markdown");
 
-  expect(metricMarkdown).toContain("| group | key | label | value | unit | delta | description |");
+  expect(metricMarkdown).toContain("| group | key | label | value | unit | description |");
   expect(metricMarkdown).toContain("l_mean");
   expect(histogramMarkdown).toContain("| metric | binIndex | start | end | count | ratio |");
   expect(histogramMarkdown).toContain("luminance");

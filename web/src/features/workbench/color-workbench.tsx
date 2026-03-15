@@ -1246,7 +1246,6 @@ export function ColorWorkbench() {
                     <th>{t("workbenchTableGroup")}</th>
                     <th>{t("workbenchTableMetric")}</th>
                     <th>{t("workbenchTableValue")}</th>
-                    <th>{t("workbenchTableDelta")}</th>
                     <th>{t("workbenchTableDescription")}</th>
                   </tr>
                 </thead>
@@ -1256,7 +1255,6 @@ export function ColorWorkbench() {
                       <td>{row.group}</td>
                       <td>{row.label}</td>
                       <td>{formatMetricValue(row, row.value)}</td>
-                      <td>{formatMetricValue(row, row.delta)}</td>
                       <td>{row.description}</td>
                     </tr>
                   ))}

@@ -99,7 +99,7 @@
 - 指標表は `Markdown Table / CSV / TSV` の 3 形式でコピーできる
 - デフォルトのコピー形式は `Markdown Table` とする
 - ヒストグラムは各 bin について `start / end / count / ratio` をコピーできる
-- 指標表コピーの列順は `group, key, label, value, unit, delta, description` を基準とする
+- 指標表コピーの列順は `group, key, label, value, unit, description` を基準とする
 - histogram コピーの列順は `metric, binIndex, start, end, count, ratio` を基準とする
 - コピー成功時に利用者へ明示的なフィードバックを表示できる
 

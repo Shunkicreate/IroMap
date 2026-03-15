@@ -89,7 +89,6 @@ export type WorkbenchMetricRow = {
   unit: string;
   precision: number;
   description: string;
-  delta: number | null;
 };
 
 export type PhotoAnalysisResult = {
@@ -640,7 +639,6 @@ export const buildMetricRows = ({
     return {
       ...definition,
       value: baseValue,
-      delta: null,
     };
   });
 };
@@ -651,7 +649,7 @@ export const buildCubePointsFromSamples = (samples: PhotoSample[]): RgbCubePoint
 
 export const serializeMetricRows = (rows: WorkbenchMetricRow[], format: ExportFormat): string => {
   const separator = format === "tsv" ? "\t" : ",";
-  const header = ["group", "key", "label", "value", "unit", "delta", "description"];
+  const header = ["group", "key", "label", "value", "unit", "description"];
   const formatValue = (value: number | null, precision: number): string => {
     if (value == null) {
       return "N/A";
@@ -670,7 +668,6 @@ export const serializeMetricRows = (rows: WorkbenchMetricRow[], format: ExportFo
             row.label,
             formatValue(row.value, row.precision),
             row.unit,
-            formatValue(row.delta, row.precision),
             row.description,
           ].join(" | ")} |`
       ),
@@ -687,7 +684,6 @@ export const serializeMetricRows = (rows: WorkbenchMetricRow[], format: ExportFo
           row.label,
           formatValue(row.value, row.precision),
           row.unit,
-          formatValue(row.delta, row.precision),
           row.description,
         ].join(separator)
       )
