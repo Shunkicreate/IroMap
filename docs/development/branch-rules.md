@@ -14,7 +14,7 @@ IroMap のブランチ運用ルールを定義する。
 2. 実装・テスト・ドキュメント更新（コード・docsの両方）を `.worktree/feature/*` で行う
 3. `feature/* -> main` の Pull Request で統合する
 
-`pnpm run worktree:add` は `git fetch origin main`、`git worktree add`、`pnpm` セットアップをまとめて実行する。
+`pnpm run worktree:add` は worktree 作成、`main` 基点の同期、新規 branch 作成、`pnpm` セットアップをまとめて実行する。
 
 ## 3. 禁止事項
 
