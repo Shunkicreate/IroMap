@@ -135,11 +135,11 @@ export function ColorWorkbench() {
 
   const handleSourceFileSelected = (file: File | null): void => {
     setAnalysisSourceFile(file);
+    setPhotoCubePoints([]);
     if (file) {
       setLiveMessage(t("photoUploadSelected", { fileName: file.name }));
       return;
     }
-    setPhotoCubePoints([]);
     setLiveMessage(t("photoUploadCleared"));
   };
 

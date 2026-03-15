@@ -312,6 +312,7 @@ export function PhotoAnalysisPanel({
     setError("");
     setStatusMessage(inProgress);
     setAnalysis(null);
+    onAnalysisCompleteRef.current?.(null);
     onStatusChangeRef.current?.(inProgress);
     toast(inProgress);
 
