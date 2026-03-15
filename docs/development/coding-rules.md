@@ -17,7 +17,7 @@
 
 ## 3. 命名規則
 
-- ファイル名は `kebab-case` を基本とする
+- ファイル名は `kebab-case` を基本とし、CSS Modules は `kebab-case.module.css` を許可する
 - React コンポーネントは `PascalCase`
 - 変数・関数は `camelCase`
 - 型・インターフェースは `PascalCase`
@@ -86,10 +86,10 @@
 
 ## 12. 自動チェックで強制する項目
 
-以下は `web/eslint.config.mjs` と `prettier`、`git hooks` で強制する。
+以下は `web/eslint.config.mjs`、`web/stylelint.config.mjs`、`prettier`、`git hooks` で強制する。
 
 - 命名規則
-  - ファイル名: `kebab-case`（`web/scripts/check-file-names.mjs`）
+  - ファイル名: `kebab-case`、CSS Modules は `kebab-case.module.css`（`web/scripts/check-file-names.mjs`）
   - 型・インターフェース: `PascalCase`（`@typescript-eslint/naming-convention`）
   - 変数・関数: `camelCase`（`@typescript-eslint/naming-convention`）
   - 真偽値: `is` / `has` / `can` 接頭辞（`@typescript-eslint/naming-convention`）
@@ -104,5 +104,10 @@
   - `rendering/` / `lib/` から `app/` / `features/` への依存禁止
 - 形式統一
   - `prettier` による整形を強制（`pre-commit` / `pre-push` / GitHub Actions）
+- CSS
+  - `.css` / `.module.css` の不正構文・重複 selector を検出（`stylelint-config-standard`）
+  - `px` の利用を禁止（`unit-disallowed-list`）
+  - 寸法系プロパティへの `100vh` / `100vw` を禁止（`declaration-property-value-disallowed-list`）
+  - `stylelint-disable` コメントは理由なし・無効スコープ・不要指定を禁止する
 
-なお、責務設計やライフサイクル分離などのアーキテクチャ判断は静的解析だけでは完全保証できないため、レビューで補完する。
+なお、TSX 内の `style={...}` や Canvas API の寸法文字列は Stylelint の対象外のため、レビューまたは ESLint 拡張で補完する。

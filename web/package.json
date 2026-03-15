@@ -10,10 +10,12 @@
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:ui": "playwright test --ui",
-    "lint": "pnpm run lint:eslint && pnpm run lint:filenames",
+    "lint": "pnpm run lint:eslint && pnpm run lint:filenames && pnpm run lint:css",
+    "lint:css": "stylelint \"src/**/*.css\"",
+    "lint:css:fix": "stylelint \"src/**/*.css\" --fix",
     "lint:eslint": "eslint . --max-warnings=0",
     "lint:filenames": "node ./scripts/check-file-names.mjs",
-    "lint:fix": "eslint . --fix --max-warnings=0",
+    "lint:fix": "eslint . --fix --max-warnings=0 && pnpm run lint:css:fix",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "check": "pnpm run lint && pnpm run format:check"
@@ -47,12 +49,17 @@
     "eslint-plugin-import": "^2.32.0",
     "lint-staged": "^16.3.2",
     "prettier": "^3.8.1",
+    "stylelint": "^17.4.0",
+    "stylelint-config-standard": "^40.0.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,mjs,cjs,json,md,css}": [
       "prettier --write"
+    ],
+    "*.css": [
+      "stylelint --fix"
     ],
     "*.{js,jsx,ts,tsx,mjs,cjs}": [
       "eslint --fix --max-warnings=0"

@@ -23,6 +23,11 @@
   --input: oklch(0.89 0.007 250);
   --ring: oklch(0.62 0.08 236);
   --radius: 0.75rem;
+  --workbench-surface: color-mix(in oklab, var(--card) 96%, var(--foreground) 4%);
+  --workbench-surface-border: color-mix(in oklab, var(--border) 82%, var(--foreground) 18%);
+  --workbench-text: var(--foreground);
+  --workbench-muted: var(--muted-foreground);
+  --workbench-accent: var(--primary);
 }
 
 .dark {
@@ -82,12 +87,14 @@
 
   * {
     @apply border-border;
+
     box-sizing: border-box;
     min-width: 0;
   }
 
   body {
     @apply bg-background text-foreground font-sans;
+
     background-image:
       radial-gradient(
         circle at 0% 0%,
@@ -116,14 +123,6 @@
   textarea {
     font: inherit;
   }
-}
-
-:root {
-  --workbench-surface: color-mix(in oklab, var(--card) 96%, var(--foreground) 4%);
-  --workbench-surface-border: color-mix(in oklab, var(--border) 82%, var(--foreground) 18%);
-  --workbench-text: var(--foreground);
-  --workbench-muted: var(--muted-foreground);
-  --workbench-accent: var(--primary);
 }
 
 .workbenchRoot {
@@ -191,7 +190,7 @@
   padding: 0;
   margin: -0.0625rem;
   overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
 }
@@ -256,9 +255,244 @@
 }
 
 .cubeCanvasWrap {
-  inline-size: min(100%, var(--cube-size, 32.5rem));
   aspect-ratio: 1;
   margin-inline: auto;
+}
+
+.cubeCanvasWrapSize320 {
+  inline-size: min(100%, 20rem);
+}
+
+.cubeCanvasWrapSize330 {
+  inline-size: min(100%, 20.625rem);
+}
+
+.cubeCanvasWrapSize340 {
+  inline-size: min(100%, 21.25rem);
+}
+
+.cubeCanvasWrapSize350 {
+  inline-size: min(100%, 21.875rem);
+}
+
+.cubeCanvasWrapSize360 {
+  inline-size: min(100%, 22.5rem);
+}
+
+.cubeCanvasWrapSize370 {
+  inline-size: min(100%, 23.125rem);
+}
+
+.cubeCanvasWrapSize380 {
+  inline-size: min(100%, 23.75rem);
+}
+
+.cubeCanvasWrapSize390 {
+  inline-size: min(100%, 24.375rem);
+}
+
+.cubeCanvasWrapSize400 {
+  inline-size: min(100%, 25rem);
+}
+
+.cubeCanvasWrapSize410 {
+  inline-size: min(100%, 25.625rem);
+}
+
+.cubeCanvasWrapSize420 {
+  inline-size: min(100%, 26.25rem);
+}
+
+.cubeCanvasWrapSize430 {
+  inline-size: min(100%, 26.875rem);
+}
+
+.cubeCanvasWrapSize440 {
+  inline-size: min(100%, 27.5rem);
+}
+
+.cubeCanvasWrapSize450 {
+  inline-size: min(100%, 28.125rem);
+}
+
+.cubeCanvasWrapSize460 {
+  inline-size: min(100%, 28.75rem);
+}
+
+.cubeCanvasWrapSize470 {
+  inline-size: min(100%, 29.375rem);
+}
+
+.cubeCanvasWrapSize480 {
+  inline-size: min(100%, 30rem);
+}
+
+.cubeCanvasWrapSize490 {
+  inline-size: min(100%, 30.625rem);
+}
+
+.cubeCanvasWrapSize500 {
+  inline-size: min(100%, 31.25rem);
+}
+
+.cubeCanvasWrapSize510 {
+  inline-size: min(100%, 31.875rem);
+}
+
+.cubeCanvasWrapSize520 {
+  inline-size: min(100%, 32.5rem);
+}
+
+.cubeCanvasWrapSize530 {
+  inline-size: min(100%, 33.125rem);
+}
+
+.cubeCanvasWrapSize540 {
+  inline-size: min(100%, 33.75rem);
+}
+
+.cubeCanvasWrapSize550 {
+  inline-size: min(100%, 34.375rem);
+}
+
+.cubeCanvasWrapSize560 {
+  inline-size: min(100%, 35rem);
+}
+
+.cubeCanvasWrapSize570 {
+  inline-size: min(100%, 35.625rem);
+}
+
+.cubeCanvasWrapSize580 {
+  inline-size: min(100%, 36.25rem);
+}
+
+.cubeCanvasWrapSize590 {
+  inline-size: min(100%, 36.875rem);
+}
+
+.cubeCanvasWrapSize600 {
+  inline-size: min(100%, 37.5rem);
+}
+
+.cubeCanvasWrapSize610 {
+  inline-size: min(100%, 38.125rem);
+}
+
+.cubeCanvasWrapSize620 {
+  inline-size: min(100%, 38.75rem);
+}
+
+.cubeCanvasWrapSize630 {
+  inline-size: min(100%, 39.375rem);
+}
+
+.cubeCanvasWrapSize640 {
+  inline-size: min(100%, 40rem);
+}
+
+.cubeCanvasWrapSize650 {
+  inline-size: min(100%, 40.625rem);
+}
+
+.cubeCanvasWrapSize660 {
+  inline-size: min(100%, 41.25rem);
+}
+
+.cubeCanvasWrapSize670 {
+  inline-size: min(100%, 41.875rem);
+}
+
+.cubeCanvasWrapSize680 {
+  inline-size: min(100%, 42.5rem);
+}
+
+.cubeCanvasWrapSize690 {
+  inline-size: min(100%, 43.125rem);
+}
+
+.cubeCanvasWrapSize700 {
+  inline-size: min(100%, 43.75rem);
+}
+
+.cubeCanvasWrapSize710 {
+  inline-size: min(100%, 44.375rem);
+}
+
+.cubeCanvasWrapSize720 {
+  inline-size: min(100%, 45rem);
+}
+
+.cubeCanvasWrapSize730 {
+  inline-size: min(100%, 45.625rem);
+}
+
+.cubeCanvasWrapSize740 {
+  inline-size: min(100%, 46.25rem);
+}
+
+.cubeCanvasWrapSize750 {
+  inline-size: min(100%, 46.875rem);
+}
+
+.cubeCanvasWrapSize760 {
+  inline-size: min(100%, 47.5rem);
+}
+
+.cubeCanvasWrapSize770 {
+  inline-size: min(100%, 48.125rem);
+}
+
+.cubeCanvasWrapSize780 {
+  inline-size: min(100%, 48.75rem);
+}
+
+.cubeCanvasWrapSize790 {
+  inline-size: min(100%, 49.375rem);
+}
+
+.cubeCanvasWrapSize800 {
+  inline-size: min(100%, 50rem);
+}
+
+.cubeCanvasWrapSize810 {
+  inline-size: min(100%, 50.625rem);
+}
+
+.cubeCanvasWrapSize820 {
+  inline-size: min(100%, 51.25rem);
+}
+
+.cubeCanvasWrapSize830 {
+  inline-size: min(100%, 51.875rem);
+}
+
+.cubeCanvasWrapSize840 {
+  inline-size: min(100%, 52.5rem);
+}
+
+.cubeCanvasWrapSize850 {
+  inline-size: min(100%, 53.125rem);
+}
+
+.cubeCanvasWrapSize860 {
+  inline-size: min(100%, 53.75rem);
+}
+
+.cubeCanvasWrapSize870 {
+  inline-size: min(100%, 54.375rem);
+}
+
+.cubeCanvasWrapSize880 {
+  inline-size: min(100%, 55rem);
+}
+
+.cubeCanvasWrapSize890 {
+  inline-size: min(100%, 55.625rem);
+}
+
+.cubeCanvasWrapSize900 {
+  inline-size: min(100%, 56.25rem);
 }
 
 .photoUploadCta {
@@ -307,7 +541,7 @@
   font-weight: 700;
   cursor: pointer;
   box-shadow:
-    inset 0 0.0625rem 0 #ffffff66,
+    inset 0 0.0625rem 0 #fff6,
     0 0.75rem 1.5rem #05131f33;
 }
 
@@ -633,29 +867,9 @@
 }
 
 .histogramBars {
+  display: block;
+  inline-size: 100%;
   block-size: 10rem;
-  display: flex;
-  align-items: end;
-  gap: 0.125rem;
-  width: 100%;
-}
-
-.histogramBars span {
-  flex: 1;
-  border-radius: 0.25rem 0.25rem 0 0;
-  background: linear-gradient(
-    to top,
-    color-mix(in oklab, var(--primary) 75%, #0094d8 25%),
-    color-mix(in oklab, var(--primary) 60%, #38bdf8 40%)
-  );
-}
-
-.saturationBars span {
-  background: linear-gradient(
-    to top,
-    color-mix(in oklab, var(--accent) 65%, #14b870 35%),
-    color-mix(in oklab, var(--accent) 45%, #5df0a5 55%)
-  );
 }
 
 .areaList {
@@ -733,18 +947,6 @@
 
 .errorText {
   color: var(--destructive);
-}
-
-.srOnly {
-  position: absolute;
-  width: 0.0625rem;
-  height: 0.0625rem;
-  padding: 0;
-  margin: -0.0625rem;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
 }
 
 .landingRoot {
