@@ -11,7 +11,6 @@ import { rgbToHex } from "@/domain/color/color-format";
 import type { RgbColor } from "@/domain/color/color-types";
 import { analyzePhoto, type PhotoAnalysisResult } from "@/domain/photo-analysis/photo-analysis";
 import { t } from "@/i18n/translate";
-import styles from "./photo-analysis-panel.module.css";
 
 type AnalysisState = {
   fileName: string;
@@ -22,9 +21,7 @@ type Props = {
   sourceFile: File | null;
   onColorInspect?: (color: RgbColor) => void;
   onStatusChange?: (message: string) => void;
-  onImageSelected?: (file: File | null) => void;
   onAnalysisComplete?: (result: PhotoAnalysisResult | null) => void;
-  onUploadChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
 };
 
 const maxScatterRange = colorChannelLevels / 2;
@@ -41,7 +38,6 @@ const saturationHighThreshold = 0.55;
 const saturationLowThreshold = 0.25;
 const spreadWideThreshold = 48;
 const spreadMediumThreshold = 24;
-const clipboardFileName = "clipboard-image.png";
 const ratioFormatter = new Intl.NumberFormat(undefined, {
   style: "percent",
   minimumFractionDigits: 1,
@@ -264,9 +260,7 @@ export function PhotoAnalysisPanel({
   sourceFile,
   onColorInspect,
   onStatusChange,
-  onImageSelected,
   onAnalysisComplete,
-  onUploadChange,
 }: Props) {
   const [analysis, setAnalysis] = useState<AnalysisState>(null);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
@@ -318,6 +312,7 @@ export function PhotoAnalysisPanel({
     setError("");
     setStatusMessage(inProgress);
     setAnalysis(null);
+    onAnalysisCompleteRef.current?.(null);
     onStatusChangeRef.current?.(inProgress);
     toast(inProgress);
 
@@ -367,69 +362,32 @@ export function PhotoAnalysisPanel({
     };
   }, [sourceFile]);
 
-  const handlePaste = async (event: React.ClipboardEvent<HTMLButtonElement>): Promise<void> => {
-    const items = Array.from(event.clipboardData?.items ?? []);
-    const imageItem = items.find((item) => item.kind === "file" && item.type.startsWith("image/"));
-    const file = imageItem?.getAsFile();
-
-    if (!file) {
-      const message = t("photoPasteNoImage");
-      setStatusMessage(message);
-      onStatusChangeRef.current?.(message);
-      toast.error(message);
-      return;
-    }
-
-    event.preventDefault();
-
-    const pastedFile = new File([file], file.name || clipboardFileName, {
-      type: file.type || "image/png",
-      lastModified: Date.now(),
-    });
-    const message = t("photoPasteApplied");
-    setStatusMessage(message);
-    onStatusChangeRef.current?.(message);
-    toast.success(message);
-    onImageSelected?.(pastedFile);
-  };
-
   return (
     <section className="panel">
       <PanelHeader titleKey="panelPhotoAnalysis" requirementsKey="panelPhotoAnalysisRequirements" />
 
-      <div className={styles.topRow}>
-        <div className={styles.controls}>
-          <div className="photoUploadCta">
-            <div className="photoUploadCtaCopy">
-              <strong>{t("photoUploadCtaTitle")}</strong>
-              <p>{t("photoUploadCtaDescription")}</p>
-              {sourceFile ? (
-                <p className="photoUploadCtaStatus">
-                  {t("photoUploadSelected", { fileName: sourceFile.name })}
-                </p>
-              ) : null}
-            </div>
-            <label className="photoUploadButton">
-              <span>{t("photoUploadButton")}</span>
-              <input
-                type="file"
-                accept="image/*"
-                aria-label={t("photoUploadLabel")}
-                className="srOnly"
-                onChange={onUploadChange}
-              />
-            </label>
+      <div className="photoAnalysisTopRow">
+        <article className="photoPreviewCard">
+          <div className="photoPreviewHeader">
+            <h3>{t("photoPreviewTitle")}</h3>
+            {sourceFile ? <p className="photoPreviewFileName">{sourceFile.name}</p> : null}
           </div>
-          <button
-            type="button"
-            className="photoPasteZone"
-            onPaste={handlePaste}
-            aria-label={t("photoPasteZoneLabel")}
-          >
-            <strong>{t("photoPasteZoneTitle")}</strong>
-            <p>{t("photoPasteZoneHint")}</p>
-          </button>
+          {previewUrl ? (
+            <NextImage
+              src={previewUrl}
+              alt={t("photoPreviewAlt", { fileName: sourceFile?.name ?? t("photoUploadLabel") })}
+              className="photoPreviewImage"
+              width={320}
+              height={240}
+              unoptimized
+            />
+          ) : (
+            <div className="photoPreviewEmpty">{t("photoPreviewEmpty")}</div>
+          )}
+        </article>
 
+        <article className="photoAnalysisStatusCard">
+          <h3>{t("photoInsightTitle")}</h3>
           {isAnalyzing ? <p className="muted">{t("photoAnalyzing")}</p> : null}
           {statusMessage ? (
             <p className="muted photoPasteStatus" aria-live="polite">
@@ -438,32 +396,36 @@ export function PhotoAnalysisPanel({
           ) : null}
           {error ? <p className="errorText">{error}</p> : null}
           {!sourceFile && !analysis ? <p className="muted">{t("photoUploadLabel")}</p> : null}
-        </div>
-
-        <article className={styles.previewCard}>
-          <div className={styles.previewHeader}>
-            <h3>{t("photoPreviewTitle")}</h3>
-            {sourceFile ? <p className={styles.previewFileName}>{sourceFile.name}</p> : null}
-          </div>
-          {previewUrl ? (
-            <NextImage
-              src={previewUrl}
-              alt={t("photoPreviewAlt", { fileName: sourceFile?.name ?? t("photoUploadLabel") })}
-              className={styles.previewImage}
-              width={320}
-              height={240}
-              unoptimized
-            />
-          ) : (
-            <div className={styles.previewEmpty}>{t("photoPreviewEmpty")}</div>
-          )}
+          <ul className="insightList">
+            <li>
+              {t("photoInsightHue", {
+                label: analysis
+                  ? getHueInsightLabel(analysis.result)
+                  : t("photoInsightHueModerate"),
+              })}
+            </li>
+            <li>
+              {t("photoInsightSaturation", {
+                label: analysis
+                  ? getSaturationInsightLabel(analysis.result)
+                  : t("photoInsightSatMid"),
+              })}
+            </li>
+            <li>
+              {t("photoInsightSpread", {
+                label: analysis
+                  ? getSpreadInsightLabel(analysis.result)
+                  : t("photoInsightSpreadMedium"),
+              })}
+            </li>
+          </ul>
         </article>
       </div>
 
       <div className="analysisGrid">
         {analysis ? (
           <>
-            <article>
+            <article className="analysisCard analysisCardScatter">
               <h3>{t("photoLabScatter")}</h3>
               <GraphFrame
                 xLabel={t("graphAxisLabA")}
@@ -496,7 +458,7 @@ export function PhotoAnalysisPanel({
               </GraphFrame>
             </article>
 
-            <article>
+            <article className="analysisCard">
               <h3>{t("photoHueHistogram")}</h3>
               <GraphFrame
                 xLabel={t("graphAxisHue")}
@@ -517,7 +479,7 @@ export function PhotoAnalysisPanel({
               </GraphFrame>
             </article>
 
-            <article>
+            <article className="analysisCard">
               <h3>{t("photoSaturationHistogram")}</h3>
               <GraphFrame
                 xLabel={t("graphAxisSaturation")}
@@ -541,7 +503,7 @@ export function PhotoAnalysisPanel({
               </GraphFrame>
             </article>
 
-            <article>
+            <article className="analysisCard">
               <h3>{t("photoColorAreaRatio")}</h3>
               <ul className="areaList">
                 {analysis.result.colorAreas.map((area) => (
@@ -562,30 +524,11 @@ export function PhotoAnalysisPanel({
                 ))}
               </ul>
             </article>
-
-            <article>
-              <h3>{t("photoInsightTitle")}</h3>
-              <ul className="insightList">
-                <li>{t("photoInsightHue", { label: getHueInsightLabel(analysis.result) })}</li>
-                <li>
-                  {t("photoInsightSaturation", {
-                    label: getSaturationInsightLabel(analysis.result),
-                  })}
-                </li>
-                <li>
-                  {t("photoInsightSpread", { label: getSpreadInsightLabel(analysis.result) })}
-                </li>
-              </ul>
-            </article>
           </>
         ) : (
-          <article>
-            <h3>{t("photoInsightTitle")}</h3>
-            <ul className="insightList">
-              <li>{t("photoInsightHue", { label: t("photoInsightHueModerate") })}</li>
-              <li>{t("photoInsightSaturation", { label: t("photoInsightSatMid") })}</li>
-              <li>{t("photoInsightSpread", { label: t("photoInsightSpreadMedium") })}</li>
-            </ul>
+          <article className="analysisCard analysisCardEmpty">
+            <h3>{t("photoLabScatter")}</h3>
+            <p className="muted">{t("photoPreviewEmpty")}</p>
           </article>
         )}
       </div>
