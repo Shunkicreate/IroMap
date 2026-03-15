@@ -392,7 +392,7 @@ type PreviewPanelProps = {
   target: WorkbenchTarget;
   compareTarget: WorkbenchTarget;
   hoverSample: PhotoSample | null;
-  selectedSample: PhotoSample | null;
+  selectedSamples: PhotoSample[];
   selectionState: TargetSelectionState;
   selectionDraft: SelectionDraft;
   onHoverSampleChange: (sample: PhotoSample | null) => void;
@@ -408,7 +408,7 @@ function PreviewPanel({
   target,
   compareTarget,
   hoverSample,
-  selectedSample,
+  selectedSamples,
   selectionState,
   selectionDraft,
   onHoverSampleChange,
@@ -543,13 +543,13 @@ function PreviewPanel({
           y: (hoverSample.y / target.result.height) * 100,
         }
       : null;
-  const selectedMarker =
-    selectedSample && target.result
-      ? {
-          x: (selectedSample.x / target.result.width) * 100,
-          y: (selectedSample.y / target.result.height) * 100,
-        }
-      : null;
+  const selectedMarkers = target.result
+    ? selectedSamples.map((sample) => ({
+        sampleId: sample.sampleId,
+        x: (sample.x / target.result.width) * 100,
+        y: (sample.y / target.result.height) * 100,
+      }))
+    : [];
 
   return (
     <section className="panel previewWorkbenchPanel">
@@ -647,14 +647,15 @@ function PreviewPanel({
           {hoverMarker ? (
             <circle className="previewHoverMarker" cx={hoverMarker.x} cy={hoverMarker.y} r="1.2" />
           ) : null}
-          {selectedMarker ? (
+          {selectedMarkers.map((marker) => (
             <circle
+              key={marker.sampleId}
               className="previewSelectedMarker"
-              cx={selectedMarker.x}
-              cy={selectedMarker.y}
+              cx={marker.x}
+              cy={marker.y}
               r="1.6"
             />
-          ) : null}
+          ))}
         </svg>
       </div>
 
@@ -958,6 +959,17 @@ export function ColorWorkbench() {
     }
     return findNearestSampleByColor(baselineTarget.result, baselineBuckets, selectedColor);
   }, [baselineTarget.result, baselineBuckets, selectedColor]);
+  const selectedSamples = useMemo(() => {
+    if (!baselineTarget.result || !selectedColor) {
+      return [];
+    }
+    return baselineTarget.result.samples.filter(
+      (sample) =>
+        sample.color.r === selectedColor.r &&
+        sample.color.g === selectedColor.g &&
+        sample.color.b === selectedColor.b
+    );
+  }, [baselineTarget.result, selectedColor]);
 
   const normalizeSliceValueForAxis = (nextAxis: SliceAxis, currentValue: number): number => {
     const nextRange = getAxisRange(nextAxis);
@@ -1175,7 +1187,7 @@ export function ColorWorkbench() {
           target={baselineTarget}
           compareTarget={compareTarget}
           hoverSample={hoverState.sample}
-          selectedSample={selectedSample}
+          selectedSamples={selectedSamples}
           selectionState={baselineSelectionState}
           selectionDraft={selectionDraft}
           onHoverSampleChange={(sample) =>
