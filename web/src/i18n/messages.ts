@@ -17,7 +17,7 @@ export const i18nMessages = {
     panelRgbCube: "RGBキューブ",
     panelRgbCubeRequirements: "色空間を切り替えてドラッグで回転できます",
     panelInspector: "インスペクタ",
-    panelInspectorRequirements: "ホバー色と選択色を同時比較できます",
+    panelInspectorRequirements: "ホバー比較と選択色のコピー/貼り付けをまとめて扱えます",
     panelColorCopy: "カラーコピー",
     panelColorCopyRequirements: "形式切替とコピー/貼り付けに対応します",
     panelSlice: "スライス",
@@ -72,7 +72,7 @@ export const i18nMessages = {
       "このエリアを選択して Cmd+V / Ctrl+V。画像ファイルのアップロードもそのまま使えます。",
     photoUploadCtaTitle: "写真をアップロードして分析を始める",
     photoUploadCtaDescription:
-      "入口はここです。選んだ画像の分析結果は下の写真分析パネルに表示されます。",
+      "入口はここです。選んだ画像の分析結果は上部の写真分析パネルに表示されます。",
     photoUploadButton: "画像を選ぶ",
     photoUploadSelected: "選択中: {fileName}",
     photoPasteApplied: "クリップボード画像を適用しました",
@@ -124,7 +124,8 @@ export const i18nMessages = {
     panelRgbCube: "RGB Cube",
     panelRgbCubeRequirements: "Switch spaces and rotate with drag",
     panelInspector: "Inspector",
-    panelInspectorRequirements: "Compare hovered and selected colors side by side",
+    panelInspectorRequirements:
+      "Compare hover state and copy or paste the selected color in one panel",
     panelColorCopy: "Color Copy",
     panelColorCopyRequirements: "Supports format switch and copy/paste",
     panelSlice: "Slice",
@@ -179,7 +180,7 @@ export const i18nMessages = {
       "Focus this area and press Cmd+V / Ctrl+V. File upload remains available as well.",
     photoUploadCtaTitle: "Upload a photo to start analysis",
     photoUploadCtaDescription:
-      "Start here. The selected image will be analyzed in the Photo Analysis panel below.",
+      "Start here. The selected image will appear in the primary Photo Analysis panel above.",
     photoUploadButton: "Choose image",
     photoUploadSelected: "Selected: {fileName}",
     photoPasteApplied: "Applied clipboard image",

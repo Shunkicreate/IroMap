@@ -10,7 +10,6 @@ import {
   type SliceAxis,
 } from "@/domain/color/color-types";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ColorCopyPanel } from "@/features/color-copy/color-copy-panel";
 import { ColorInspector } from "@/features/inspector/color-inspector";
 import { PhotoAnalysisPanel } from "@/features/photo-analysis/photo-analysis-panel";
 import { RgbCubeCanvas } from "@/features/rgb-cube/rgb-cube-canvas";
@@ -35,6 +34,7 @@ const defaultSliceAxisBySpace: Record<ColorSpace3d, SliceAxis> = {
   hsl: "h",
   lab: "lab-l",
 };
+const clipboardImageFileName = "clipboard-image.png";
 
 const clamp = (value: number, min: number, max: number): number => {
   return Math.min(max, Math.max(min, value));
@@ -138,113 +138,178 @@ export function ColorWorkbench() {
     handleSourceFileSelected(file);
   };
 
+  const handlePhotoPaste = (event: React.ClipboardEvent<HTMLButtonElement>): void => {
+    const items = Array.from(event.clipboardData?.items ?? []);
+    const imageItem = items.find((item) => item.kind === "file" && item.type.startsWith("image/"));
+    const file = imageItem?.getAsFile();
+
+    if (!file) {
+      const message = t("photoPasteNoImage");
+      setLiveMessage(message);
+      toast.error(message);
+      return;
+    }
+
+    event.preventDefault();
+
+    const pastedFile = new File([file], file.name || clipboardImageFileName, {
+      type: file.type || "image/png",
+      lastModified: Date.now(),
+    });
+    const message = t("photoPasteApplied");
+    setLiveMessage(message);
+    toast.success(message);
+    handleSourceFileSelected(pastedFile);
+  };
+
   return (
     <section className="workbenchRoot">
-      <div className="workbenchMainGrid">
-        <div className="visualizationGrid">
-          <section className="panel">
-            <PanelHeader titleKey="panelRgbCube" requirementsKey="panelRgbCubeRequirements" />
-            <Tabs
-              value={space}
-              onValueChange={(value) => handleSpaceChange(value as ColorSpace3d)}
-              className="spaceTabs"
-            >
-              <TabsList className="spaceTabsList">
-                <TabsTrigger value="rgb" className="spaceTabTrigger">
-                  {t("spaceRgb")}
-                </TabsTrigger>
-                <TabsTrigger value="hsl" className="spaceTabTrigger">
-                  {t("spaceHsl")}
-                </TabsTrigger>
-                <TabsTrigger value="lab" className="spaceTabTrigger">
-                  {t("spaceLab")}
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-            <div className="cubeSettings">
-              <div className="cubeToggleRow">
-                <label className="toggleLabel">
-                  <input
-                    type="checkbox"
-                    checked={isAxisGuideVisible}
-                    onChange={(event) => setIsAxisGuideVisible(event.target.checked)}
-                  />
-                  {t("cubeShowAxisGuide")}
-                </label>
-                <label className="toggleLabel">
-                  <input
-                    type="checkbox"
-                    checked={isCubeSizeSliderVisible}
-                    onChange={(event) => setIsCubeSizeSliderVisible(event.target.checked)}
-                  />
-                  {t("cubeShowSizeSlider")}
-                </label>
-              </div>
-              <div className="manualColorPicker" aria-label={t("workbenchManualPickerTitle")}>
-                <strong>{t("workbenchManualPickerTitle")}</strong>
-                <div className="manualColorInputs">
-                  <label>
-                    {manualChannelLabels.r}
-                    <input
-                      type="number"
-                      min={0}
-                      max={255}
-                      value={manualR}
-                      onChange={(event) => setManualR(Number(event.target.value))}
-                    />
-                  </label>
-                  <label>
-                    {manualChannelLabels.g}
-                    <input
-                      type="number"
-                      min={0}
-                      max={255}
-                      value={manualG}
-                      onChange={(event) => setManualG(Number(event.target.value))}
-                    />
-                  </label>
-                  <label>
-                    {manualChannelLabels.b}
-                    <input
-                      type="number"
-                      min={0}
-                      max={255}
-                      value={manualB}
-                      onChange={(event) => setManualB(Number(event.target.value))}
-                    />
-                  </label>
-                  <button type="button" onClick={applyManualColor}>
-                    {t("workbenchManualApply")}
-                  </button>
-                </div>
-              </div>
-              {isCubeSizeSliderVisible ? (
-                <label>
-                  {t("cubeSizeLabel", { size: cubeSize })}
-                  <input
-                    type="range"
-                    min={320}
-                    max={900}
-                    step={10}
-                    value={cubeSize}
-                    onChange={(event) => setCubeSize(Number(event.target.value))}
-                  />
-                </label>
-              ) : null}
-            </div>
-            <RgbCubeCanvas
-              space={space}
-              rotation={rotation}
-              cubeSize={cubeSize}
-              axisGuideMode={isAxisGuideVisible ? "visible" : "hidden"}
-              sliceAxis={sliceAxis}
-              sliceValue={sliceValue}
-              onRotationChange={setRotation}
-              onHoverColorChange={setHoverColor}
-              onColorSelect={setSelectedColor}
-            />
-          </section>
+      <PhotoAnalysisPanel
+        sourceFile={analysisSourceFile}
+        onColorInspect={setSelectedColor}
+        onStatusChange={handleStatusChange}
+      />
 
+      <div className="workbenchMainGrid">
+        <section className="panel">
+          <PanelHeader titleKey="panelRgbCube" requirementsKey="panelRgbCubeRequirements" />
+
+          <div className="cubeInputStack">
+            <div className="photoUploadCta">
+              <div className="photoUploadCtaCopy">
+                <strong>{t("photoUploadCtaTitle")}</strong>
+                <p>{t("photoUploadCtaDescription")}</p>
+                {analysisSourceFile ? (
+                  <p className="photoUploadCtaStatus">
+                    {t("photoUploadSelected", { fileName: analysisSourceFile.name })}
+                  </p>
+                ) : null}
+              </div>
+              <label className="photoUploadButton">
+                <span>{t("photoUploadButton")}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  aria-label={t("photoUploadLabel")}
+                  className="srOnly"
+                  onChange={handlePhotoUpload}
+                />
+              </label>
+            </div>
+
+            <button
+              type="button"
+              className="photoPasteZone"
+              onPaste={handlePhotoPaste}
+              aria-label={t("photoPasteZoneLabel")}
+            >
+              <strong>{t("photoPasteZoneTitle")}</strong>
+              <p>{t("photoPasteZoneHint")}</p>
+            </button>
+          </div>
+
+          <Tabs
+            value={space}
+            onValueChange={(value) => handleSpaceChange(value as ColorSpace3d)}
+            className="spaceTabs"
+          >
+            <TabsList className="spaceTabsList">
+              <TabsTrigger value="rgb" className="spaceTabTrigger">
+                {t("spaceRgb")}
+              </TabsTrigger>
+              <TabsTrigger value="hsl" className="spaceTabTrigger">
+                {t("spaceHsl")}
+              </TabsTrigger>
+              <TabsTrigger value="lab" className="spaceTabTrigger">
+                {t("spaceLab")}
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <div className="cubeSettings">
+            <div className="cubeToggleRow">
+              <label className="toggleLabel">
+                <input
+                  type="checkbox"
+                  checked={isAxisGuideVisible}
+                  onChange={(event) => setIsAxisGuideVisible(event.target.checked)}
+                />
+                {t("cubeShowAxisGuide")}
+              </label>
+              <label className="toggleLabel">
+                <input
+                  type="checkbox"
+                  checked={isCubeSizeSliderVisible}
+                  onChange={(event) => setIsCubeSizeSliderVisible(event.target.checked)}
+                />
+                {t("cubeShowSizeSlider")}
+              </label>
+            </div>
+            <div className="manualColorPicker" aria-label={t("workbenchManualPickerTitle")}>
+              <strong>{t("workbenchManualPickerTitle")}</strong>
+              <div className="manualColorInputs">
+                <label>
+                  {manualChannelLabels.r}
+                  <input
+                    type="number"
+                    min={0}
+                    max={255}
+                    value={manualR}
+                    onChange={(event) => setManualR(Number(event.target.value))}
+                  />
+                </label>
+                <label>
+                  {manualChannelLabels.g}
+                  <input
+                    type="number"
+                    min={0}
+                    max={255}
+                    value={manualG}
+                    onChange={(event) => setManualG(Number(event.target.value))}
+                  />
+                </label>
+                <label>
+                  {manualChannelLabels.b}
+                  <input
+                    type="number"
+                    min={0}
+                    max={255}
+                    value={manualB}
+                    onChange={(event) => setManualB(Number(event.target.value))}
+                  />
+                </label>
+                <button type="button" onClick={applyManualColor}>
+                  {t("workbenchManualApply")}
+                </button>
+              </div>
+            </div>
+            {isCubeSizeSliderVisible ? (
+              <label>
+                {t("cubeSizeLabel", { size: cubeSize })}
+                <input
+                  type="range"
+                  min={320}
+                  max={900}
+                  step={10}
+                  value={cubeSize}
+                  onChange={(event) => setCubeSize(Number(event.target.value))}
+                />
+              </label>
+            ) : null}
+          </div>
+          <RgbCubeCanvas
+            space={space}
+            rotation={rotation}
+            cubeSize={cubeSize}
+            axisGuideMode={isAxisGuideVisible ? "visible" : "hidden"}
+            sliceAxis={sliceAxis}
+            sliceValue={sliceValue}
+            onRotationChange={setRotation}
+            onHoverColorChange={setHoverColor}
+            onColorSelect={setSelectedColor}
+          />
+        </section>
+
+        <div className="visualizationGrid">
           <SliceCanvas
             space={space}
             axis={sliceAxis}
@@ -254,23 +319,13 @@ export function ColorWorkbench() {
             onHoverColorChange={setHoverColor}
             onColorSelect={setSelectedColor}
           />
-        </div>
-
-        <aside className="supportPanels">
-          <ColorInspector hoverColor={hoverColor} selectedColor={selectedColor} />
-          <PhotoAnalysisPanel
-            sourceFile={analysisSourceFile}
-            onColorInspect={setSelectedColor}
-            onStatusChange={handleStatusChange}
-            onImageSelected={handleSourceFileSelected}
-            onUploadChange={handlePhotoUpload}
-          />
-          <ColorCopyPanel
+          <ColorInspector
+            hoverColor={hoverColor}
             selectedColor={selectedColor}
             onColorPasted={setSelectedColor}
             onStatusChange={handleStatusChange}
           />
-        </aside>
+        </div>
       </div>
 
       <p className="srOnly" aria-live="polite">
