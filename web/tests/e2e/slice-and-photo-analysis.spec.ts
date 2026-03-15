@@ -1,5 +1,11 @@
 import { expect, test } from "@playwright/test";
-import { getPanel, getSliceCanvas, uploadRedPng } from "./helpers";
+import {
+  getPanel,
+  getSliceCanvas,
+  pasteRedJpegToPhotoAnalysis,
+  pasteRedPngToPhotoAnalysis,
+  uploadRedPng,
+} from "./helpers";
 
 test("T-101(slice): 断面表示の確認", async ({ page }) => {
   await page.goto("/");
@@ -11,9 +17,10 @@ test("T-101(slice): 断面表示の確認", async ({ page }) => {
 
 test("T-102(slice): 固定値操作の確認", async ({ page }) => {
   await page.goto("/");
-  const valueSlider = page.getByRole("slider", { name: "固定値: 128" });
+  const slicePanel = getPanel(page, "スライス");
+  const valueSlider = slicePanel.getByRole("slider");
   await valueSlider.fill("200");
-  await expect(page.getByText("R 固定 = 200")).toBeVisible();
+  await expect(slicePanel.getByText(/固定 = 200$/)).toBeVisible();
 });
 
 test("T-103(slice): 3D同期の確認", async ({ page }) => {
@@ -29,14 +36,46 @@ test("T-103(slice): 3D同期の確認", async ({ page }) => {
   await expect(page.locator(".cubeCanvas")).toBeVisible();
 });
 
-test("T-105(photo-analysis): アップロード画像のプレビューを表示できる", async ({ page }) => {
+test("T-201(photo-analysis): 上部CTAからアップロードして結果表示できる", async ({ page }) => {
   await page.goto("/");
+
   await uploadRedPng(page);
 
-  const photoPanel = getPanel(page, "写真分析 MVP");
-  const previewImage = photoPanel.locator(".photoPreviewImage");
+  const panel = getPanel(page, "写真分析 MVP");
+  await expect(page.getByText("選択中: red.png")).toBeVisible();
+  await expect(panel.getByText("Lab a-b 散布図")).toBeVisible();
+  await expect(panel.locator(".photoPasteStatus")).toContainText("file=red.png");
+});
+
+test("T-202(photo-analysis): クリップボード画像貼り付けで結果表示できる", async ({ page }) => {
+  await page.goto("/");
+
+  await pasteRedPngToPhotoAnalysis(page);
+
+  const panel = getPanel(page, "写真分析 MVP");
+  await expect(panel.getByText("Lab a-b 散布図")).toBeVisible();
+  await expect(panel.locator(".photoPasteStatus")).toContainText("file=clipboard-image.png");
+});
+
+test("T-203(photo-analysis): クリップボードJPEG貼り付けで結果表示できる", async ({ page }) => {
+  await page.goto("/");
+
+  await pasteRedJpegToPhotoAnalysis(page);
+
+  const panel = getPanel(page, "写真分析 MVP");
+  await expect(panel.getByText("Lab a-b 散布図")).toBeVisible();
+  await expect(panel.locator(".photoPasteStatus")).toContainText("file=clipboard-image.jpg");
+});
+
+test("T-204(photo-analysis): 選択画像プレビューを表示できる", async ({ page }) => {
+  await page.goto("/");
+
+  await uploadRedPng(page);
+
+  const panel = getPanel(page, "写真分析 MVP");
+  const previewImage = panel.locator(".photoPreviewImage");
 
   await expect(previewImage).toBeVisible();
   await expect(previewImage).toHaveAttribute("alt", "分析対象画像: red.png");
-  await expect(photoPanel.getByText("red.png")).toBeVisible();
+  await expect(panel.getByText("red.png")).toBeVisible();
 });

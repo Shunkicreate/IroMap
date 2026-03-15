@@ -4,6 +4,8 @@ test("ワークベンチの主要UIが表示される", async ({ page }) => {
   await page.goto("/");
 
   await expect(page.getByRole("heading", { name: "IroMap ワークベンチ" })).toBeVisible();
+  await expect(page.getByText("写真をアップロードして分析を始める")).toBeVisible();
+  await expect(page.getByText("画像を選ぶ", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "RGBキューブ" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "インスペクタ" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "カラーコピー" })).toBeVisible();

@@ -12,10 +12,12 @@ import {
 import { hslToRgb } from "@/domain/color/color-conversion";
 import { toHueDegree, toPercentage, toRgbColor, type RgbColor } from "@/domain/color/color-types";
 import { t } from "@/i18n/translate";
+import { toast } from "sonner";
 
 type Props = {
   selectedColor: RgbColor | null;
   onColorPasted?: (color: RgbColor) => void;
+  onStatusChange?: (message: string) => void;
 };
 
 const PLACEHOLDER = "--";
@@ -74,7 +76,7 @@ const parsePastedColor = (raw: string): RgbColor | null => {
   return null;
 };
 
-export function ColorCopyPanel({ selectedColor, onColorPasted }: Props) {
+export function ColorCopyPanel({ selectedColor, onColorPasted, onStatusChange }: Props) {
   const [format, setFormat] = useState<CopyFormat>("hex");
   const [message, setMessage] = useState<string>("");
 
@@ -100,15 +102,24 @@ export function ColorCopyPanel({ selectedColor, onColorPasted }: Props) {
       } else {
         throw new Error("Clipboard API unavailable");
       }
-      setMessage(t("copyCopied", { value }));
+      const success = t("copyCopied", { value });
+      setMessage(success);
+      onStatusChange?.(success);
+      toast.success(success);
     } catch {
-      setMessage(t("copyFailed", { value }));
+      const failed = t("copyFailed", { value });
+      setMessage(failed);
+      onStatusChange?.(failed);
+      toast.error(failed);
     }
   };
 
   const pasteFromClipboard = async (): Promise<void> => {
     if (!navigator.clipboard?.readText) {
-      setMessage(t("copyPasteFailed"));
+      const failed = t("copyPasteFailed");
+      setMessage(failed);
+      onStatusChange?.(failed);
+      toast.error(failed);
       return;
     }
 
@@ -117,14 +128,23 @@ export function ColorCopyPanel({ selectedColor, onColorPasted }: Props) {
       const parsed = parsePastedColor(text);
 
       if (!parsed) {
-        setMessage(t("copyPasteUnsupported", { value: text || "(empty)" }));
+        const unsupported = t("copyPasteUnsupported", { value: text || "(empty)" });
+        setMessage(unsupported);
+        onStatusChange?.(unsupported);
+        toast.error(unsupported);
         return;
       }
 
       onColorPasted?.(parsed);
-      setMessage(t("copyPasteApplied", { value: formatColor(parsed, format) }));
+      const applied = t("copyPasteApplied", { value: formatColor(parsed, format) });
+      setMessage(applied);
+      onStatusChange?.(applied);
+      toast.success(applied);
     } catch {
-      setMessage(t("copyPasteFailed"));
+      const failed = t("copyPasteFailed");
+      setMessage(failed);
+      onStatusChange?.(failed);
+      toast.error(failed);
     }
   };
 
