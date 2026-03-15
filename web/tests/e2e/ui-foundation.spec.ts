@@ -95,3 +95,11 @@ test("T-108(ui-foundation): ヘッダーがモバイル/デスクトップで過
   });
   expect(mobileHeight).toBeLessThan(140);
 });
+
+test("T-109(ui-foundation): 写真分析の上部CTAと分析パネルが表示される", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+
+  await expect(page.getByText("写真をアップロードして分析を始める")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "写真分析 MVP" })).toBeVisible();
+});

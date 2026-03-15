@@ -126,6 +126,19 @@ export function ColorWorkbench() {
     setLiveMessage(message);
   };
 
+  const handleSourceFileSelected = (file: File | null): void => {
+    setAnalysisSourceFile(file);
+    if (file) {
+      setLiveMessage(t("photoUploadSelected", { fileName: file.name }));
+    }
+  };
+
+  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>): void => {
+    const file = event.target.files?.[0] ?? null;
+    event.target.value = "";
+    handleSourceFileSelected(file);
+  };
+
   return (
     <section className="workbenchRoot">
       <div className="workbenchTopBar">
@@ -140,6 +153,27 @@ export function ColorWorkbench() {
         <div className="visualizationGrid">
           <section className="panel">
             <PanelHeader titleKey="panelRgbCube" requirementsKey="panelRgbCubeRequirements" />
+            <div className="photoUploadCta">
+              <div className="photoUploadCtaCopy">
+                <strong>{t("photoUploadCtaTitle")}</strong>
+                <p>{t("photoUploadCtaDescription")}</p>
+                {analysisSourceFile ? (
+                  <p className="photoUploadCtaStatus">
+                    {t("photoUploadSelected", { fileName: analysisSourceFile.name })}
+                  </p>
+                ) : null}
+              </div>
+              <label className="photoUploadButton">
+                <span>{t("photoUploadButton")}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  aria-label={t("photoUploadLabel")}
+                  className="srOnly"
+                  onChange={handlePhotoUpload}
+                />
+              </label>
+            </div>
             <Tabs
               value={space}
               onValueChange={(value) => handleSpaceChange(value as ColorSpace3d)}
@@ -163,7 +197,7 @@ export function ColorWorkbench() {
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={(event) => setAnalysisSourceFile(event.target.files?.[0] ?? null)}
+                  onChange={(event) => handleSourceFileSelected(event.target.files?.[0] ?? null)}
                 />
                 <span>{t("workbenchUploadHint")}</span>
               </label>
@@ -267,6 +301,7 @@ export function ColorWorkbench() {
             sourceFile={analysisSourceFile}
             onColorInspect={setSelectedColor}
             onStatusChange={handleStatusChange}
+            onImageSelected={handleSourceFileSelected}
           />
           <ColorCopyPanel
             selectedColor={selectedColor}

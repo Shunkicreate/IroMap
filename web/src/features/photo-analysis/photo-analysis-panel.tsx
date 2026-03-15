@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ColorSwatch } from "@/components/workbench/color-swatch";
 import { PanelHeader } from "@/components/workbench/panel-header";
 import { analyzePhoto, type PhotoAnalysisResult } from "@/domain/photo-analysis/photo-analysis";
@@ -16,6 +16,13 @@ type AnalysisState = {
   result: PhotoAnalysisResult;
 } | null;
 
+type Props = {
+  sourceFile: File | null;
+  onColorInspect?: (color: RgbColor) => void;
+  onStatusChange?: (message: string) => void;
+  onImageSelected?: (file: File | null) => void;
+};
+
 const maxScatterRange = colorChannelLevels / 2;
 const scatterViewboxSize = 100;
 const histogramHeightPercent = 100;
@@ -30,26 +37,38 @@ const saturationHighThreshold = 0.55;
 const saturationLowThreshold = 0.25;
 const spreadWideThreshold = 48;
 const spreadMediumThreshold = 24;
+const clipboardFileName = "clipboard-image.png";
 const ratioFormatter = new Intl.NumberFormat(undefined, {
   style: "percent",
   minimumFractionDigits: 1,
   maximumFractionDigits: 1,
 });
 
-const readFileAsImageData = async (file: File): Promise<ImageData> => {
+const drawSourceToImageData = (
+  width: number,
+  height: number,
+  draw: (context: CanvasRenderingContext2D) => void
+): ImageData => {
   const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
   const context = canvas.getContext("2d");
   if (!context) {
     throw new Error("2d context unavailable");
   }
 
+  draw(context);
+  return context.getImageData(0, 0, canvas.width, canvas.height);
+};
+
+const readFileAsImageData = async (file: File): Promise<ImageData> => {
   try {
     const imageBitmap = await createImageBitmap(file);
     try {
-      canvas.width = imageBitmap.width;
-      canvas.height = imageBitmap.height;
-      context.drawImage(imageBitmap, 0, 0);
-      return context.getImageData(0, 0, canvas.width, canvas.height);
+      return drawSourceToImageData(imageBitmap.width, imageBitmap.height, (context) => {
+        context.drawImage(imageBitmap, 0, 0);
+      });
     } finally {
       imageBitmap.close();
     }
@@ -62,10 +81,10 @@ const readFileAsImageData = async (file: File): Promise<ImageData> => {
         node.onerror = () => reject(new Error("image-load-failed"));
         node.src = objectUrl;
       });
-      canvas.width = image.naturalWidth;
-      canvas.height = image.naturalHeight;
-      context.drawImage(image, 0, 0);
-      return context.getImageData(0, 0, canvas.width, canvas.height);
+
+      return drawSourceToImageData(image.naturalWidth, image.naturalHeight, (context) => {
+        context.drawImage(image, 0, 0);
+      });
     } finally {
       URL.revokeObjectURL(objectUrl);
     }
@@ -77,22 +96,29 @@ const toScatterPosition = (value: number): number => {
 };
 
 const analyzePhotoInWorker = (imageData: ImageData): Promise<PhotoAnalysisResult> => {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     if (typeof window === "undefined" || typeof Worker === "undefined") {
       resolve(analyzePhoto(imageData));
       return;
     }
 
-    const worker = new Worker(new URL("./photo-analysis-worker.ts", import.meta.url), {
-      type: "module",
-    });
+    let worker: Worker;
+
+    try {
+      worker = new Worker(new URL("./photo-analysis-worker.ts", import.meta.url), {
+        type: "module",
+      });
+    } catch {
+      resolve(analyzePhoto(imageData));
+      return;
+    }
 
     worker.onmessage = (event: MessageEvent<{ result?: PhotoAnalysisResult; error?: string }>) => {
       const { result, error } = event.data;
       worker.terminate();
 
       if (error || !result) {
-        reject(new Error(error ?? "photo-analysis-failed"));
+        resolve(analyzePhoto(imageData));
         return;
       }
       resolve(result);
@@ -100,17 +126,16 @@ const analyzePhotoInWorker = (imageData: ImageData): Promise<PhotoAnalysisResult
 
     worker.onerror = () => {
       worker.terminate();
-      reject(new Error("photo-analysis-worker-error"));
+      resolve(analyzePhoto(imageData));
     };
 
-    worker.postMessage({ imageData });
+    try {
+      worker.postMessage({ imageData });
+    } catch {
+      worker.terminate();
+      resolve(analyzePhoto(imageData));
+    }
   });
-};
-
-type Props = {
-  sourceFile: File | null;
-  onColorInspect?: (color: RgbColor) => void;
-  onStatusChange?: (message: string) => void;
 };
 
 const getHueInsightLabel = (result: PhotoAnalysisResult): string => {
@@ -172,10 +197,17 @@ const getSpreadInsightLabel = (result: PhotoAnalysisResult): string => {
   return t("photoInsightSpreadNarrow");
 };
 
-export function PhotoAnalysisPanel({ sourceFile, onColorInspect, onStatusChange }: Props) {
+export function PhotoAnalysisPanel({
+  sourceFile,
+  onColorInspect,
+  onStatusChange,
+  onImageSelected,
+}: Props) {
   const [analysis, setAnalysis] = useState<AnalysisState>(null);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const [statusMessage, setStatusMessage] = useState<string>("");
+  const onStatusChangeRef = useRef(onStatusChange);
 
   const maxHueCount = useMemo(() => {
     return Math.max(1, ...(analysis?.result.hueHistogram.map((bin) => bin.count) ?? [1]));
@@ -186,15 +218,21 @@ export function PhotoAnalysisPanel({ sourceFile, onColorInspect, onStatusChange 
   }, [analysis]);
 
   useEffect(() => {
+    onStatusChangeRef.current = onStatusChange;
+  }, [onStatusChange]);
+
+  useEffect(() => {
     if (!sourceFile) {
       return;
     }
 
     let isCancelled = false;
+    const inProgress = t("photoAnalyzing");
+
     setIsAnalyzing(true);
     setError("");
-    const inProgress = t("photoAnalyzing");
-    onStatusChange?.(inProgress);
+    setAnalysis(null);
+    onStatusChangeRef.current?.(inProgress);
     toast(inProgress);
 
     void (async () => {
@@ -204,25 +242,28 @@ export function PhotoAnalysisPanel({ sourceFile, onColorInspect, onStatusChange 
         if (isCancelled) {
           return;
         }
+
         setAnalysis({
           fileName: sourceFile.name,
           result,
         });
+
         const success = t("photoSummary", {
           fileName: sourceFile.name,
           sampledPixels: result.sampledPixels,
           elapsedMs: result.elapsedMs.toFixed(fileSummaryPrecision),
         });
-        onStatusChange?.(success);
+        onStatusChangeRef.current?.(success);
         toast.success(success);
       } catch {
         if (isCancelled) {
           return;
         }
+
         const failed = t("photoError");
         setError(failed);
         setAnalysis(null);
-        onStatusChange?.(failed);
+        onStatusChangeRef.current?.(failed);
         toast.error(failed);
       } finally {
         if (!isCancelled) {
@@ -234,13 +275,54 @@ export function PhotoAnalysisPanel({ sourceFile, onColorInspect, onStatusChange 
     return () => {
       isCancelled = true;
     };
-  }, [onStatusChange, sourceFile]);
+  }, [sourceFile]);
+
+  const handlePaste = async (event: React.ClipboardEvent<HTMLButtonElement>): Promise<void> => {
+    const items = Array.from(event.clipboardData?.items ?? []);
+    const imageItem = items.find((item) => item.kind === "file" && item.type.startsWith("image/"));
+    const file = imageItem?.getAsFile();
+
+    if (!file) {
+      const message = t("photoPasteNoImage");
+      setStatusMessage(message);
+      onStatusChangeRef.current?.(message);
+      toast.error(message);
+      return;
+    }
+
+    event.preventDefault();
+
+    const pastedFile = new File([file], file.name || clipboardFileName, {
+      type: file.type || "image/png",
+      lastModified: Date.now(),
+    });
+    const message = t("photoPasteApplied");
+    setStatusMessage(message);
+    onStatusChangeRef.current?.(message);
+    toast.success(message);
+    onImageSelected?.(pastedFile);
+  };
 
   return (
     <section className="panel">
       <PanelHeader titleKey="panelPhotoAnalysis" requirementsKey="panelPhotoAnalysisRequirements" />
 
+      <button
+        type="button"
+        className="photoPasteZone"
+        onPaste={handlePaste}
+        aria-label={t("photoPasteZoneLabel")}
+      >
+        <strong>{t("photoPasteZoneTitle")}</strong>
+        <p>{t("photoPasteZoneHint")}</p>
+      </button>
+
       {isAnalyzing ? <p className="muted">{t("photoAnalyzing")}</p> : null}
+      {statusMessage ? (
+        <p className="muted photoPasteStatus" aria-live="polite">
+          {statusMessage}
+        </p>
+      ) : null}
       {error ? <p className="errorText">{error}</p> : null}
       {!sourceFile && !analysis ? <p className="muted">{t("photoUploadLabel")}</p> : null}
 
