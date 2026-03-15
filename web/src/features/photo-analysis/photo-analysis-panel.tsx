@@ -274,6 +274,7 @@ export function PhotoAnalysisPanel({
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const onStatusChangeRef = useRef(onStatusChange);
+  const onAnalysisCompleteRef = useRef(onAnalysisComplete);
 
   const maxHueCount = useMemo(() => {
     return Math.max(1, ...(analysis?.result.hueHistogram.map((bin) => bin.count) ?? [1]));
@@ -285,7 +286,8 @@ export function PhotoAnalysisPanel({
 
   useEffect(() => {
     onStatusChangeRef.current = onStatusChange;
-  }, [onStatusChange]);
+    onAnalysisCompleteRef.current = onAnalysisComplete;
+  }, [onAnalysisComplete, onStatusChange]);
 
   useEffect(() => {
     if (!sourceFile) {
@@ -293,7 +295,7 @@ export function PhotoAnalysisPanel({
       setError("");
       setStatusMessage("");
       setPreviewUrl("");
-      onAnalysisComplete?.(null);
+      onAnalysisCompleteRef.current?.(null);
       return undefined;
     }
 
@@ -302,7 +304,7 @@ export function PhotoAnalysisPanel({
     return () => {
       URL.revokeObjectURL(objectUrl);
     };
-  }, [onAnalysisComplete, sourceFile]);
+  }, [sourceFile]);
 
   useEffect(() => {
     if (!sourceFile) {
@@ -331,7 +333,7 @@ export function PhotoAnalysisPanel({
           fileName: sourceFile.name,
           result,
         });
-        onAnalysisComplete?.(result);
+        onAnalysisCompleteRef.current?.(result);
 
         const success = t("photoSummary", {
           fileName: sourceFile.name,
@@ -349,7 +351,7 @@ export function PhotoAnalysisPanel({
         const failed = t("photoError");
         setError(failed);
         setAnalysis(null);
-        onAnalysisComplete?.(null);
+        onAnalysisCompleteRef.current?.(null);
         setStatusMessage(failed);
         onStatusChangeRef.current?.(failed);
         toast.error(failed);
@@ -363,7 +365,7 @@ export function PhotoAnalysisPanel({
     return () => {
       isCancelled = true;
     };
-  }, [onAnalysisComplete, sourceFile]);
+  }, [sourceFile]);
 
   const handlePaste = async (event: React.ClipboardEvent<HTMLButtonElement>): Promise<void> => {
     const items = Array.from(event.clipboardData?.items ?? []);
