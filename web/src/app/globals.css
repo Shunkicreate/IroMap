@@ -183,6 +183,8 @@
   white-space: nowrap;
   word-wrap: normal;
   direction: ltr;
+  inline-size: 1em;
+  overflow: hidden;
   -webkit-font-smoothing: antialiased;
   font-variation-settings:
     "FILL" 0,
@@ -225,6 +227,7 @@
   background: color-mix(in oklab, var(--workbench-surface) 94%, var(--background) 6%);
   border-radius: 0.875rem;
   padding: 0.875rem;
+  overflow-x: clip;
 }
 
 .workbenchMainGrid {
@@ -928,6 +931,11 @@
   justify-content: space-between;
   gap: 0.75rem;
   flex-wrap: wrap;
+}
+
+.landingHeroHeader > :first-child {
+  flex: 1 1 20rem;
+  min-width: 0;
 }
 
 .landingHero h1 {

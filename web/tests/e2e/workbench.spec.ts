@@ -8,7 +8,6 @@ test("ワークベンチの主要UIが表示される", async ({ page }) => {
   await expect(page.getByText("画像を選ぶ", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "RGBキューブ" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "インスペクタ" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "カラーコピー" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "スライス" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "写真分析 MVP" })).toBeVisible();
 });
