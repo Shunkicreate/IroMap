@@ -961,16 +961,23 @@ export function ColorWorkbench() {
     return findNearestSampleByColor(baselineTarget.result, baselineBuckets, selectedColor);
   }, [baselineTarget.result, baselineBuckets, selectedColor]);
   const selectedSamples = useMemo(() => {
-    if (!baselineTarget.result || !selectedColor) {
+    if (!baselineTarget.result || !activeBaselineSelection || !selectedSample) {
       return [];
     }
+
+    if (activeBaselineSelection.source === "image-rect") {
+      return baselineTarget.result.samples.filter((sample) =>
+        activeBaselineSelection.sampleIds.includes(sample.sampleId)
+      );
+    }
+
     return baselineTarget.result.samples.filter(
       (sample) =>
-        sample.color.r === selectedColor.r &&
-        sample.color.g === selectedColor.g &&
-        sample.color.b === selectedColor.b
+        sample.color.r === selectedSample.color.r &&
+        sample.color.g === selectedSample.color.g &&
+        sample.color.b === selectedSample.color.b
     );
-  }, [baselineTarget.result, selectedColor]);
+  }, [activeBaselineSelection, baselineTarget.result, selectedSample]);
 
   const normalizeSliceValueForAxis = (nextAxis: SliceAxis, currentValue: number): number => {
     const nextRange = getAxisRange(nextAxis);
