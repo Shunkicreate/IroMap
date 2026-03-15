@@ -1,4 +1,4 @@
 interface:
   display_name: "PR Create"
-  short_description: "Create or update draft PR from develop diff"
-  default_prompt: "Use $pr-create to developとの差分からドラフトPRを作成し、本文は原則日本語で作成してください。"
+  short_description: "Create or update draft PR from main diff"
+  default_prompt: "Use $pr-create to mainとの差分からドラフトPRを作成し、本文は原則日本語で作成してください。"
