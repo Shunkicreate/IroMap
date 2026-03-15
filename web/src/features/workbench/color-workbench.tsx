@@ -543,11 +543,12 @@ function PreviewPanel({
           y: (hoverSample.y / target.result.height) * 100,
         }
       : null;
-  const selectedMarkers = target.result
+  const previewResult = target.result;
+  const selectedMarkers = previewResult
     ? selectedSamples.map((sample) => ({
         sampleId: sample.sampleId,
-        x: (sample.x / target.result.width) * 100,
-        y: (sample.y / target.result.height) * 100,
+        x: (sample.x / previewResult.width) * 100,
+        y: (sample.y / previewResult.height) * 100,
       }))
     : [];
 
