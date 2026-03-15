@@ -13,7 +13,9 @@ test("T-105(photo-analysis): 評価基準ヘルプの表示とラベル判定を
   await expect(analysis.getByText(/^分布の広がり:/)).toBeVisible();
 });
 
-test("T-005(photo-analysis): 画像アップロード操作を写真分析パネル内で完結できる", async ({ page }) => {
+test("T-005(photo-analysis): 画像アップロード操作を写真分析パネル内で完結できる", async ({
+  page,
+}) => {
   await page.goto("/");
   await uploadRedPng(page);
 
