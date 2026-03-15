@@ -24,7 +24,6 @@ import {
   getScopedSamples,
   serializeHistogramBins,
   serializeMetricRows,
-  type ComparisonScope,
   type ExportFormat,
   type PhotoAnalysisResult,
   type PhotoSample,
@@ -209,47 +208,6 @@ const findNearestSampleByCoordinate = (
   return nearest;
 };
 
-const mirrorSelectionState = (
-  baselineState: TargetSelectionState | undefined,
-  baselineResult: PhotoAnalysisResult | null,
-  compareResult: PhotoAnalysisResult | null,
-  compareTargetId: string
-): TargetSelectionState => {
-  if (!baselineState || !baselineResult || !compareResult) {
-    return { ...defaultSelectionState };
-  }
-
-  const mirror = (slot: SelectionSlot) => {
-    const selection = slot === "A" ? baselineState.selectionA : baselineState.selectionB;
-    if (!selection?.bounds || selection.source !== "image-rect") {
-      return null;
-    }
-    const normalized = {
-      x: selection.bounds.x / baselineResult.width,
-      y: selection.bounds.y / baselineResult.height,
-      width: selection.bounds.width / baselineResult.width,
-      height: selection.bounds.height / baselineResult.height,
-    };
-    return buildRectangleSelection({
-      result: compareResult,
-      targetId: compareTargetId,
-      slot,
-      bounds: {
-        x: normalized.x * compareResult.width,
-        y: normalized.y * compareResult.height,
-        width: normalized.width * compareResult.width,
-        height: normalized.height * compareResult.height,
-      },
-    });
-  };
-
-  return {
-    activeSelectionSlot: baselineState.activeSelectionSlot,
-    selectionA: mirror("A"),
-    selectionB: mirror("B"),
-  };
-};
-
 const getSelectionBySlot = (
   selectionState: TargetSelectionState | undefined,
   slot: SelectionSlot
@@ -324,18 +282,12 @@ const getSpreadInsightLabel = (result: PhotoAnalysisResult): string => {
 
 const renderHistogramChart = ({
   bins,
-  compareBins,
   className = "",
 }: {
   bins: ReturnType<typeof buildHistogramBins>;
-  compareBins?: ReturnType<typeof buildHistogramBins>;
   className?: string;
 }) => {
-  const maxCount = Math.max(
-    1,
-    ...bins.map((bin) => bin.count),
-    ...(compareBins?.map((bin) => bin.count) ?? [1])
-  );
+  const maxCount = Math.max(1, ...bins.map((bin) => bin.count));
   const barWidth = histogramChartViewboxWidth / Math.max(1, bins.length);
 
   const renderSeries = (
@@ -376,21 +328,13 @@ const renderHistogramChart = ({
       role="img"
       preserveAspectRatio="none"
     >
-      {renderSeries(
-        bins,
-        "#7bf0b8",
-        0.85,
-        compareBins ? 0.44 : 0.8,
-        compareBins ? barWidth * 0.06 : barWidth * 0.1
-      )}
-      {compareBins ? renderSeries(compareBins, "#f4b942", 0.78, 0.44, barWidth * 0.5) : null}
+      {renderSeries(bins, "#7bf0b8", 0.85, 0.8, barWidth * 0.1)}
     </svg>
   );
 };
 
 type PreviewPanelProps = {
   target: WorkbenchTarget;
-  compareTarget: WorkbenchTarget;
   hoverSample: PhotoSample | null;
   selectedSamples: PhotoSample[];
   selectionState: TargetSelectionState;
@@ -400,13 +344,11 @@ type PreviewPanelProps = {
   onSelectionCommit: (bounds: { x: number; y: number; width: number; height: number }) => void;
   onSampleSelect: (sample: PhotoSample) => void;
   onSourceFileSelected: (file: File | null) => void;
-  onCompareFileSelected: (file: File | null) => void;
   onPaste: (event: React.ClipboardEvent<HTMLButtonElement>) => void;
 };
 
 function PreviewPanel({
   target,
-  compareTarget,
   hoverSample,
   selectedSamples,
   selectionState,
@@ -416,7 +358,6 @@ function PreviewPanel({
   onSelectionCommit,
   onSampleSelect,
   onSourceFileSelected,
-  onCompareFileSelected,
   onPaste,
 }: PreviewPanelProps) {
   const imageWrapRef = useRef<HTMLDivElement | null>(null);
@@ -584,7 +525,6 @@ function PreviewPanel({
           />
         </label>
       </div>
-
       <div className="previewAuxActions">
         <button
           type="button"
@@ -595,19 +535,6 @@ function PreviewPanel({
           <strong>{t("photoPasteZoneTitle")}</strong>
           <p>{t("photoPasteZoneHint")}</p>
         </button>
-        <label className="compareUploadButton">
-          <span>
-            {compareTarget.file
-              ? t("workbenchCompareSelected", { fileName: compareTarget.file.name })
-              : t("workbenchCompareAdd")}
-          </span>
-          <input
-            type="file"
-            accept="image/*"
-            className="srOnly"
-            onChange={(event) => onCompareFileSelected(event.target.files?.[0] ?? null)}
-          />
-        </label>
       </div>
 
       <div
@@ -680,14 +607,6 @@ function PreviewPanel({
           </p>
           {target.error ? <p className="errorText">{target.error}</p> : null}
         </div>
-        <div>
-          <strong>{t("workbenchCompareLabel")}</strong>
-          <p className="muted previewStatusLine">
-            {compareTarget.statusMessage ||
-              (compareTarget.file ? t("photoAnalyzing") : t("workbenchCompareNone"))}
-          </p>
-          {compareTarget.error ? <p className="errorText">{compareTarget.error}</p> : null}
-        </div>
       </div>
     </section>
   );
@@ -696,9 +615,6 @@ function PreviewPanel({
 export function ColorWorkbench() {
   const [baselineTarget, setBaselineTarget] = useState<WorkbenchTarget>(() =>
     emptyTarget("baseline", "Baseline")
-  );
-  const [compareTarget, setCompareTarget] = useState<WorkbenchTarget>(() =>
-    emptyTarget("compare", "Compare")
   );
   const [selectionStateByTarget, setSelectionStateByTarget] = useState<
     Record<string, TargetSelectionState>
@@ -713,7 +629,6 @@ export function ColorWorkbench() {
   const [selectedColor, setSelectedColor] = useState<RgbColor | null>(null);
   const [selectionScope, setSelectionScope] = useState<SelectionScope>("full-image");
   const [sliceMappingScope, setSliceMappingScope] = useState<SelectionScope>("full-image");
-  const [comparisonScope, setComparisonScope] = useState<ComparisonScope>("full-image");
   const [copyFormat, setCopyFormat] = useState<ExportFormat>("markdown");
   const [histogramMetric, setHistogramMetric] = useState<WorkbenchHistogramMetric>("luminance");
   const [sliceAxis, setSliceAxis] = useState<SliceAxis>("r");
@@ -801,97 +716,11 @@ export function ColorWorkbench() {
     };
   }, [baselineTarget.file]);
 
-  useEffect(() => {
-    const file = compareTarget.file;
-    let objectUrl = "";
-    let isStale = false;
-    const loadTarget = async (): Promise<void> => {
-      if (!file) {
-        setCompareTarget((current) => ({ ...emptyTarget("compare", current.label), file: null }));
-        return;
-      }
-      objectUrl = URL.createObjectURL(file);
-      setCompareTarget((current) => ({
-        ...current,
-        file,
-        previewUrl: objectUrl,
-        isAnalyzing: true,
-        statusMessage: t("photoAnalyzing"),
-        error: "",
-        result: null,
-      }));
-      try {
-        const imageData = await readFileAsImageData(file);
-        const result = await analyzePhotoInWorker(imageData);
-        if (isStale) {
-          return;
-        }
-        const success = t("photoSummary", {
-          fileName: file.name,
-          sampledPixels: result.sampledPixels,
-          elapsedMs: result.elapsedMs.toFixed(fileSummaryPrecision),
-        });
-        setCompareTarget((current) => ({
-          ...current,
-          file,
-          previewUrl: objectUrl,
-          result,
-          isAnalyzing: false,
-          statusMessage: success,
-          error: "",
-        }));
-      } catch {
-        if (isStale) {
-          return;
-        }
-        setCompareTarget((current) => ({
-          ...current,
-          file,
-          previewUrl: objectUrl,
-          result: null,
-          isAnalyzing: false,
-          statusMessage: t("photoError"),
-          error: t("photoError"),
-        }));
-      }
-    };
-
-    void loadTarget();
-    return () => {
-      isStale = true;
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
-      }
-    };
-  }, [compareTarget.file]);
-
   const baselineSelectionState = selectionStateByTarget.baseline ?? defaultSelectionState;
-  const compareSelectionState = useMemo(
-    () =>
-      mirrorSelectionState(
-        baselineSelectionState,
-        baselineTarget.result,
-        compareTarget.result,
-        compareTarget.targetId
-      ),
-    [baselineSelectionState, baselineTarget.result, compareTarget.result, compareTarget.targetId]
-  );
   const activeBaselineSelection = getSelectionBySlot(
     baselineSelectionState,
     baselineSelectionState.activeSelectionSlot
   );
-  const activeCompareSelection = getSelectionBySlot(
-    compareSelectionState,
-    compareSelectionState.activeSelectionSlot
-  );
-  const canUseMatchedSelection =
-    Boolean(compareTarget.result) &&
-    activeBaselineSelection?.source === "image-rect" &&
-    activeCompareSelection?.source === "image-rect";
-  const effectiveComparisonScope =
-    canUseMatchedSelection && comparisonScope === "matched-selection"
-      ? "matched-selection"
-      : "full-image";
   const scopedBaselineSamples = useMemo(
     () =>
       baselineTarget.result
@@ -913,33 +742,14 @@ export function ColorWorkbench() {
             result: baselineTarget.result,
             selectionState: baselineSelectionState,
             scope: selectionScope,
-            compareResult: compareTarget.result,
-            compareSelectionState: compareSelectionState,
-            comparisonScope: effectiveComparisonScope,
           })
         : [],
-    [
-      baselineTarget.result,
-      baselineSelectionState,
-      selectionScope,
-      compareTarget.result,
-      compareSelectionState,
-      effectiveComparisonScope,
-    ]
+    [baselineTarget.result, baselineSelectionState, selectionScope]
   );
   const baselineHistogram = useMemo(
     () => buildHistogramBins(scopedBaselineSamples, histogramMetric),
     [scopedBaselineSamples, histogramMetric]
   );
-  const compareHistogram = useMemo(() => {
-    if (!compareTarget.result) {
-      return [];
-    }
-    const scope =
-      effectiveComparisonScope === "matched-selection" ? "selected-region" : "full-image";
-    const samples = getScopedSamples(compareTarget.result, compareSelectionState, scope);
-    return buildHistogramBins(samples, histogramMetric);
-  }, [compareTarget.result, compareSelectionState, effectiveComparisonScope, histogramMetric]);
 
   const selectionCubePoints = useMemo(
     () =>
@@ -950,20 +760,6 @@ export function ColorWorkbench() {
         : [],
     [activeBaselineSelection, baselineSelectionState, baselineTarget.result]
   );
-  const compareCubePoints = useMemo(
-    () =>
-      compareTarget.result
-        ? buildCubePointsFromSamples(
-            getScopedSamples(
-              compareTarget.result,
-              compareSelectionState,
-              effectiveComparisonScope === "matched-selection" ? "selected-region" : "full-image"
-            )
-          )
-        : [],
-    [compareTarget.result, compareSelectionState, effectiveComparisonScope]
-  );
-
   const hoverColor = hoverState.sample?.color ?? null;
 
   const selectedSample = useMemo(() => {
@@ -1141,10 +937,6 @@ export function ColorWorkbench() {
     setHoverState({ targetId: "baseline", sample: null, source: "preview" });
   };
 
-  const handleCompareFileSelected = (file: File | null): void => {
-    setCompareTarget((current) => ({ ...current, file }));
-  };
-
   const handlePhotoPaste = (event: React.ClipboardEvent<HTMLButtonElement>): void => {
     const items = Array.from(event.clipboardData?.items ?? []);
     const imageItem = items.find((item) => item.kind === "file" && item.type.startsWith("image/"));
@@ -1205,7 +997,6 @@ export function ColorWorkbench() {
       <div className="workbenchMainGrid workbenchThreePane">
         <PreviewPanel
           target={baselineTarget}
-          compareTarget={compareTarget}
           hoverSample={hoverState.sample}
           selectedSamples={selectedSamples}
           selectionState={baselineSelectionState}
@@ -1217,7 +1008,6 @@ export function ColorWorkbench() {
           onSelectionCommit={handlePreviewSelectionCommit}
           onSampleSelect={handlePreviewSampleSelect}
           onSourceFileSelected={handleSourceFileSelected}
-          onCompareFileSelected={handleCompareFileSelected}
           onPaste={handlePhotoPaste}
         />
 
@@ -1304,7 +1094,6 @@ export function ColorWorkbench() {
             sliceAxis={sliceAxis}
             sliceValue={sliceValue}
             imageCubePoints={baselineTarget.result?.cubePoints ?? []}
-            compareCubePoints={compareCubePoints}
             selectionCubePoints={selectionCubePoints}
             hoverColor={hoverColor}
             selectedColor={selectedColor}
@@ -1492,37 +1281,6 @@ export function ColorWorkbench() {
               <p className="muted">{t("photoPreviewEmpty")}</p>
             )}
           </article>
-
-          <article className="photoAnalysisStatusCard">
-            <h3>{t("workbenchCompareLabel")}</h3>
-            <strong>{t("workbenchComparisonScopeLabel")}</strong>
-            <div className="segmentedControl">
-              <button
-                type="button"
-                className={comparisonScope === "full-image" ? "segmentedActive" : ""}
-                onClick={() => setComparisonScope("full-image")}
-              >
-                {t("workbenchScopeFullImage")}
-              </button>
-              <button
-                type="button"
-                className={
-                  effectiveComparisonScope === "matched-selection" ? "segmentedActive" : ""
-                }
-                onClick={() => setComparisonScope("matched-selection")}
-                disabled={!canUseMatchedSelection}
-              >
-                {t("workbenchScopeMatchedSelection")}
-              </button>
-            </div>
-            <p className="muted photoPasteStatus" aria-live="polite">
-              {compareTarget.result
-                ? canUseMatchedSelection || effectiveComparisonScope === "full-image"
-                  ? compareTarget.statusMessage
-                  : t("workbenchMatchedSelectionHint")
-                : t("workbenchCompareEmptyHint")}
-            </p>
-          </article>
         </div>
 
         <div className="analysisWorkbenchControls">
@@ -1599,16 +1357,9 @@ export function ColorWorkbench() {
           <article className="analysisCard">
             <h3>{t("workbenchHistogramCardTitle")}</h3>
             <GraphFrame xLabel="bin" yLabel="count" className="analysisGraphFrame">
-              {renderHistogramChart({
-                bins: baselineHistogram,
-                compareBins: compareHistogram.length > 0 ? compareHistogram : undefined,
-              })}
+              {renderHistogramChart({ bins: baselineHistogram })}
             </GraphFrame>
-            <p className="muted">
-              {compareHistogram.length > 0
-                ? t("workbenchHistogramCompareHint")
-                : t("workbenchHistogramBaselineHint")}
-            </p>
+            <p className="muted">{t("workbenchHistogramBaselineHint")}</p>
           </article>
         </div>
 

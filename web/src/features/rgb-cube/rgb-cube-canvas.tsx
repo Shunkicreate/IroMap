@@ -32,7 +32,6 @@ type Props = {
   sliceAxis: SliceAxis;
   sliceValue: number;
   imageCubePoints: RgbCubePoint[];
-  compareCubePoints?: RgbCubePoint[];
   selectionCubePoints?: RgbCubePoint[];
   hoverColor?: RgbColor | null;
   selectedColor?: RgbColor | null;
@@ -59,10 +58,8 @@ const imageOverlayMinRadius = 2.8;
 const imageOverlayMaxRadius = 7.2;
 const imageOverlayStrokeAlpha = 0.9;
 const imageOverlayStrokeWidth = 0.8;
-const compareOverlayStroke = "#f4b942";
 const selectionOverlayStroke = "#f97316";
 const hoverOverlayStroke = "#ffffff";
-const compareOverlayRadiusOffset = 1.6;
 const focusOverlayRadius = 6.5;
 
 const getSliceAxisLabel = (axis: SliceAxis): string => {
@@ -94,7 +91,6 @@ export function RgbCubeCanvas({
   sliceAxis,
   sliceValue,
   imageCubePoints,
-  compareCubePoints = [],
   selectionCubePoints = [],
   hoverColor = null,
   selectedColor = null,
@@ -177,15 +173,6 @@ export function RgbCubeCanvas({
           .sort((left, right) => left.depth - right.depth)
       : [];
 
-    const projectedCompare = hasImageOverlay
-      ? compareCubePoints
-          .map((point) => ({
-            ...projectColor(point.color, space, rotation, width, height, objectScale),
-            count: point.count,
-          }))
-          .sort((left, right) => left.depth - right.depth)
-      : [];
-
     const projectedSelection = selectionCubePoints
       .map((point) => ({
         ...projectColor(point.color, space, rotation, width, height, objectScale),
@@ -193,7 +180,7 @@ export function RgbCubeCanvas({
       }))
       .sort((left, right) => left.depth - right.depth);
 
-    projectedPointsRef.current = [...projectedGrid, ...projectedImage, ...projectedCompare];
+    projectedPointsRef.current = [...projectedGrid, ...projectedImage];
 
     for (const point of projectedGrid) {
       context.fillStyle = `rgb(${point.color.r}, ${point.color.g}, ${point.color.b})`;
@@ -214,17 +201,6 @@ export function RgbCubeCanvas({
       context.fill();
       context.strokeStyle = `rgba(${point.color.r}, ${point.color.g}, ${point.color.b}, ${imageOverlayStrokeAlpha})`;
       context.lineWidth = imageOverlayStrokeWidth;
-      context.stroke();
-    }
-
-    for (const point of projectedCompare) {
-      const intensity = point.count / maxImageCount;
-      const radius =
-        imageOverlayMinRadius + (imageOverlayMaxRadius - imageOverlayMinRadius) * intensity;
-      context.strokeStyle = compareOverlayStroke;
-      context.lineWidth = 1.4;
-      context.beginPath();
-      context.arc(point.x, point.y, radius + compareOverlayRadiusOffset, 0, fullCircleRadians);
       context.stroke();
     }
 
@@ -316,7 +292,6 @@ export function RgbCubeCanvas({
     cubeSize,
     hasGridOverlay,
     hasImageOverlay,
-    compareCubePoints,
     hoverColor,
     imageCubePoints,
     overlayMode,

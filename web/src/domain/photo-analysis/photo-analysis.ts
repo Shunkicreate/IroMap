@@ -60,7 +60,6 @@ export type RgbCubePoint = {
 
 export type SelectionSlot = "A" | "B";
 export type SelectionScope = "full-image" | "selected-region";
-export type ComparisonScope = "full-image" | "matched-selection";
 export type ExportFormat = "markdown" | "csv" | "tsv";
 
 export type PhotoSelection = {
@@ -92,12 +91,7 @@ export type WorkbenchMetricKey =
   | "highlight_b_mean"
   | "highlight_neutral_distance_mean"
   | "selection_coverage_ratio"
-  | "selection_a_b_delta_e"
-  | "delta_l_mean"
-  | "delta_a_mean"
-  | "delta_b_mean"
-  | "delta_c_mean"
-  | "compare_to_baseline_mean_lab_delta_e76";
+  | "selection_a_b_delta_e";
 
 export type WorkbenchMetricRow = {
   group: string;
@@ -271,14 +265,6 @@ const metricDefinitions: Array<{
     unit: "",
     precision: 2,
     description: "同一画像内の選択領域分離",
-  },
-  {
-    group: "比較",
-    key: "compare_to_baseline_mean_lab_delta_e76",
-    label: "Baseline-Compare mean Lab ΔE76",
-    unit: "",
-    precision: 2,
-    description: "baseline と compare の平均 Lab 差",
   },
 ];
 
@@ -659,16 +645,10 @@ export const buildMetricRows = ({
   result,
   selectionState,
   scope,
-  compareResult,
-  compareSelectionState,
-  comparisonScope,
 }: {
   result: PhotoAnalysisResult;
   selectionState: TargetSelectionState | null | undefined;
   scope: SelectionScope;
-  compareResult?: PhotoAnalysisResult | null;
-  compareSelectionState?: TargetSelectionState | null;
-  comparisonScope?: ComparisonScope;
 }): WorkbenchMetricRow[] => {
   const scopedSamples = getScopedSamples(result, selectionState, scope);
   const summary = buildMetricSummary(scopedSamples);
@@ -685,22 +665,6 @@ export const buildMetricRows = ({
   const selectionDeltaE =
     selectionASummary.meanLab && selectionBSummary.meanLab
       ? deltaE76(selectionASummary.meanLab, selectionBSummary.meanLab)
-      : null;
-
-  const comparisonSamples =
-    compareResult && compareSelectionState && comparisonScope
-      ? getScopedSamples(
-          compareResult,
-          compareSelectionState,
-          comparisonScope === "matched-selection" ? "selected-region" : "full-image"
-        )
-      : compareResult
-        ? compareResult.samples
-        : [];
-  const compareSummary = compareResult ? buildMetricSummary(comparisonSamples) : null;
-  const compareToBaselineDeltaE =
-    summary.meanLab && compareSummary?.meanLab
-      ? deltaE76(summary.meanLab, compareSummary.meanLab)
       : null;
 
   const getMetricValue = (
@@ -735,13 +699,6 @@ export const buildMetricRows = ({
           : null;
       case "selection_a_b_delta_e":
         return selectionDeltaE;
-      case "compare_to_baseline_mean_lab_delta_e76":
-        return compareToBaselineDeltaE;
-      case "delta_l_mean":
-      case "delta_a_mean":
-      case "delta_b_mean":
-      case "delta_c_mean":
-        return null;
       default:
         return null;
     }
@@ -749,24 +706,11 @@ export const buildMetricRows = ({
 
   return metricDefinitions.map((definition) => {
     const baseValue = getMetricValue(definition.key, summary, scopedSamples.length);
-    const compareValue = compareSummary
-      ? getMetricValue(definition.key, compareSummary, comparisonSamples.length)
-      : null;
-    const delta =
-      definition.key === "compare_to_baseline_mean_lab_delta_e76"
-        ? null
-        : compareResult &&
-            definition.key !== "selection_a_b_delta_e" &&
-            definition.key !== "selection_coverage_ratio" &&
-            baseValue != null &&
-            compareValue != null
-          ? compareValue - baseValue
-          : null;
 
     return {
       ...definition,
       value: baseValue,
-      delta,
+      delta: null,
     };
   });
 };
