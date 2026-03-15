@@ -7,7 +7,7 @@ import { GraphFrame } from "@/components/graph/graph-frame";
 import { PanelHeader } from "@/components/workbench/panel-header";
 import { ColorSwatch } from "@/components/workbench/color-swatch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { formatHsl, formatRgb, rgbToHex } from "@/domain/color/color-format";
+import { rgbToHex } from "@/domain/color/color-format";
 import { deltaE76, rgbToLab } from "@/domain/color/color-conversion";
 import {
   toRgbColor,
@@ -900,17 +900,6 @@ export function ColorWorkbench() {
     setLiveMessage(t("workbenchSelectedColorUpdated", { value: rgbToHex(sample.color) }));
   };
 
-  const handleSelectionClear = (): void => {
-    setSelectionStateByTarget((current) => {
-      return {
-        ...current,
-        baseline: {
-          activeSelection: null,
-        },
-      };
-    });
-  };
-
   const handleStatusChange = (message: string): void => {
     setLiveMessage(message);
   };
@@ -994,14 +983,6 @@ export function ColorWorkbench() {
     handleStatusChange(t("workbenchHistogramCopied", { format: copyFormat }));
     toast.success(t("workbenchHistogramCopied", { format: copyFormat }));
   };
-
-  const selectedFormats = selectedColor
-    ? [
-        { label: t("copyFormatHex"), value: rgbToHex(selectedColor) },
-        { label: t("copyFormatRgb"), value: formatRgb(selectedColor) },
-        { label: t("copyFormatHsl"), value: formatHsl(selectedColor) },
-      ]
-    : [];
 
   return (
     <section className="workbenchRoot">
@@ -1177,49 +1158,6 @@ export function ColorWorkbench() {
             }}
             onStatusChange={handleStatusChange}
           />
-
-          <section className="panel inspectorExtensionPanel">
-            <div className="inspectorControls">
-              <button type="button" onClick={handleSelectionClear}>
-                {t("workbenchClearSelection")}
-              </button>
-            </div>
-
-            <div className="inspectorDataGrid">
-              <div>
-                <strong>{t("workbenchHoverSampleLabel")}</strong>
-                <code>
-                  {hoverState.sample ? `${hoverState.sample.x}, ${hoverState.sample.y}` : "--"}
-                </code>
-                <code>
-                  {hoverState.sample
-                    ? `${hoverState.sample.lab.l.toFixed(2)}, ${hoverState.sample.lab.a.toFixed(2)}, ${hoverState.sample.lab.b.toFixed(2)}`
-                    : "--"}
-                </code>
-              </div>
-              <div>
-                <strong>{t("workbenchSelectedSampleLabel")}</strong>
-                <code>{selectedSample ? `${selectedSample.x}, ${selectedSample.y}` : "--"}</code>
-                <code>
-                  {selectedSample
-                    ? `${selectedSample.lab.l.toFixed(2)}, ${selectedSample.lab.a.toFixed(2)}, ${selectedSample.lab.b.toFixed(2)}`
-                    : "--"}
-                </code>
-              </div>
-              <div>
-                <strong>{t("workbenchSelectedFormatsLabel")}</strong>
-                {selectedFormats.length > 0 ? (
-                  selectedFormats.map((format) => (
-                    <code key={format.label}>
-                      {format.label}: {format.value}
-                    </code>
-                  ))
-                ) : (
-                  <code>--</code>
-                )}
-              </div>
-            </div>
-          </section>
         </div>
       </div>
 
