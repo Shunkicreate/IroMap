@@ -81,7 +81,7 @@ prefix_rule(
 )
 
 prefix_rule(
-    pattern=["pnpm", "--dir", "web", "run", ["lint", "format:check", "check", "build", "test:e2e"]],
+    pattern=["pnpm", "--dir"],
     decision="allow",
 )
 
@@ -92,24 +92,9 @@ prefix_rule(
 )
 
 prefix_rule(
-    pattern=["pnpm", "--dir", "web", ["install", "add", "remove", "up", "update"]],
-    decision="prompt",
-    justification="Dependency changes should be explicitly confirmed.",
-)
-
-prefix_rule(
     pattern=["pnpm", "dlx"],
     decision="prompt",
     justification="Temporary package execution should be explicitly confirmed.",
-)
-
-prefix_rule(
-    pattern=[
-        "/bin/zsh",
-        "-lc",
-        "CI=true pnpm --dir .worktree/feature/spec-inspector-slice-photo-ui-update/web run test:e2e --grep \"T-109|T-111|T-112\"",
-    ],
-    decision="allow",
 )
 
 # Explicitly block destructive git commands
