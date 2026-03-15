@@ -880,8 +880,13 @@ export function ColorWorkbench() {
   }, [compareTarget.result, compareSelectionState, effectiveComparisonScope, histogramMetric]);
 
   const selectionCubePoints = useMemo(
-    () => buildCubePointsFromSamples(scopedBaselineSamples),
-    [scopedBaselineSamples]
+    () =>
+      baselineTarget.result && activeBaselineSelection
+        ? buildCubePointsFromSamples(
+            getScopedSamples(baselineTarget.result, baselineSelectionState, "selected-region")
+          )
+        : [],
+    [activeBaselineSelection, baselineSelectionState, baselineTarget.result]
   );
   const compareCubePoints = useMemo(
     () =>
