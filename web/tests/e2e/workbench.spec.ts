@@ -31,3 +31,32 @@ test("サイズスライダーの表示切り替えができる", async ({ page 
   await toggle.check();
   await expect(cubeSizeSlider).toBeVisible();
 });
+
+test("折りたたみ状態と表示オプションがリロード後も保持される", async ({ page }) => {
+  await page.goto("/");
+
+  const cubePanel = page.locator("section.panel", {
+    has: page.getByRole("heading", { name: "3Dキューブ" }),
+  });
+  await cubePanel.getByRole("button", { name: "表示オプション" }).click();
+  await cubePanel.getByLabel("白マッピングを表示").uncheck();
+
+  const inspectorPanel = page.locator("section.panel", {
+    has: page.getByRole("heading", { name: "インスペクタ" }),
+  });
+  await inspectorPanel.locator(".persistedDisclosureTrigger").click();
+  await expect(inspectorPanel.getByText("プレビュー（ホバー）")).toBeVisible();
+
+  await page.reload();
+
+  const reloadedCubePanel = page.locator("section.panel", {
+    has: page.getByRole("heading", { name: "3Dキューブ" }),
+  });
+  await expect(reloadedCubePanel.getByLabel("白マッピングを表示")).toBeVisible();
+  await expect(reloadedCubePanel.getByLabel("白マッピングを表示")).not.toBeChecked();
+
+  const reloadedInspectorPanel = page.locator("section.panel", {
+    has: page.getByRole("heading", { name: "インスペクタ" }),
+  });
+  await expect(reloadedInspectorPanel.getByText("プレビュー（ホバー）")).toBeVisible();
+});
