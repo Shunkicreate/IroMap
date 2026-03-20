@@ -1,5 +1,6 @@
 "use client";
 
+import { ClipboardPaste, Copy } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ColorSwatch } from "@/components/workbench/color-swatch";
@@ -17,8 +18,6 @@ type Props = {
 };
 
 const PLACEHOLDER = "--";
-const copyIconName = "content_copy";
-const pasteIconName = "content_paste";
 const hexRegex = /^#?([\da-f]{3}|[\da-f]{6})$/i;
 const rgbRegex = /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/i;
 const hslRegex = /^hsl\(\s*(\d{1,3})\s*,\s*(\d{1,3})%\s*,\s*(\d{1,3})%\s*\)$/i;
@@ -180,9 +179,7 @@ export function ColorInspector({
               className="inspectorPasteButton"
               onClick={() => void pasteFromClipboard()}
             >
-              <span className="materialSymbol" aria-hidden="true">
-                {pasteIconName}
-              </span>
+              <ClipboardPaste className="inlineIcon" aria-hidden="true" />
               <span>{t("copyPasteButton")}</span>
             </button>
           </div>
@@ -201,9 +198,7 @@ export function ColorInspector({
                   aria-label={`${t("copyButton")}: ${item.label}`}
                   title={`${t("copyButton")}: ${item.label}`}
                 >
-                  <span className="materialSymbol" aria-hidden="true">
-                    {copyIconName}
-                  </span>
+                  <Copy className="inlineIcon" aria-hidden="true" />
                 </button>
               </div>
             ))}
