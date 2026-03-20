@@ -1,0 +1,55 @@
+.root {
+  inline-size: min(100% - 1.5rem, 92.5rem);
+  margin: 0.75rem auto 1.75rem;
+  display: grid;
+  gap: 0.875rem;
+}
+
+.hero {
+  padding: 1rem;
+  border-radius: 0.875rem;
+  border: 0.0625rem solid var(--border);
+  background:
+    radial-gradient(
+      circle at 100% -10%,
+      color-mix(in oklab, var(--primary) 24%, transparent),
+      transparent 40%
+    ),
+    color-mix(in oklab, var(--card) 95%, var(--background) 5%);
+}
+
+.heroHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.heroCopy {
+  flex: 1 1 20rem;
+  min-width: 0;
+}
+
+.heroCopy h1 {
+  margin: 0;
+  font-size: clamp(1.2rem, 1.6vw + 0.6rem, 1.85rem);
+}
+
+.heroCopy p {
+  margin: 0.5rem 0 0;
+  max-width: 62ch;
+  color: var(--muted-foreground);
+}
+
+.section {
+  border: 0.0625rem solid var(--border);
+  border-radius: 0.875rem;
+  padding: 0.75rem;
+  background: color-mix(in oklab, var(--card) 96%, var(--background) 4%);
+}
+
+.section h2 {
+  margin: 0 0 0.625rem;
+  font-size: 1rem;
+}
