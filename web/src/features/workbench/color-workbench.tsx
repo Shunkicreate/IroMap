@@ -448,22 +448,31 @@ export function ColorWorkbench() {
   return (
     <section className="workbenchRoot">
       <div className="workbenchInteractiveGrid">
-        <WorkbenchPreviewPanel
-          target={baselineTarget}
-          hoverSample={hoverState.sample}
-          selectedSamples={selectedSamples}
-          selectionState={baselineSelectionState}
-          selectionDraft={selectionDraft}
-          uploadDisclosureStorageKey={storageKeys.uploadPanel}
-          onHoverSampleChange={(sample) =>
-            setHoverState({ targetId: baselineTarget.targetId, sample, source: "preview" })
-          }
-          onSelectionDraftChange={setSelectionDraft}
-          onSelectionCommit={handlePreviewSelectionCommit}
-          onSampleSelect={handlePreviewSampleSelect}
-          onSourceFileSelected={handleSourceFileSelected}
-          onPaste={handlePhotoPaste}
-        />
+        <div className="workbenchPreviewStack">
+          <WorkbenchPreviewPanel
+            target={baselineTarget}
+            hoverSample={hoverState.sample}
+            selectedSamples={selectedSamples}
+            selectionState={baselineSelectionState}
+            selectionDraft={selectionDraft}
+            uploadDisclosureStorageKey={storageKeys.uploadPanel}
+            onHoverSampleChange={(sample) =>
+              setHoverState({ targetId: baselineTarget.targetId, sample, source: "preview" })
+            }
+            onSelectionDraftChange={setSelectionDraft}
+            onSelectionCommit={handlePreviewSelectionCommit}
+            onSampleSelect={handlePreviewSampleSelect}
+            onSourceFileSelected={handleSourceFileSelected}
+            onPaste={handlePhotoPaste}
+          />
+
+          <WorkbenchMetricsPanel
+            copyFormat={copyFormat}
+            metricRows={localizedBaselineMetricRows}
+            onCopyFormatChange={setCopyFormat}
+            onCopyMetricTable={copyMetricTable}
+          />
+        </div>
 
         <div className="workbenchVisualStack">
           <WorkbenchScatterPanel result={baselineTarget.result} />
@@ -610,13 +619,6 @@ export function ColorWorkbench() {
           onColorSelect={handleColorSelect}
           onMappedSamplesVisibilityChange={setIsSliceImageMappingVisible}
           onSelectedSamplesVisibilityChange={setIsSliceSelectionMappingVisible}
-        />
-
-        <WorkbenchMetricsPanel
-          copyFormat={copyFormat}
-          metricRows={localizedBaselineMetricRows}
-          onCopyFormatChange={setCopyFormat}
-          onCopyMetricTable={copyMetricTable}
         />
       </div>
 
