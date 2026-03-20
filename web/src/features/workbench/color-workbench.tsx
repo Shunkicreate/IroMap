@@ -319,6 +319,8 @@ const localizeMetricRows = (rows: WorkbenchMetricRow[]): WorkbenchMetricRow[] =>
     tooltip: t(getMetricTooltipKey(row.key)),
   }));
 
+const isVisibleMetricRow = (row: WorkbenchMetricRow) => row.key !== "selection_coverage_ratio";
+
 const getHueInsightLabel = (result: PhotoAnalysisResult): string => {
   const activeBins = result.hueHistogram.filter((bin) => bin.count > 0).length;
   if (activeBins >= 8) {
@@ -1364,7 +1366,7 @@ export function ColorWorkbench() {
                   </tr>
                 </thead>
                 <tbody>
-                  {localizedBaselineMetricRows.map((row) => (
+                  {localizedBaselineMetricRows.filter(isVisibleMetricRow).map((row) => (
                     <tr key={row.key}>
                       <td>{row.group}</td>
                       <td>
