@@ -1,5 +1,6 @@
 "use client";
 
+import { CircleHelp } from "lucide-react";
 import { useId } from "react";
 
 type Props = {
@@ -18,7 +19,7 @@ export function InfoTooltip({ label, content }: Props) {
         aria-label={label}
         aria-describedby={tooltipId}
       >
-        i
+        <CircleHelp className="inlineIcon" aria-hidden="true" />
       </button>
       <span id={tooltipId} role="tooltip" className="infoTooltipContent">
         {content}
