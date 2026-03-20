@@ -58,7 +58,9 @@ test("T-105(color-space-3d): タブ選択状態の視認性を確認", async ({ 
 
 test("T-106(color-space-3d): 3D軸ガイドのON/OFFを確認", async ({ page }) => {
   await page.goto("/");
-  const axisGuide = page.getByLabel("軸ガイドを表示");
+  const cubePanel = getPanel(page, "RGBキューブ");
+  await cubePanel.getByRole("button", { name: "表示オプション" }).click();
+  const axisGuide = cubePanel.getByLabel("軸ガイドを表示");
   await expect(axisGuide).toBeChecked();
   await axisGuide.uncheck();
   await expect(axisGuide).not.toBeChecked();
