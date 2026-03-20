@@ -334,8 +334,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  inline-size: 1.625rem;
-  block-size: 1.625rem;
+  inline-size: 1.75rem;
+  block-size: 1.75rem;
   border-radius: 62.4375rem;
   border: 0.0625rem solid color-mix(in oklab, var(--workbench-surface-border) 85%, transparent);
   background: color-mix(in oklab, var(--workbench-surface) 94%, var(--background) 6%);
@@ -346,6 +346,12 @@
     border-color 160ms ease,
     background 160ms ease,
     transform 160ms ease;
+}
+
+.infoTooltipIcon {
+  inline-size: 1.125rem;
+  block-size: 1.125rem;
+  flex: none;
 }
 
 .infoTooltipTrigger:hover,
