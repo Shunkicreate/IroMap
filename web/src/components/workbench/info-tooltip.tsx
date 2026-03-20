@@ -19,7 +19,7 @@ export function InfoTooltip({ label, content }: Props) {
         aria-label={label}
         aria-describedby={tooltipId}
       >
-        <CircleHelp className="inlineIcon" aria-hidden="true" />
+        <CircleHelp className="inlineIconLg" aria-hidden="true" />
       </button>
       <span id={tooltipId} role="tooltip" className="infoTooltipContent">
         {content}
