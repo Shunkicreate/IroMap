@@ -10,6 +10,7 @@ test("T-105(photo-analysis): 評価基準ヘルプの表示とラベル判定を
   await expect(analysis.getByText("分析結果の見方")).toBeVisible();
   await expect(analysis.getByText(/^色相バランス:/)).toBeVisible();
   await expect(analysis.getByText(/^彩度傾向:/)).toBeVisible();
+  await expect(analysis.getByText("選択領域の占有率", { exact: true })).toHaveCount(0);
 });
 
 test("T-005(photo-analysis): 画像アップロード操作を写真分析パネル内で完結できる", async ({

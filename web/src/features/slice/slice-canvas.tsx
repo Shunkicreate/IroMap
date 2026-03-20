@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { PanelHeader } from "@/components/workbench/panel-header";
+import { PersistedDisclosure } from "@/components/workbench/persisted-disclosure";
 import {
   toHueDegree,
   toPercentage,
@@ -24,13 +25,18 @@ type Props = {
   space: ColorSpace3d;
   axis: SliceAxis;
   value: number;
+  displayOptionsStorageKey: string;
   mappedSamples?: PhotoSample[];
   selectedSamples?: PhotoSample[];
+  ismappedSamplesVisible?: boolean;
+  isselectedSamplesVisible?: boolean;
   hoverColor?: RgbColor | null;
   onAxisChange: (axis: SliceAxis) => void;
   onValueChange: (value: number) => void;
   onHoverColorChange: (color: RgbColor | null) => void;
   onColorSelect: (color: RgbColor) => void;
+  onMappedSamplesVisibilityChange: (ismappedSamplesVisible: boolean) => void;
+  onSelectedSamplesVisibilityChange: (isselectedSamplesVisible: boolean) => void;
 };
 
 const rgbaStride = 4;
@@ -344,13 +350,18 @@ export function SliceCanvas({
   space,
   axis,
   value,
+  displayOptionsStorageKey,
   mappedSamples = [],
   selectedSamples = [],
+  ismappedSamplesVisible = true,
+  isselectedSamplesVisible = true,
   hoverColor = null,
   onAxisChange,
   onValueChange,
   onHoverColorChange,
   onColorSelect,
+  onMappedSamplesVisibilityChange,
+  onSelectedSamplesVisibilityChange,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
@@ -404,35 +415,39 @@ export function SliceCanvas({
 
     context.clearRect(0, 0, colorChannelLevels, colorChannelLevels);
 
-    context.fillStyle = "rgba(248, 250, 252, 0.42)";
-    for (const sample of mappedSamples) {
-      const point = projectSampleToSlice(sample, axis, value);
-      if (!point) {
-        continue;
+    if (ismappedSamplesVisible) {
+      context.fillStyle = "rgba(248, 250, 252, 0.42)";
+      for (const sample of mappedSamples) {
+        const point = projectSampleToSlice(sample, axis, value);
+        if (!point) {
+          continue;
+        }
+        context.beginPath();
+        context.arc(point.x, point.y, 1.8, 0, Math.PI * 2);
+        context.fill();
       }
-      context.beginPath();
-      context.arc(point.x, point.y, 1.8, 0, Math.PI * 2);
-      context.fill();
     }
 
-    const sphereRadius = selectedSphereRadiusByAxis(axis);
-    for (const sample of selectedSamples) {
-      const axisDistance =
-        axis === "h"
-          ? getHueDistance(getSampleAxisValue(sample, axis), value)
-          : Math.abs(getSampleAxisValue(sample, axis) - value);
-      if (axisDistance > sphereRadius) {
-        continue;
-      }
+    if (isselectedSamplesVisible) {
+      const sphereRadius = selectedSphereRadiusByAxis(axis);
+      for (const sample of selectedSamples) {
+        const axisDistance =
+          axis === "h"
+            ? getHueDistance(getSampleAxisValue(sample, axis), value)
+            : Math.abs(getSampleAxisValue(sample, axis) - value);
+        if (axisDistance > sphereRadius) {
+          continue;
+        }
 
-      const planePoint = projectSampleToSlicePlane(sample, axis);
-      const crossSectionRadius = Math.sqrt(sphereRadius ** 2 - axisDistance ** 2);
-      const opacity = Math.max(0, 1 - axisDistance / sphereRadius);
-      context.beginPath();
-      context.arc(planePoint.x, planePoint.y, Math.max(crossSectionRadius, 1.2), 0, Math.PI * 2);
-      context.strokeStyle = `rgba(249, 115, 22, ${opacity})`;
-      context.lineWidth = 1.2;
-      context.stroke();
+        const planePoint = projectSampleToSlicePlane(sample, axis);
+        const crossSectionRadius = Math.sqrt(sphereRadius ** 2 - axisDistance ** 2);
+        const opacity = Math.max(0, 1 - axisDistance / sphereRadius);
+        context.beginPath();
+        context.arc(planePoint.x, planePoint.y, Math.max(crossSectionRadius, 1.2), 0, Math.PI * 2);
+        context.strokeStyle = `rgba(249, 115, 22, ${opacity})`;
+        context.lineWidth = 1.2;
+        context.stroke();
+      }
     }
 
     const drawMarker = (color: RgbColor | null, strokeStyle: string, radius: number): void => {
@@ -482,7 +497,15 @@ export function SliceCanvas({
       context.stroke();
     };
     drawMarker(hoverColor, "#ffffff", 7);
-  }, [axis, hoverColor, mappedSamples, selectedSamples, value]);
+  }, [
+    axis,
+    hoverColor,
+    ismappedSamplesVisible,
+    isselectedSamplesVisible,
+    mappedSamples,
+    selectedSamples,
+    value,
+  ]);
 
   const mapPointerToColor = (
     event: React.PointerEvent<HTMLCanvasElement> | React.MouseEvent<HTMLCanvasElement>
@@ -561,6 +584,34 @@ export function SliceCanvas({
           />
         </label>
       </div>
+      <PersistedDisclosure
+        storageKey={displayOptionsStorageKey}
+        isdefaultOpen={false}
+        summary={t("workbenchDisplayOptionsDisclosure")}
+        className="workbenchInlineDisclosure"
+        contentClassName="workbenchInlineDisclosureContent"
+      >
+        <div className="cubeToggleRow">
+          <label className="toggleLabel">
+            <input
+              type="checkbox"
+              checked={ismappedSamplesVisible}
+              onChange={(event) => onMappedSamplesVisibilityChange(event.target.checked)}
+              aria-label={t("workbenchShowWhiteMappingSlice")}
+            />
+            <span>{t("workbenchShowWhiteMappingSlice")}</span>
+          </label>
+          <label className="toggleLabel">
+            <input
+              type="checkbox"
+              checked={isselectedSamplesVisible}
+              onChange={(event) => onSelectedSamplesVisibilityChange(event.target.checked)}
+              aria-label={t("workbenchShowSelectedMappingSlice")}
+            />
+            <span>{t("workbenchShowSelectedMappingSlice")}</span>
+          </label>
+        </div>
+      </PersistedDisclosure>
       <div className="sliceCanvasWrap">
         <div className="sliceAxisBadge">
           {t("sliceFixedAxisLabel", { axis: labels.fixed, value })}

@@ -33,6 +33,8 @@ type Props = {
   sliceValue: number;
   imageCubePoints: RgbCubePoint[];
   selectionCubePoints?: RgbCubePoint[];
+  isimageMappingVisible?: boolean;
+  isselectionMappingVisible?: boolean;
   hoverColor?: RgbColor | null;
   selectedColor?: RgbColor | null;
   overlayMode: "grid" | "image" | "both";
@@ -92,6 +94,8 @@ export function RgbCubeCanvas({
   sliceValue,
   imageCubePoints,
   selectionCubePoints = [],
+  isimageMappingVisible = true,
+  isselectionMappingVisible = true,
   hoverColor = null,
   selectedColor = null,
   overlayMode,
@@ -163,22 +167,25 @@ export function RgbCubeCanvas({
       : [];
 
     const maxImageCount = imageCubePoints.reduce((max, point) => Math.max(max, point.count), 1);
-    const projectedImage = hasImageOverlay
-      ? imageCubePoints
+    const projectedImage =
+      hasImageOverlay && isimageMappingVisible
+        ? imageCubePoints
+            .map((point) => ({
+              ...projectColor(point.color, space, rotation, width, height, objectScale),
+              count: point.count,
+              ratio: point.ratio,
+            }))
+            .sort((left, right) => left.depth - right.depth)
+        : [];
+
+    const projectedSelection = isselectionMappingVisible
+      ? selectionCubePoints
           .map((point) => ({
             ...projectColor(point.color, space, rotation, width, height, objectScale),
             count: point.count,
-            ratio: point.ratio,
           }))
           .sort((left, right) => left.depth - right.depth)
       : [];
-
-    const projectedSelection = selectionCubePoints
-      .map((point) => ({
-        ...projectColor(point.color, space, rotation, width, height, objectScale),
-        count: point.count,
-      }))
-      .sort((left, right) => left.depth - right.depth);
 
     projectedPointsRef.current = [...projectedGrid, ...projectedImage];
 
@@ -256,7 +263,7 @@ export function RgbCubeCanvas({
       context.stroke();
     };
 
-    if (projectedSelection.length === 0) {
+    if (isselectionMappingVisible && projectedSelection.length === 0) {
       drawFocusRing(selectedColor, selectionOverlayStroke);
     }
     drawFocusRing(hoverColor, hoverOverlayStroke);
@@ -299,6 +306,8 @@ export function RgbCubeCanvas({
     sampledColors,
     selectedColor,
     selectionCubePoints,
+    isimageMappingVisible,
+    isselectionMappingVisible,
     sliceAxis,
     sliceValue,
     space,

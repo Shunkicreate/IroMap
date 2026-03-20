@@ -4,7 +4,10 @@ import NextImage from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { GraphFrame } from "@/components/graph/graph-frame";
+import { InfoTooltip } from "@/components/workbench/info-tooltip";
+import { PersistedDisclosure } from "@/components/workbench/persisted-disclosure";
 import { PanelHeader } from "@/components/workbench/panel-header";
+import { usePersistedBoolean } from "@/components/workbench/use-persisted-boolean";
 import { ColorSwatch } from "@/components/workbench/color-swatch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { rgbToHex } from "@/domain/color/color-format";
@@ -87,6 +90,16 @@ const defaultSelectionState: TargetSelectionState = {
 };
 const histogramChartViewboxWidth = 100;
 const histogramChartViewboxHeight = 100;
+const storageKeys = {
+  uploadPanel: "iromap.workbench.preview.upload-panel.open",
+  cubeOptionsPanel: "iromap.workbench.cube.options.open",
+  sliceOptionsPanel: "iromap.workbench.slice.options.open",
+  inspectorPanel: "iromap.workbench.inspector.panel.open",
+  cubeImageMapping: "iromap.workbench.cube.image-mapping.visible",
+  cubeSelectionMapping: "iromap.workbench.cube.selection-mapping.visible",
+  sliceImageMapping: "iromap.workbench.slice.image-mapping.visible",
+  sliceSelectionMapping: "iromap.workbench.slice.selection-mapping.visible",
+};
 
 const emptyTarget = (targetId: string, label: string): WorkbenchTarget => ({
   targetId,
@@ -229,6 +242,8 @@ const getMetricLabelKey = (key: WorkbenchMetricRow["key"]) => {
       return "workbenchMetricLabelCP95";
     case "neutral_distance_mean":
       return "workbenchMetricLabelNeutralDistanceMean";
+    case "highlight_a_mean":
+      return "workbenchMetricLabelHighlightAMean";
     case "highlight_b_mean":
       return "workbenchMetricLabelHighlightBMean";
     case "highlight_neutral_distance_mean":
@@ -256,6 +271,8 @@ const getMetricDescriptionKey = (key: WorkbenchMetricRow["key"]) => {
       return "workbenchMetricDescriptionCP95";
     case "neutral_distance_mean":
       return "workbenchMetricDescriptionNeutralDistanceMean";
+    case "highlight_a_mean":
+      return "workbenchMetricDescriptionHighlightAMean";
     case "highlight_b_mean":
       return "workbenchMetricDescriptionHighlightBMean";
     case "highlight_neutral_distance_mean":
@@ -265,12 +282,44 @@ const getMetricDescriptionKey = (key: WorkbenchMetricRow["key"]) => {
   }
 };
 
+const getMetricTooltipKey = (key: WorkbenchMetricRow["key"]) => {
+  switch (key) {
+    case "l_mean":
+      return "workbenchMetricTooltipLMean";
+    case "l_stddev":
+      return "workbenchMetricTooltipLStddev";
+    case "l_p95":
+      return "workbenchMetricTooltipLP95";
+    case "a_mean":
+      return "workbenchMetricTooltipAMean";
+    case "b_mean":
+      return "workbenchMetricTooltipBMean";
+    case "c_mean":
+      return "workbenchMetricTooltipCMean";
+    case "c_p95":
+      return "workbenchMetricTooltipCP95";
+    case "neutral_distance_mean":
+      return "workbenchMetricTooltipNeutralDistanceMean";
+    case "highlight_a_mean":
+      return "workbenchMetricTooltipHighlightAMean";
+    case "highlight_b_mean":
+      return "workbenchMetricTooltipHighlightBMean";
+    case "highlight_neutral_distance_mean":
+      return "workbenchMetricTooltipHighlightNeutralDistanceMean";
+    case "selection_coverage_ratio":
+      return "workbenchMetricTooltipSelectionCoverageRatio";
+  }
+};
+
 const localizeMetricRows = (rows: WorkbenchMetricRow[]): WorkbenchMetricRow[] =>
   rows.map((row) => ({
     ...row,
     label: t(getMetricLabelKey(row.key)),
     description: t(getMetricDescriptionKey(row.key)),
+    tooltip: t(getMetricTooltipKey(row.key)),
   }));
+
+const isVisibleMetricRow = (row: WorkbenchMetricRow) => row.key !== "selection_coverage_ratio";
 
 const getHueInsightLabel = (result: PhotoAnalysisResult): string => {
   const activeBins = result.hueHistogram.filter((bin) => bin.count > 0).length;
@@ -361,6 +410,7 @@ type PreviewPanelProps = {
   selectedSamples: PhotoSample[];
   selectionState: TargetSelectionState;
   selectionDraft: SelectionDraft;
+  uploadDisclosureStorageKey: string;
   onHoverSampleChange: (sample: PhotoSample | null) => void;
   onSelectionDraftChange: (draft: SelectionDraft) => void;
   onSelectionCommit: (bounds: { x: number; y: number; width: number; height: number }) => void;
@@ -375,6 +425,7 @@ function PreviewPanel({
   selectedSamples,
   selectionState,
   selectionDraft,
+  uploadDisclosureStorageKey,
   onHoverSampleChange,
   onSelectionDraftChange,
   onSelectionCommit,
@@ -526,37 +577,45 @@ function PreviewPanel({
   return (
     <section className="panel previewWorkbenchPanel">
       <PanelHeader titleKey="photoPreviewTitle" requirementsKey="panelPhotoAnalysisRequirements" />
-      <div
-        className="photoUploadCta"
-        onPaste={onPaste}
-        tabIndex={0}
-        role="button"
-        aria-label={t("photoPasteZoneLabel")}
+      <PersistedDisclosure
+        storageKey={uploadDisclosureStorageKey}
+        isdefaultOpen={true}
+        summary={t("workbenchUploadDisclosure")}
+        className="workbenchInlineDisclosure"
+        contentClassName="workbenchInlineDisclosureContent"
       >
-        <div className="photoUploadCtaCopy">
-          <strong>{t("photoUploadCtaTitle")}</strong>
-          <p>{t("photoUploadCtaDescription")}</p>
-          {target.file ? (
-            <p className="photoUploadCtaStatus">
-              {t("photoUploadSelected", { fileName: target.file.name })}
-            </p>
-          ) : null}
+        <div
+          className="photoUploadCta"
+          onPaste={onPaste}
+          tabIndex={0}
+          role="button"
+          aria-label={t("photoPasteZoneLabel")}
+        >
+          <div className="photoUploadCtaCopy">
+            <strong>{t("photoUploadCtaTitle")}</strong>
+            <p>{t("photoUploadCtaDescription")}</p>
+            {target.file ? (
+              <p className="photoUploadCtaStatus">
+                {t("photoUploadSelected", { fileName: target.file.name })}
+              </p>
+            ) : null}
+          </div>
+          <label className="photoUploadButton">
+            <span>{t("photoUploadButton")}</span>
+            <input
+              type="file"
+              accept="image/*"
+              aria-label={t("photoUploadLabel")}
+              className="srOnly"
+              onChange={(event) => onSourceFileSelected(event.target.files?.[0] ?? null)}
+            />
+          </label>
+          <div className="photoPasteZone">
+            <strong>{t("photoPasteZoneTitle")}</strong>
+            <p>{t("photoPasteZoneHint")}</p>
+          </div>
         </div>
-        <label className="photoUploadButton">
-          <span>{t("photoUploadButton")}</span>
-          <input
-            type="file"
-            accept="image/*"
-            aria-label={t("photoUploadLabel")}
-            className="srOnly"
-            onChange={(event) => onSourceFileSelected(event.target.files?.[0] ?? null)}
-          />
-        </label>
-        <div className="photoPasteZone">
-          <strong>{t("photoPasteZoneTitle")}</strong>
-          <p>{t("photoPasteZoneHint")}</p>
-        </div>
-      </div>
+      </PersistedDisclosure>
 
       <div
         ref={imageWrapRef}
@@ -661,6 +720,22 @@ export function ColorWorkbench() {
   const [manualB, setManualB] = useState<number>(128);
   const [liveMessage, setLiveMessage] = useState<string>("");
   const [selectionDraft, setSelectionDraft] = useState<SelectionDraft>(null);
+  const [isCubeImageMappingVisible, setIsCubeImageMappingVisible] = usePersistedBoolean({
+    storageKey: storageKeys.cubeImageMapping,
+    isdefaultValue: true,
+  });
+  const [isCubeSelectionMappingVisible, setIsCubeSelectionMappingVisible] = usePersistedBoolean({
+    storageKey: storageKeys.cubeSelectionMapping,
+    isdefaultValue: true,
+  });
+  const [isSliceImageMappingVisible, setIsSliceImageMappingVisible] = usePersistedBoolean({
+    storageKey: storageKeys.sliceImageMapping,
+    isdefaultValue: true,
+  });
+  const [isSliceSelectionMappingVisible, setIsSliceSelectionMappingVisible] = usePersistedBoolean({
+    storageKey: storageKeys.sliceSelectionMapping,
+    isdefaultValue: true,
+  });
 
   const baselineBuckets = useMemo(
     () => buildSampleBuckets(baselineTarget.result),
@@ -910,17 +985,13 @@ export function ColorWorkbench() {
     setHoverState({ targetId: "baseline", sample: null, source: "preview" });
   };
 
-  const handlePhotoPaste = (event: React.ClipboardEvent<HTMLDivElement>): void => {
-    const items = Array.from(event.clipboardData?.items ?? []);
+  const getClipboardImageFile = (clipboardData: DataTransfer | null | undefined): File | null => {
+    const items = Array.from(clipboardData?.items ?? []);
     const imageItem = items.find((item) => item.kind === "file" && item.type.startsWith("image/"));
-    const file = imageItem?.getAsFile();
-    if (!file) {
-      const message = t("photoPasteNoImage");
-      setLiveMessage(message);
-      toast.error(message);
-      return;
-    }
-    event.preventDefault();
+    return imageItem?.getAsFile() ?? null;
+  };
+
+  const applyPastedImageFile = (file: File): void => {
     const pastedFile = new File([file], file.name || clipboardImageFileName, {
       type: file.type || "image/png",
       lastModified: Date.now(),
@@ -930,6 +1001,46 @@ export function ColorWorkbench() {
     toast.success(message);
     handleSourceFileSelected(pastedFile);
   };
+
+  const handlePhotoPaste = (event: React.ClipboardEvent<HTMLDivElement>): void => {
+    const file = getClipboardImageFile(event.clipboardData);
+    if (!file) {
+      const message = t("photoPasteNoImage");
+      setLiveMessage(message);
+      toast.error(message);
+      return;
+    }
+    event.preventDefault();
+    applyPastedImageFile(file);
+  };
+
+  useEffect(() => {
+    const handleWindowPaste = (event: ClipboardEvent): void => {
+      const items = Array.from(event.clipboardData?.items ?? []);
+      const imageItem = items.find(
+        (item) => item.kind === "file" && item.type.startsWith("image/")
+      );
+      const file = imageItem?.getAsFile();
+      if (!file) {
+        return;
+      }
+
+      event.preventDefault();
+      const pastedFile = new File([file], file.name || clipboardImageFileName, {
+        type: file.type || "image/png",
+        lastModified: Date.now(),
+      });
+      const message = t("photoPasteApplied");
+      setLiveMessage(message);
+      toast.success(message);
+      handleSourceFileSelected(pastedFile);
+    };
+
+    window.addEventListener("paste", handleWindowPaste);
+    return () => {
+      window.removeEventListener("paste", handleWindowPaste);
+    };
+  }, []);
 
   const applyManualColor = (): void => {
     const nextColor = toRgbColor(
@@ -993,6 +1104,7 @@ export function ColorWorkbench() {
           selectedSamples={selectedSamples}
           selectionState={baselineSelectionState}
           selectionDraft={selectionDraft}
+          uploadDisclosureStorageKey={storageKeys.uploadPanel}
           onHoverSampleChange={(sample) =>
             setHoverState({ targetId: baselineTarget.targetId, sample, source: "preview" })
           }
@@ -1024,59 +1136,87 @@ export function ColorWorkbench() {
             </TabsList>
           </Tabs>
 
-          <div className="cubeSettings">
-            <div className="cubeOverlayMode">
-              <span className="cubeControlLabel">{t("cubeOverlayModeLabel")}</span>
-              <Tabs
-                value={cubeOverlayMode}
-                onValueChange={(value) => setCubeOverlayMode(value as RgbCubeOverlayMode)}
-                className="spaceTabs"
-              >
-                <TabsList className="spaceTabsList">
-                  <TabsTrigger value="grid" className="spaceTabTrigger">
-                    {t("cubeOverlayModeGrid")}
-                  </TabsTrigger>
-                  <TabsTrigger value="image" className="spaceTabTrigger">
-                    {t("cubeOverlayModeImage")}
-                  </TabsTrigger>
-                  <TabsTrigger value="both" className="spaceTabTrigger">
-                    {t("cubeOverlayModeBoth")}
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-            <label className="toggleLabel">
-              <input
-                type="checkbox"
-                checked={isAxisGuideVisible}
-                onChange={(event) => setIsAxisGuideVisible(event.target.checked)}
-                aria-label={t("cubeShowAxisGuide")}
-              />
-              <span>{t("cubeShowAxisGuide")}</span>
-            </label>
-            <label className="toggleLabel">
-              <input
-                type="checkbox"
-                checked={isCubeSizeSliderVisible}
-                onChange={(event) => setIsCubeSizeSliderVisible(event.target.checked)}
-                aria-label={t("cubeShowSizeSlider")}
-              />
-              <span>{t("cubeShowSizeSlider")}</span>
-            </label>
-            {isCubeSizeSliderVisible ? (
-              <label>
-                {t("cubeSizeLabel", { size: cubeSize })}
+          <PersistedDisclosure
+            storageKey={storageKeys.cubeOptionsPanel}
+            isdefaultOpen={false}
+            summary={t("workbenchDisplayOptionsDisclosure")}
+            className="workbenchInlineDisclosure"
+            contentClassName="workbenchInlineDisclosureContent"
+          >
+            <div className="cubeSettings">
+              <div className="cubeOverlayMode">
+                <span className="cubeControlLabel">{t("cubeOverlayModeLabel")}</span>
+                <Tabs
+                  value={cubeOverlayMode}
+                  onValueChange={(value) => setCubeOverlayMode(value as RgbCubeOverlayMode)}
+                  className="spaceTabs"
+                >
+                  <TabsList className="spaceTabsList">
+                    <TabsTrigger value="grid" className="spaceTabTrigger">
+                      {t("cubeOverlayModeGrid")}
+                    </TabsTrigger>
+                    <TabsTrigger value="image" className="spaceTabTrigger">
+                      {t("cubeOverlayModeImage")}
+                    </TabsTrigger>
+                    <TabsTrigger value="both" className="spaceTabTrigger">
+                      {t("cubeOverlayModeBoth")}
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
+              <div className="cubeToggleRow">
+                <label className="toggleLabel">
+                  <input
+                    type="checkbox"
+                    checked={isCubeImageMappingVisible}
+                    onChange={(event) => setIsCubeImageMappingVisible(event.target.checked)}
+                    aria-label={t("workbenchShowWhiteMappingCube")}
+                  />
+                  <span>{t("workbenchShowWhiteMappingCube")}</span>
+                </label>
+                <label className="toggleLabel">
+                  <input
+                    type="checkbox"
+                    checked={isCubeSelectionMappingVisible}
+                    onChange={(event) => setIsCubeSelectionMappingVisible(event.target.checked)}
+                    aria-label={t("workbenchShowSelectedMappingCube")}
+                  />
+                  <span>{t("workbenchShowSelectedMappingCube")}</span>
+                </label>
+              </div>
+              <label className="toggleLabel">
                 <input
-                  type="range"
-                  min={320}
-                  max={900}
-                  step={10}
-                  value={cubeSize}
-                  onChange={(event) => setCubeSize(Number(event.target.value))}
+                  type="checkbox"
+                  checked={isAxisGuideVisible}
+                  onChange={(event) => setIsAxisGuideVisible(event.target.checked)}
+                  aria-label={t("cubeShowAxisGuide")}
                 />
+                <span>{t("cubeShowAxisGuide")}</span>
               </label>
-            ) : null}
-          </div>
+              <label className="toggleLabel">
+                <input
+                  type="checkbox"
+                  checked={isCubeSizeSliderVisible}
+                  onChange={(event) => setIsCubeSizeSliderVisible(event.target.checked)}
+                  aria-label={t("cubeShowSizeSlider")}
+                />
+                <span>{t("cubeShowSizeSlider")}</span>
+              </label>
+              {isCubeSizeSliderVisible ? (
+                <label>
+                  {t("cubeSizeLabel", { size: cubeSize })}
+                  <input
+                    type="range"
+                    min={320}
+                    max={900}
+                    step={10}
+                    value={cubeSize}
+                    onChange={(event) => setCubeSize(Number(event.target.value))}
+                  />
+                </label>
+              ) : null}
+            </div>
+          </PersistedDisclosure>
 
           <RgbCubeCanvas
             space={space}
@@ -1087,6 +1227,8 @@ export function ColorWorkbench() {
             sliceValue={sliceValue}
             imageCubePoints={baselineTarget.result?.cubePoints ?? []}
             selectionCubePoints={selectionCubePoints}
+            isimageMappingVisible={isCubeImageMappingVisible}
+            isselectionMappingVisible={isCubeSelectionMappingVisible}
             hoverColor={hoverColor}
             selectedColor={selectedColor}
             overlayMode={cubeOverlayMode}
@@ -1140,23 +1282,18 @@ export function ColorWorkbench() {
             space={space}
             axis={sliceAxis}
             value={sliceValue}
+            displayOptionsStorageKey={storageKeys.sliceOptionsPanel}
             mappedSamples={sliceMappedSamples}
             selectedSamples={selectedSamples}
+            ismappedSamplesVisible={isSliceImageMappingVisible}
+            isselectedSamplesVisible={isSliceSelectionMappingVisible}
             hoverColor={hoverColor}
             onAxisChange={handleSliceAxisChange}
             onValueChange={setSliceValue}
             onHoverColorChange={(color) => handleColorHover(color, "slice")}
             onColorSelect={handleColorSelect}
-          />
-
-          <ColorInspector
-            hoverColor={hoverColor}
-            selectedColor={selectedColor}
-            onColorPasted={(color) => {
-              setSelectedColor(color);
-              handleColorSelect(color);
-            }}
-            onStatusChange={handleStatusChange}
+            onMappedSamplesVisibilityChange={setIsSliceImageMappingVisible}
+            onSelectedSamplesVisibilityChange={setIsSliceSelectionMappingVisible}
           />
         </div>
       </div>
@@ -1229,10 +1366,18 @@ export function ColorWorkbench() {
                   </tr>
                 </thead>
                 <tbody>
-                  {localizedBaselineMetricRows.map((row) => (
+                  {localizedBaselineMetricRows.filter(isVisibleMetricRow).map((row) => (
                     <tr key={row.key}>
                       <td>{row.group}</td>
-                      <td>{row.label}</td>
+                      <td>
+                        <span className="metricLabelWithInfo">
+                          <span>{row.label}</span>
+                          <InfoTooltip
+                            label={t("workbenchMetricHelpLabel", { metric: row.label })}
+                            content={row.tooltip ?? row.description}
+                          />
+                        </span>
+                      </td>
                       <td>{formatMetricValue(row, row.value)}</td>
                       <td>{row.description}</td>
                     </tr>
@@ -1304,6 +1449,17 @@ export function ColorWorkbench() {
           )}
         </div>
       </section>
+
+      <ColorInspector
+        hoverColor={hoverColor}
+        selectedColor={selectedColor}
+        contentStorageKey={storageKeys.inspectorPanel}
+        onColorPasted={(color) => {
+          setSelectedColor(color);
+          handleColorSelect(color);
+        }}
+        onStatusChange={handleStatusChange}
+      />
 
       <p className="muted copyStatus" aria-live="polite">
         {liveMessage}

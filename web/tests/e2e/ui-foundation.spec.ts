@@ -72,6 +72,7 @@ test("T-105(ui-foundation): ポインタ未使用で色選択が完了できる"
   const inspector = page.locator("section.panel", {
     has: page.getByRole("heading", { name: "インスペクタ" }),
   });
+  await inspector.getByRole("button", { name: "インスペクタを開く" }).click();
   await expect(inspector.getByText("#FF4020")).toBeVisible();
 });
 

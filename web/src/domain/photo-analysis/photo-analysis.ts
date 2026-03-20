@@ -76,6 +76,7 @@ export type WorkbenchMetricKey =
   | "c_mean"
   | "c_p95"
   | "neutral_distance_mean"
+  | "highlight_a_mean"
   | "highlight_b_mean"
   | "highlight_neutral_distance_mean"
   | "selection_coverage_ratio";
@@ -88,6 +89,7 @@ export type WorkbenchMetricRow = {
   unit: string;
   precision: number;
   description: string;
+  tooltip?: string;
 };
 
 type MetricRowHeaderLabels = {
@@ -146,6 +148,7 @@ type MetricSummary = {
   bMean: number | null;
   cMean: number | null;
   cP95: number | null;
+  highlightAMean: number | null;
   highlightBMean: number | null;
   highlightNeutralDistanceMean: number | null;
   meanLab: LabColor | null;
@@ -247,8 +250,16 @@ const metricDefinitions: Array<{
   },
   {
     group: "白",
+    key: "highlight_a_mean",
+    label: "Highlight a* mean (L* > 80)",
+    unit: "",
+    precision: 2,
+    description: "白の緑み / 赤み",
+  },
+  {
+    group: "白",
     key: "highlight_b_mean",
-    label: "Highlight b* mean",
+    label: "Highlight b* mean (L* > 80)",
     unit: "",
     precision: 2,
     description: "白の黄ばみ / 青み",
@@ -256,7 +267,7 @@ const metricDefinitions: Array<{
   {
     group: "白",
     key: "highlight_neutral_distance_mean",
-    label: "Highlight Neutral Distance mean",
+    label: "Highlight Neutral Distance mean (L* > 80)",
     unit: "",
     precision: 2,
     description: "白の清潔感",
@@ -500,6 +511,7 @@ const buildMetricSummary = (samples: PhotoSample[]): MetricSummary => {
     bMean,
     cMean: mean(cValues),
     cP95: percentile(cValues, 0.95),
+    highlightAMean: mean(highlightSamples.map((sample) => sample.lab.a)),
     highlightBMean: mean(highlightSamples.map((sample) => sample.lab.b)),
     highlightNeutralDistanceMean: mean(highlightSamples.map((sample) => sample.chroma)),
     meanLab:
@@ -640,6 +652,8 @@ export const buildMetricRows = ({
         return sourceSummary.cP95;
       case "neutral_distance_mean":
         return sourceSummary.cMean;
+      case "highlight_a_mean":
+        return sourceSummary.highlightAMean;
       case "highlight_b_mean":
         return sourceSummary.highlightBMean;
       case "highlight_neutral_distance_mean":
