@@ -149,7 +149,7 @@ export function WorkbenchAnalysisPanel({
         <article className={analysisStyles.analysisCard}>
           <h3>{t("photoColorAreaRatio")}</h3>
           {result ? (
-            <ul className={analysisStyles.areaList}>
+            <ul className={`${analysisStyles.areaList} areaList`}>
               {result.colorAreas.map((area) => (
                 <li key={area.label}>
                   <ColorSwatch color={area.rgb} />

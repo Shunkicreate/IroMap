@@ -285,10 +285,10 @@ export function WorkbenchPreviewPanel({
         </svg>
       </div>
 
-      <div className={previewStyles.statusGrid}>
+      <div className={`${previewStyles.statusGrid} previewStatusGrid`}>
         <div>
           <strong>{t("workbenchBaselineLabel")}</strong>
-          <p className={`muted ${previewStyles.statusLine}`}>
+          <p className={`muted ${previewStyles.statusLine} previewStatusLine`}>
             {target.statusMessage || (target.file ? t("photoAnalyzing") : t("photoPreviewEmpty"))}
           </p>
           {target.error ? <p className="errorText">{target.error}</p> : null}

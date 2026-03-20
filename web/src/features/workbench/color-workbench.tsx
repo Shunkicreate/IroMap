@@ -605,9 +605,9 @@ export function ColorWorkbench() {
             onColorSelect={handleColorSelect}
           />
 
-          <div className={controlStyles.manualColorPicker}>
+          <div className={`${controlStyles.manualColorPicker} manualColorPicker`}>
             <strong>{t("workbenchManualPickerTitle")}</strong>
-            <div className={controlStyles.manualColorInputs}>
+            <div className={`${controlStyles.manualColorInputs} manualColorInputs`}>
               <label>
                 R
                 <input
