@@ -173,7 +173,7 @@ const getSaturationInsightLabel = (result: PhotoAnalysisResult): string => {
 };
 
 const getSpreadInsightLabel = (result: PhotoAnalysisResult): string => {
-  if (result.scatter.length === 0) {
+  if (result.samples.length === 0) {
     return t("photoInsightSpreadMedium");
   }
 
@@ -182,11 +182,11 @@ const getSpreadInsightLabel = (result: PhotoAnalysisResult): string => {
   let minB = Number.POSITIVE_INFINITY;
   let maxB = Number.NEGATIVE_INFINITY;
 
-  for (const point of result.scatter) {
-    minA = Math.min(minA, point.x);
-    maxA = Math.max(maxA, point.x);
-    minB = Math.min(minB, point.y);
-    maxB = Math.max(maxB, point.y);
+  for (const sample of result.samples) {
+    minA = Math.min(minA, sample.lab.a);
+    maxA = Math.max(maxA, sample.lab.a);
+    minB = Math.min(minB, sample.lab.b);
+    maxB = Math.max(maxB, sample.lab.b);
   }
 
   const spread = (maxA - minA + (maxB - minB)) / 2;
@@ -516,13 +516,13 @@ export function PhotoAnalysisPanel({
                     height={scatterViewboxSize}
                     fill="#0f172a"
                   />
-                  {analysis.result.scatter.map((point, index) => (
+                  {analysis.result.samples.map((sample) => (
                     <circle
-                      key={`${index}-${point.x}-${point.y}`}
-                      cx={toScatterPosition(point.x)}
-                      cy={scatterViewboxSize - toScatterPosition(point.y)}
+                      key={sample.sampleId}
+                      cx={toScatterPosition(sample.lab.a)}
+                      cy={scatterViewboxSize - toScatterPosition(sample.lab.b)}
                       r={pointRadius}
-                      fill={rgbToHex(point.color)}
+                      fill={rgbToHex(sample.color)}
                       opacity={pointOpacity}
                     />
                   ))}

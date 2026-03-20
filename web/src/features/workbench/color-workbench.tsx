@@ -13,6 +13,7 @@ import { ColorInspector } from "@/features/inspector/color-inspector";
 import { PhotoAnalysisPanel } from "@/features/photo-analysis/photo-analysis-panel";
 import { RgbCubeCanvas } from "@/features/rgb-cube/rgb-cube-canvas";
 import { SliceCanvas } from "@/features/slice/slice-canvas";
+import { storageKeys } from "@/features/workbench/workbench-shared";
 import { t } from "@/i18n/translate";
 
 type Rotation = {
@@ -77,6 +78,9 @@ export function ColorWorkbench() {
   const [rotation, setRotation] = useState<Rotation>(defaultRotation);
   const [cubeOverlayMode, setCubeOverlayMode] = useState<RgbCubeOverlayMode>("both");
   const [photoCubePoints, setPhotoCubePoints] = useState<RgbCubePoint[]>([]);
+  const [isSliceImageMappingVisible, setIsSliceImageMappingVisible] = useState<boolean>(true);
+  const [isSliceSelectionMappingVisible, setIsSliceSelectionMappingVisible] =
+    useState<boolean>(true);
 
   const normalizeSliceValueForAxis = (nextAxis: SliceAxis, currentValue: number): number => {
     const nextRange = getAxisRange(nextAxis);
@@ -290,14 +294,20 @@ export function ColorWorkbench() {
             space={space}
             axis={sliceAxis}
             value={sliceValue}
+            displayOptionsStorageKey={storageKeys.sliceOptionsPanel}
+            ismappedSamplesVisible={isSliceImageMappingVisible}
+            isselectedSamplesVisible={isSliceSelectionMappingVisible}
             onAxisChange={handleSliceAxisChange}
             onValueChange={setSliceValue}
             onHoverColorChange={setHoverColor}
             onColorSelect={setSelectedColor}
+            onMappedSamplesVisibilityChange={setIsSliceImageMappingVisible}
+            onSelectedSamplesVisibilityChange={setIsSliceSelectionMappingVisible}
           />
           <ColorInspector
             hoverColor={hoverColor}
             selectedColor={selectedColor}
+            contentStorageKey={storageKeys.inspectorPanel}
             onColorPasted={setSelectedColor}
             onStatusChange={handleStatusChange}
           />
