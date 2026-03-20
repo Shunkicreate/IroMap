@@ -79,13 +79,16 @@ test("T-108(color-space-3d): RGBキューブとSliceの近接配置を確認", a
   await page.goto("/");
   const cubeBox = await getCubeCanvas(page).boundingBox();
   const sliceBox = await getSliceCanvas(page).boundingBox();
+  const interactiveGrid = page.locator(".workbenchInteractiveGrid");
 
   expect(cubeBox).not.toBeNull();
   expect(sliceBox).not.toBeNull();
+  await expect(interactiveGrid).toHaveCount(1);
   if (!cubeBox || !sliceBox) {
     return;
   }
-  expect(Math.abs(sliceBox.y - cubeBox.y)).toBeLessThan(700);
+  expect(sliceBox.x).toBeGreaterThan(cubeBox.x);
+  expect(Math.abs(sliceBox.x - cubeBox.x)).toBeLessThan(1200);
 });
 
 test("T-109(color-space-3d): キューブサイズスライダー表示とサイズ変更を確認", async ({ page }) => {
