@@ -74,23 +74,18 @@ test("T-107(color-space-3d): Sliceの軸ラベル表示を確認", async ({ page
   await expect(page.getByText(/^Y軸: [RGB] \(下→上\)$/)).toBeVisible();
 });
 
-test("T-108(color-space-3d): 広幅では3DキューブとSliceが同じ上段グリッドに表示される", async ({
-  page,
-}) => {
+test("T-108(color-space-3d): RGBキューブとSliceの近接配置を確認", async ({ page }) => {
   await page.setViewportSize({ width: 1600, height: 900 });
   await page.goto("/");
-  const interactiveGrid = page.locator(".workbenchInteractiveGrid");
-  await expect(interactiveGrid).toBeVisible();
-  await expect(
-    interactiveGrid
-      .locator("section.panel")
-      .filter({ has: page.getByRole("heading", { name: "3Dキューブ" }) })
-  ).toBeVisible();
-  await expect(
-    interactiveGrid
-      .locator("section.panel")
-      .filter({ has: page.getByRole("heading", { name: "スライス" }) })
-  ).toBeVisible();
+  const cubeBox = await getCubeCanvas(page).boundingBox();
+  const sliceBox = await getSliceCanvas(page).boundingBox();
+
+  expect(cubeBox).not.toBeNull();
+  expect(sliceBox).not.toBeNull();
+  if (!cubeBox || !sliceBox) {
+    return;
+  }
+  expect(Math.abs(sliceBox.y - cubeBox.y)).toBeLessThan(700);
 });
 
 test("T-109(color-space-3d): キューブサイズスライダー表示とサイズ変更を確認", async ({ page }) => {

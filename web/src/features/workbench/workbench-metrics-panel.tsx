@@ -1,23 +1,12 @@
 import { InfoTooltip } from "@/components/workbench/info-tooltip";
 import { PanelHeader } from "@/components/workbench/panel-header";
-import { ColorSwatch } from "@/components/workbench/color-swatch";
-import type {
-  ExportFormat,
-  PhotoAnalysisResult,
-  WorkbenchMetricRow,
-} from "@/domain/photo-analysis/photo-analysis";
+import type { ExportFormat, WorkbenchMetricRow } from "@/domain/photo-analysis/photo-analysis";
 import controlStyles from "@/features/workbench/workbench-controls.module.css";
-import analysisStyles from "@/features/workbench/workbench-analysis-shared.module.css";
 import panelStyles from "@/features/workbench/workbench-analysis-panel.module.css";
-import {
-  formatMetricValue,
-  isVisibleMetricRow,
-  ratioFormatter,
-} from "@/features/workbench/workbench-shared";
+import { formatMetricValue, isVisibleMetricRow } from "@/features/workbench/workbench-shared";
 import { t } from "@/i18n/translate";
 
 type Props = {
-  result: PhotoAnalysisResult | null;
   copyFormat: ExportFormat;
   metricRows: WorkbenchMetricRow[];
   onCopyFormatChange: (format: ExportFormat) => void;
@@ -25,7 +14,6 @@ type Props = {
 };
 
 export function WorkbenchMetricsPanel({
-  result,
   copyFormat,
   metricRows,
   onCopyFormatChange,
@@ -34,27 +22,6 @@ export function WorkbenchMetricsPanel({
   return (
     <section className={`panel ${panelStyles.panel}`}>
       <PanelHeader titleKey="panelMetrics" requirementsKey="panelMetricsRequirements" />
-
-      <div className={panelStyles.controls}>
-        <label>
-          {t("workbenchCopyFormatWorkbenchLabel")}
-          <select
-            value={copyFormat}
-            onChange={(event) => onCopyFormatChange(event.target.value as ExportFormat)}
-          >
-            <option value="markdown">{t("workbenchExportMarkdown")}</option>
-            <option value="csv">{t("workbenchExportCsv")}</option>
-            <option value="tsv">{t("workbenchExportTsv")}</option>
-          </select>
-        </label>
-        <button
-          type="button"
-          onClick={() => void onCopyMetricTable()}
-          disabled={metricRows.length === 0}
-        >
-          {t("workbenchTableCopy")}
-        </button>
-      </div>
 
       <div className={panelStyles.metricsTableWrap}>
         <table className={panelStyles.metricsTable}>
@@ -87,22 +54,26 @@ export function WorkbenchMetricsPanel({
         </table>
       </div>
 
-      <article className={analysisStyles.analysisCard}>
-        <h3>{t("photoColorAreaRatio")}</h3>
-        {result ? (
-          <ul className={`${analysisStyles.areaList} areaList`}>
-            {result.colorAreas.map((area) => (
-              <li key={area.label}>
-                <ColorSwatch color={area.rgb} />
-                <span>{area.label === "others" ? t("photoOthers") : area.label}</span>
-                <strong>{ratioFormatter.format(area.ratio / 100)}</strong>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="muted">{t("photoPreviewEmpty")}</p>
-        )}
-      </article>
+      <div className={panelStyles.controls}>
+        <label>
+          {t("workbenchCopyFormatWorkbenchLabel")}
+          <select
+            value={copyFormat}
+            onChange={(event) => onCopyFormatChange(event.target.value as ExportFormat)}
+          >
+            <option value="markdown">{t("workbenchExportMarkdown")}</option>
+            <option value="csv">{t("workbenchExportCsv")}</option>
+            <option value="tsv">{t("workbenchExportTsv")}</option>
+          </select>
+        </label>
+        <button
+          type="button"
+          onClick={() => void onCopyMetricTable()}
+          disabled={metricRows.length === 0}
+        >
+          {t("workbenchTableCopy")}
+        </button>
+      </div>
     </section>
   );
 }

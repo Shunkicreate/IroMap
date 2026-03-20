@@ -1,4 +1,5 @@
 import { GraphFrame } from "@/components/graph/graph-frame";
+import { ColorSwatch } from "@/components/workbench/color-swatch";
 import { PanelHeader } from "@/components/workbench/panel-header";
 import { t } from "@/i18n/translate";
 import type { PhotoAnalysisResult } from "@/domain/photo-analysis/photo-analysis";
@@ -8,6 +9,7 @@ import panelStyles from "@/features/workbench/workbench-analysis-panel.module.cs
 import {
   getHueInsightLabel,
   getSaturationInsightLabel,
+  ratioFormatter,
 } from "@/features/workbench/workbench-shared";
 
 type Props = {
@@ -78,6 +80,19 @@ export function WorkbenchAnalysisPanel({
       <div className={analysisStyles.analysisGrid}>
         {result ? (
           <>
+            <article className={analysisStyles.analysisCard}>
+              <h3>{t("photoColorAreaRatio")}</h3>
+              <ul className={analysisStyles.areaList}>
+                {result.colorAreas.map((area) => (
+                  <li key={area.label}>
+                    <ColorSwatch color={area.rgb} />
+                    <span>{area.label === "others" ? t("photoOthers") : area.label}</span>
+                    <strong>{ratioFormatter.format(area.ratio / 100)}</strong>
+                  </li>
+                ))}
+              </ul>
+            </article>
+
             <article className={analysisStyles.analysisCard}>
               <h3>{t("workbenchHistogramCardTitle")}</h3>
               <GraphFrame
