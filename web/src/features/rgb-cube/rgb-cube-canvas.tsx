@@ -104,6 +104,7 @@ export function RgbCubeCanvas({
   onColorSelect,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const canvasWrapRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<{ isDragging: boolean; x: number; y: number }>({
     isDragging: false,
     x: 0,
@@ -113,7 +114,13 @@ export function RgbCubeCanvas({
   const normalizedCubeSize =
     Math.round(Math.min(maxCubeSize, Math.max(minCubeSize, cubeSize)) / cubeSizeStep) *
     cubeSizeStep;
-  const canvasWrapClassName = `cubeCanvasWrap cubeCanvasWrapSize${normalizedCubeSize}`;
+
+  useEffect(() => {
+    canvasWrapRef.current?.style.setProperty(
+      "--rgb-cube-inline-size",
+      `${normalizedCubeSize / 16}rem`
+    );
+  }, [normalizedCubeSize]);
 
   const sampledColors = useMemo(() => {
     const colors: RgbColor[] = [];
@@ -366,7 +373,7 @@ export function RgbCubeCanvas({
   };
 
   return (
-    <div className={canvasWrapClassName}>
+    <div ref={canvasWrapRef} className="cubeCanvasWrap">
       <canvas
         ref={canvasRef}
         className="cubeCanvas"
