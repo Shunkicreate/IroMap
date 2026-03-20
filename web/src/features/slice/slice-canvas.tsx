@@ -20,6 +20,7 @@ import {
 import { t } from "@/i18n/translate";
 import { GraphFrame } from "@/components/graph/graph-frame";
 import type { PhotoSample } from "@/domain/photo-analysis/photo-analysis";
+import controlStyles from "@/features/workbench/workbench-controls.module.css";
 
 type Props = {
   space: ColorSpace3d;
@@ -588,11 +589,11 @@ export function SliceCanvas({
         storageKey={displayOptionsStorageKey}
         isdefaultOpen={false}
         summary={t("workbenchDisplayOptionsDisclosure")}
-        className="workbenchInlineDisclosure"
-        contentClassName="workbenchInlineDisclosureContent"
+        className={controlStyles.inlineDisclosure}
+        contentClassName={controlStyles.inlineDisclosureContent}
       >
-        <div className="cubeToggleRow">
-          <label className="toggleLabel">
+        <div className={controlStyles.toggleRow}>
+          <label className={controlStyles.toggleLabel}>
             <input
               type="checkbox"
               checked={ismappedSamplesVisible}
@@ -601,7 +602,7 @@ export function SliceCanvas({
             />
             <span>{t("workbenchShowWhiteMappingSlice")}</span>
           </label>
-          <label className="toggleLabel">
+          <label className={controlStyles.toggleLabel}>
             <input
               type="checkbox"
               checked={isselectedSamplesVisible}

@@ -1,0 +1,112 @@
+.inlineDisclosure {
+  margin: 0.75rem 0 1rem;
+}
+
+.inlineDisclosureContent {
+  display: grid;
+  gap: 0.75rem;
+  padding-top: 0.75rem;
+}
+
+.spaceTabs {
+  width: 100%;
+}
+
+.spaceTabsList {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 100%;
+}
+
+.spaceTabTrigger {
+  width: 100%;
+}
+
+.spaceTabTrigger[data-state="active"] {
+  font-weight: 600;
+}
+
+.spaceTabTrigger:focus-visible {
+  outline: 0.125rem solid color-mix(in oklab, var(--primary) 70%, white 30%);
+  outline-offset: 0.125rem;
+}
+
+.cubeSettings {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.cubeOverlayMode {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.cubeControlLabel {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--workbench-muted);
+}
+
+.toggleRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.toggleLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--workbench-text);
+  font-size: 0.88rem;
+}
+
+.toggleLabel input[type="checkbox"] {
+  margin: 0;
+}
+
+.manualColorPicker {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 0.0625rem solid var(--workbench-surface-border);
+}
+
+.manualColorPicker strong {
+  font-size: 0.9rem;
+}
+
+.manualColorInputs {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.manualColorInputs label {
+  display: grid;
+  gap: 0.375rem;
+  font-size: 0.82rem;
+  color: var(--workbench-muted);
+}
+
+.manualColorInputs input[type="number"] {
+  width: 100%;
+}
+
+.metricLabelWithInfo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+@media (max-width: 39.9375em) {
+  .toggleRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .manualColorInputs {
+    grid-template-columns: 1fr;
+  }
+}
