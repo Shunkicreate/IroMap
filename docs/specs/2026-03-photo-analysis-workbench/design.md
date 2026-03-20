@@ -2,7 +2,7 @@
 
 ## 1. 目的
 
-- `spec.md` の FR-1 から FR-8 を満たすため、既存の photo analysis / rgb cube / slice / inspector を 1 つの分析ワークベンチへ統合する設計方針を定義する
+- `spec.md` の FR-1 から FR-9 を満たすため、既存の photo analysis / rgb cube / slice / inspector を 1 つの分析ワークベンチへ統合する設計方針を定義する
 - 複数画像比較は今回の実装対象から外し、この文書内では後続拡張の設計メモとして残す
 
 ## 2. 全体方針
@@ -11,6 +11,8 @@
 - 可視化レイヤーは `image plane / 3d color space / slice / metrics` に分割し、同じ選択状態を参照する
 - 今回の実装は `単一 target の選択モデル + 表コピー + L* histogram` を成立条件とする
 - 履歴、保存、ブラシ選択などは後続で差し込めるよう状態モデルを分離する
+- 補助 UI は `PersistedDisclosure` に統一し、`localStorage` で開閉状態を復元する
+- マッピング表示は `画像由来オーバーレイ` と `選択色オーバーレイ` を独立 state として扱う
 
 ## 2.1 用語定義
 
@@ -43,13 +45,13 @@
 - `WorkbenchShell`
   - 全体レイアウト、panel visibility、responsive 切替を管理する
 - `PreviewPanel`
-  - 画像表示、hover overlay、矩形選択、selection clear を担当する
+  - 画像表示、hover overlay、矩形選択、selection clear、画像入力 disclosure を担当する
 - `ColorSpacePanel`
-  - 3D 色空間表示、hover / pick、comparison overlay を担当する
+  - 3D 色空間表示、hover / pick、mapping visibility を担当する
 - `SlicePanel`
-  - slice 軸操作、hover / pick、fixed axis 表示を担当する
+  - slice 軸操作、hover / pick、fixed axis 表示、mapping visibility を担当する
 - `InspectorPanel`
-  - hover / selected sample の数値表示を担当する
+  - hover / selected sample の数値表示と disclosure 復元を担当する
 - `MetricsTablePanel`
   - 指標表表示、差分列、コピー形式切替、コピー実行を担当する
 - `HistogramPanel`
@@ -74,7 +76,7 @@
 - `TargetSelectionState`
   - `{ activeSelectionId? }`
 - `MetricValue`
-  - `{ key, label, group, value, unit, precision, description, emptyStateLabel }`
+  - `{ key, label, group, value, unit, precision, description, tooltip, emptyStateLabel }`
 - `HistogramBin`
   - `{ metric, binIndex, start, end, count, ratio }`
 - `ComparisonPair`
@@ -98,6 +100,7 @@
   - `comparisonScope`
   - `copyFormat`
   - `panelVisibility`
+  - `mappingVisibility`
 - 派生 state
   - 表示対象の sample 集合
   - 指標表 rows

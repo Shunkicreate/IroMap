@@ -258,6 +258,94 @@
   color: var(--workbench-muted);
 }
 
+.persistedDisclosure {
+  display: grid;
+  gap: 0.625rem;
+}
+
+.persistedDisclosureTrigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  inline-size: 100%;
+  padding: 0.5rem 0.625rem;
+  border: 0.0625rem solid var(--workbench-surface-border);
+  border-radius: 0.625rem;
+  background: color-mix(in oklab, var(--workbench-surface) 92%, var(--background) 8%);
+  color: var(--workbench-text);
+  font-size: 0.88rem;
+}
+
+.persistedDisclosureIcon {
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--workbench-muted);
+}
+
+.persistedDisclosureContent {
+  display: grid;
+  gap: 0.625rem;
+}
+
+.workbenchInlineDisclosure {
+  margin-bottom: 0.75rem;
+}
+
+.workbenchInlineDisclosureContent {
+  padding-top: 0.125rem;
+}
+
+.metricLabelWithInfo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.infoTooltip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.infoTooltipTrigger {
+  inline-size: 1.15rem;
+  block-size: 1.15rem;
+  border-radius: 62.4375rem;
+  border: 0.0625rem solid color-mix(in oklab, var(--primary) 65%, var(--foreground) 35%);
+  background: color-mix(in oklab, var(--primary) 18%, transparent);
+  color: var(--workbench-text);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0;
+}
+
+.infoTooltipContent {
+  position: absolute;
+  inset-block-end: calc(100% + 0.4rem);
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  inline-size: min(18rem, 70vw);
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.625rem;
+  border: 0.0625rem solid color-mix(in oklab, var(--primary) 30%, var(--foreground) 20%);
+  background: color-mix(in oklab, #07111f 90%, var(--background) 10%);
+  color: #f8fbff;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  box-shadow: 0 0.5rem 1.5rem #0003;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms ease;
+  z-index: 20;
+}
+
+.infoTooltip:hover .infoTooltipContent,
+.infoTooltip:focus-within .infoTooltipContent {
+  opacity: 1;
+}
+
 .cubeCanvas {
   inline-size: 100%;
   block-size: 100%;
@@ -706,7 +794,6 @@
 .cubeSettings {
   display: grid;
   gap: 0.5rem;
-  margin-bottom: 0.75rem;
 }
 
 .cubeOverlayMode {

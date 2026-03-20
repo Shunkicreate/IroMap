@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ColorSwatch } from "@/components/workbench/color-swatch";
 import { PanelHeader } from "@/components/workbench/panel-header";
+import { PersistedDisclosure } from "@/components/workbench/persisted-disclosure";
 import { hslToRgb } from "@/domain/color/color-conversion";
 import { formatHsl, formatRgb, rgbToHex } from "@/domain/color/color-format";
 import { toHueDegree, toPercentage, toRgbColor, type RgbColor } from "@/domain/color/color-types";
@@ -13,6 +14,7 @@ import { t } from "@/i18n/translate";
 type Props = {
   hoverColor: RgbColor | null;
   selectedColor: RgbColor | null;
+  contentStorageKey: string;
   onColorPasted?: (color: RgbColor) => void;
   onStatusChange?: (message: string) => void;
 };
@@ -80,6 +82,7 @@ const renderSwatch = (color: RgbColor | null) => {
 export function ColorInspector({
   hoverColor,
   selectedColor,
+  contentStorageKey,
   onColorPasted,
   onStatusChange,
 }: Props) {
@@ -158,42 +161,46 @@ export function ColorInspector({
   return (
     <section className="panel">
       <PanelHeader titleKey="panelInspector" requirementsKey="panelInspectorRequirements" />
-
-      <div className="inspectorCards">
-        <div className="inspectorCard">
-          <strong>{t("inspectorPreview")}</strong>
-          {renderSwatch(hoverColor)}
-          <div className="colorRow">
-            <span>{t("inspectorHoverLabel")}</span>
-            <code>{hoverColor ? rgbToHex(hoverColor) : PLACEHOLDER}</code>
-            <code>{hoverColor ? formatRgb(hoverColor) : PLACEHOLDER}</code>
-            <code>{hoverColor ? formatHsl(hoverColor) : PLACEHOLDER}</code>
+      <PersistedDisclosure
+        storageKey={contentStorageKey}
+        isdefaultOpen={false}
+        summary={t("workbenchInspectorDisclosure")}
+      >
+        <div className="inspectorCards">
+          <div className="inspectorCard">
+            <strong>{t("inspectorPreview")}</strong>
+            {renderSwatch(hoverColor)}
+            <div className="colorRow">
+              <span>{t("inspectorHoverLabel")}</span>
+              <code>{hoverColor ? rgbToHex(hoverColor) : PLACEHOLDER}</code>
+              <code>{hoverColor ? formatRgb(hoverColor) : PLACEHOLDER}</code>
+              <code>{hoverColor ? formatHsl(hoverColor) : PLACEHOLDER}</code>
+            </div>
           </div>
-        </div>
 
-        <div className="inspectorCard">
-          <div className="inspectorCardHeader">
-            <strong>{t("inspectorSelected")}</strong>
-            <button
-              type="button"
-              className="inspectorPasteButton"
-              onClick={() => void pasteFromClipboard()}
-            >
-              <ClipboardPaste className="inlineIcon" aria-hidden="true" />
-              <span>{t("copyPasteButton")}</span>
-            </button>
-          </div>
-          {renderSwatch(selectedColor)}
-          <div className="colorRow colorRowSelected">
-            <span>{t("inspectorSelectedLabel")}</span>
-            {selectedFormats.map((item) => (
-              <div key={item.label} className="copyValueRow">
-                <small>{item.label}</small>
-                <code>{item.value}</code>
-                <button
-                  type="button"
-                  className="iconButton"
-                  onClick={() => void copyValue(item.value)}
+          <div className="inspectorCard">
+            <div className="inspectorCardHeader">
+              <strong>{t("inspectorSelected")}</strong>
+              <button
+                type="button"
+                className="inspectorPasteButton"
+                onClick={() => void pasteFromClipboard()}
+              >
+                <ClipboardPaste className="inlineIcon" aria-hidden="true" />
+                <span>{t("copyPasteButton")}</span>
+              </button>
+            </div>
+            {renderSwatch(selectedColor)}
+            <div className="colorRow colorRowSelected">
+              <span>{t("inspectorSelectedLabel")}</span>
+              {selectedFormats.map((item) => (
+                <div key={item.label} className="copyValueRow">
+                  <small>{item.label}</small>
+                  <code>{item.value}</code>
+                  <button
+                    type="button"
+                    className="iconButton"
+                    onClick={() => void copyValue(item.value)}
                   disabled={!selectedColor}
                   aria-label={`${t("copyButton")}: ${item.label}`}
                   title={`${t("copyButton")}: ${item.label}`}
@@ -206,9 +213,10 @@ export function ColorInspector({
         </div>
       </div>
 
-      <p className="muted copyStatus" aria-live="polite">
-        {message || (!selectedColor ? t("copyNeedSelection") : "")}
-      </p>
+        <p className="muted copyStatus" aria-live="polite">
+          {message || (!selectedColor ? t("copyNeedSelection") : "")}
+        </p>
+      </PersistedDisclosure>
     </section>
   );
 }

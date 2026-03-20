@@ -40,6 +40,9 @@ export const i18nMessages = {
     workbenchMetricTableCopied: "指標表をコピーしました ({format})",
     workbenchHistogramCopied: "3つのヒストグラムをコピーしました ({format})",
     workbenchHistogramAllTitle: "ヒストグラム",
+    workbenchUploadDisclosure: "画像アップロード / 貼り付け",
+    workbenchDisplayOptionsDisclosure: "表示オプション",
+    workbenchInspectorDisclosure: "インスペクタを開く",
     workbenchMetricLabelLMean: "L* 平均",
     workbenchMetricLabelLStddev: "L* 標準偏差",
     workbenchMetricLabelLP95: "L* 95パーセンタイル",
@@ -48,20 +51,47 @@ export const i18nMessages = {
     workbenchMetricLabelCMean: "C* 平均",
     workbenchMetricLabelCP95: "C* 95パーセンタイル",
     workbenchMetricLabelNeutralDistanceMean: "中立距離 平均",
-    workbenchMetricLabelHighlightBMean: "ハイライト b* 平均",
-    workbenchMetricLabelHighlightNeutralDistanceMean: "ハイライト中立距離 平均",
+    workbenchMetricLabelHighlightAMean: "ハイライト a* 平均 (L* > 80)",
+    workbenchMetricLabelHighlightBMean: "ハイライト b* 平均 (L* > 80)",
+    workbenchMetricLabelHighlightNeutralDistanceMean: "ハイライト中立距離 平均 (L* > 80)",
     workbenchMetricLabelSelectionCoverageRatio: "選択領域の占有率",
     workbenchMetricDescriptionLMean: "全体の明るさ",
     workbenchMetricDescriptionLStddev: "明暗差の大きさ",
     workbenchMetricDescriptionLP95: "ハイライトの強さ",
-    workbenchMetricDescriptionAMean: "緑↔赤方向の偏り",
-    workbenchMetricDescriptionBMean: "青↔黄方向の偏り",
+    workbenchMetricDescriptionAMean: "緑み / 赤みの偏り",
+    workbenchMetricDescriptionBMean: "青み / 黄みの偏り",
     workbenchMetricDescriptionCMean: "全体の色づき",
     workbenchMetricDescriptionCP95: "一部の強い色",
     workbenchMetricDescriptionNeutralDistanceMean: "中立からどれだけ離れているか",
-    workbenchMetricDescriptionHighlightBMean: "白の黄ばみ / 青み",
+    workbenchMetricDescriptionHighlightAMean: "白の緑み / 赤み",
+    workbenchMetricDescriptionHighlightBMean: "白の青み / 黄み",
     workbenchMetricDescriptionHighlightNeutralDistanceMean: "白の清潔感",
     workbenchMetricDescriptionSelectionCoverageRatio: "選択領域の占有率",
+    workbenchMetricTooltipLMean:
+      "画像全体の平均明度です。大きいほど全体が明るく、小さいほど暗めです。",
+    workbenchMetricTooltipLStddev:
+      "L* のばらつきです。大きいほど明暗差が強く、小さいほど均一です。",
+    workbenchMetricTooltipLP95:
+      "明るい側 5% 付近の代表値です。大きいほど強いハイライトを含みます。",
+    workbenchMetricTooltipAMean:
+      "Lab の a* 平均です。プラス側ほど赤み、マイナス側ほど緑みへ寄ります。0 に近いほど偏りが弱いです。",
+    workbenchMetricTooltipBMean:
+      "Lab の b* 平均です。プラス側ほど黄み、マイナス側ほど青みへ寄ります。0 に近いほど偏りが弱いです。",
+    workbenchMetricTooltipCMean:
+      "平均的な色の強さです。大きいほど彩度感が強く、小さいほど無彩色に近づきます。",
+    workbenchMetricTooltipCP95:
+      "色づきの強い側 5% 付近の代表値です。大きいほど一部に強い色が含まれます。",
+    workbenchMetricTooltipNeutralDistanceMean:
+      "中立色からの平均距離です。大きいほど色かぶりや色づきが強く、0 に近いほどニュートラルです。",
+    workbenchMetricTooltipHighlightAMean:
+      "L* > 80 の画素だけで見た a* 平均です。プラス側ほど白が赤み寄り、マイナス側ほど緑み寄りです。",
+    workbenchMetricTooltipHighlightBMean:
+      "L* > 80 の画素だけで見た b* 平均です。プラス側ほど白が黄み寄り、マイナス側ほど青み寄りです。",
+    workbenchMetricTooltipHighlightNeutralDistanceMean:
+      "L* > 80 の画素だけで見た中立距離です。大きいほど白に色づきがあり、小さいほど白が素直です。",
+    workbenchMetricTooltipSelectionCoverageRatio:
+      "選択領域が全サンプルに占める割合です。大きいほど広い範囲を選択しています。",
+    workbenchMetricHelpLabel: "{metric} の説明",
     panelRgbCube: "RGBキューブ",
     panelRgbCubeRequirements: "色空間を切り替えてドラッグで回転できます",
     panelInspector: "インスペクタ",
@@ -83,6 +113,10 @@ export const i18nMessages = {
     cubeOverlayModeImage: "画像のみ",
     cubeOverlayModeBoth: "グリッド + 画像",
     cubeOverlayStatus: "表示: {mode} / image points: {points}",
+    workbenchShowWhiteMappingCube: "RGBキューブの白マッピングを表示",
+    workbenchShowSelectedMappingCube: "RGBキューブの選択色マッピングを表示",
+    workbenchShowWhiteMappingSlice: "スライスの白マッピングを表示",
+    workbenchShowSelectedMappingSlice: "スライスの選択色マッピングを表示",
     inspectorPreview: "プレビュー（ホバー）",
     inspectorSelected: "選択色（クリック）",
     inspectorHoverLabel: "ホバー",
@@ -200,6 +234,9 @@ export const i18nMessages = {
     workbenchMetricTableCopied: "Copied metrics table ({format})",
     workbenchHistogramCopied: "Copied 3 histograms ({format})",
     workbenchHistogramAllTitle: "Histograms",
+    workbenchUploadDisclosure: "Image upload / paste",
+    workbenchDisplayOptionsDisclosure: "Display options",
+    workbenchInspectorDisclosure: "Open inspector",
     workbenchMetricLabelLMean: "L* mean",
     workbenchMetricLabelLStddev: "L* standard deviation",
     workbenchMetricLabelLP95: "L* 95th percentile",
@@ -208,20 +245,47 @@ export const i18nMessages = {
     workbenchMetricLabelCMean: "C* mean",
     workbenchMetricLabelCP95: "C* 95th percentile",
     workbenchMetricLabelNeutralDistanceMean: "Neutral distance mean",
-    workbenchMetricLabelHighlightBMean: "Highlight b* mean",
-    workbenchMetricLabelHighlightNeutralDistanceMean: "Highlight neutral distance mean",
+    workbenchMetricLabelHighlightAMean: "Highlight a* mean (L* > 80)",
+    workbenchMetricLabelHighlightBMean: "Highlight b* mean (L* > 80)",
+    workbenchMetricLabelHighlightNeutralDistanceMean: "Highlight neutral distance mean (L* > 80)",
     workbenchMetricLabelSelectionCoverageRatio: "Selection coverage ratio",
     workbenchMetricDescriptionLMean: "Overall brightness",
     workbenchMetricDescriptionLStddev: "Contrast spread",
     workbenchMetricDescriptionLP95: "Highlight strength",
-    workbenchMetricDescriptionAMean: "Bias toward green or red",
-    workbenchMetricDescriptionBMean: "Bias toward blue or yellow",
+    workbenchMetricDescriptionAMean: "Green or red bias",
+    workbenchMetricDescriptionBMean: "Blue or yellow bias",
     workbenchMetricDescriptionCMean: "Overall color intensity",
     workbenchMetricDescriptionCP95: "Strong color outliers",
     workbenchMetricDescriptionNeutralDistanceMean: "Distance from neutral",
-    workbenchMetricDescriptionHighlightBMean: "Yellow or blue cast in highlights",
+    workbenchMetricDescriptionHighlightAMean: "Green or red cast in highlights",
+    workbenchMetricDescriptionHighlightBMean: "Blue or yellow cast in highlights",
     workbenchMetricDescriptionHighlightNeutralDistanceMean: "Highlight cleanliness",
     workbenchMetricDescriptionSelectionCoverageRatio: "Coverage of the selected region",
+    workbenchMetricTooltipLMean:
+      "Average luminance across the image. Higher means brighter overall; lower means darker overall.",
+    workbenchMetricTooltipLStddev:
+      "Spread of L* values. Higher means stronger contrast; lower means more even lightness.",
+    workbenchMetricTooltipLP95:
+      "Representative value near the brightest 5% of pixels. Higher means stronger highlights are present.",
+    workbenchMetricTooltipAMean:
+      "Average Lab a*. Positive values lean red, negative values lean green, and values near 0 are more neutral.",
+    workbenchMetricTooltipBMean:
+      "Average Lab b*. Positive values lean yellow, negative values lean blue, and values near 0 are more neutral.",
+    workbenchMetricTooltipCMean:
+      "Average chroma. Higher means stronger colorfulness; lower means closer to neutral.",
+    workbenchMetricTooltipCP95:
+      "Representative value near the most saturated 5% of pixels. Higher means stronger color outliers are present.",
+    workbenchMetricTooltipNeutralDistanceMean:
+      "Average distance from neutral. Higher means a stronger color cast; lower means more neutral.",
+    workbenchMetricTooltipHighlightAMean:
+      "Average a* for pixels where L* > 80. Positive means redder highlights; negative means greener highlights.",
+    workbenchMetricTooltipHighlightBMean:
+      "Average b* for pixels where L* > 80. Positive means yellower highlights; negative means bluer highlights.",
+    workbenchMetricTooltipHighlightNeutralDistanceMean:
+      "Average neutral distance for pixels where L* > 80. Higher means more tint in highlights; lower means cleaner whites.",
+    workbenchMetricTooltipSelectionCoverageRatio:
+      "Share of samples covered by the current selection. Higher means a larger selected region.",
+    workbenchMetricHelpLabel: "Explain {metric}",
     panelRgbCube: "RGB Cube",
     panelRgbCubeRequirements: "Switch spaces and rotate with drag",
     panelInspector: "Inspector",
@@ -244,6 +308,10 @@ export const i18nMessages = {
     cubeOverlayModeImage: "image only",
     cubeOverlayModeBoth: "grid + image",
     cubeOverlayStatus: "Display: {mode} / image points: {points}",
+    workbenchShowWhiteMappingCube: "Show white mapping on RGB cube",
+    workbenchShowSelectedMappingCube: "Show selected color mapping on RGB cube",
+    workbenchShowWhiteMappingSlice: "Show white mapping on slice",
+    workbenchShowSelectedMappingSlice: "Show selected color mapping on slice",
     inspectorPreview: "Preview (Hover)",
     inspectorSelected: "Selected (Click)",
     inspectorHoverLabel: "hover",

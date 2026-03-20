@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import {
   getPanel,
   getSliceCanvas,
+  pasteRedPngGlobally,
   pasteRedJpegToPhotoAnalysis,
   pasteRedPngToPhotoAnalysis,
   uploadRedPng,
@@ -85,4 +86,22 @@ test("T-204(photo-analysis): 選択画像プレビューを表示できる", asy
   await expect(previewImage).toBeVisible();
   await expect(previewImage).toHaveAttribute("alt", "分析対象画像: red.png");
   await expect(page.getByText("選択中: red.png")).toBeVisible();
+});
+
+test("T-205(photo-analysis): 画像入力を閉じても画面全体ペーストで結果表示できる", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  const previewPanel = getPanel(page, "選択画像プレビュー");
+  await previewPanel.getByRole("button", { name: "画像アップロード / 貼り付け" }).click();
+  await expect(previewPanel.getByText("写真をアップロードして分析を始める")).toHaveCount(0);
+
+  await pasteRedPngGlobally(page);
+
+  const panel = getPanel(page, "写真分析 MVP");
+  await expect(panel.getByText("色相ヒストグラム")).toBeVisible();
+  await expect(previewPanel.locator(".previewStatusGrid")).toContainText(
+    "file=clipboard-image.png"
+  );
 });
