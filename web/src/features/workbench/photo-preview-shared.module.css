@@ -1,0 +1,151 @@
+.previewCard {
+  border: 0.0625rem solid var(--workbench-surface-border);
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  background:
+    linear-gradient(135deg, color-mix(in oklab, var(--primary) 16%, transparent), transparent 48%),
+    color-mix(in oklab, var(--workbench-surface) 90%, var(--background) 10%);
+}
+
+.previewCard h3 {
+  margin-top: 0;
+  font-size: 0.95rem;
+}
+
+.previewHeader {
+  margin-bottom: 0.625rem;
+}
+
+.previewFileName {
+  margin: 0.25rem 0 0;
+  color: var(--workbench-muted);
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
+.previewImage,
+.previewEmpty {
+  width: 100%;
+  border-radius: 0.625rem;
+  border: 0.0625rem solid var(--workbench-surface-border);
+  background: color-mix(in oklab, var(--workbench-surface) 86%, #08111d 14%);
+}
+
+.previewImage {
+  height: auto;
+}
+
+.previewEmpty {
+  display: grid;
+  place-items: center;
+  min-block-size: 18rem;
+  text-align: center;
+  padding: 0.75rem;
+  color: var(--workbench-muted);
+  font-size: 0.85rem;
+}
+
+.previewPanel {
+  display: grid;
+  gap: 0.75rem;
+  align-content: start;
+}
+
+.uploadCta {
+  display: grid;
+  gap: 0.875rem;
+  margin-bottom: 0.75rem;
+  padding: 0.875rem 1rem;
+  border: 0.0625rem solid #355078;
+  border-radius: 0.875rem;
+  background:
+    radial-gradient(circle at top left, #244870 0%, transparent 42%),
+    linear-gradient(135deg, #0f2238, #162b44);
+}
+
+.uploadCta:focus-within {
+  outline: 0.125rem solid #91f0bf;
+  outline-offset: 0.1875rem;
+}
+
+.uploadCtaCopy {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.uploadCtaCopy strong {
+  font-size: 1rem;
+}
+
+.uploadCtaCopy p,
+.uploadCtaStatus {
+  margin: 0;
+  color: var(--workbench-muted);
+  font-size: 0.9rem;
+}
+
+.imageStage {
+  position: relative;
+  display: grid;
+  overflow: clip;
+  border-radius: 0.625rem;
+  background: color-mix(in oklab, var(--workbench-surface) 88%, #08111d 12%);
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.selectionBox,
+.selectionDraft {
+  fill: none;
+  stroke-width: 0.7;
+  vector-effect: non-scaling-stroke;
+}
+
+.selectionBoxActive {
+  stroke: #f97316;
+}
+
+.selectionDraft {
+  stroke: #f8fafc;
+  stroke-dasharray: 2 1.25;
+}
+
+.hoverMarker {
+  fill: #f8fafc;
+  stroke: #0f172a;
+  stroke-width: 0.45;
+  vector-effect: non-scaling-stroke;
+}
+
+.selectedMarker {
+  fill: none;
+  stroke: #f97316;
+  stroke-width: 0.55;
+  vector-effect: non-scaling-stroke;
+}
+
+.statusGrid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.statusLine {
+  margin: 0.25rem 0 0;
+}
+
+@media (max-width: 39.9375em) {
+  .statusGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .uploadCta {
+    align-items: stretch;
+  }
+}

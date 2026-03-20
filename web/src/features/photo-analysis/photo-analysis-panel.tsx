@@ -6,7 +6,18 @@ import { toast } from "sonner";
 import { ColorSwatch } from "@/components/workbench/color-swatch";
 import { GraphFrame } from "@/components/graph/graph-frame";
 import { PanelHeader } from "@/components/workbench/panel-header";
-import { analyzePhoto, type PhotoAnalysisResult } from "@/domain/photo-analysis/photo-analysis";
+import type { PhotoAnalysisResult } from "@/domain/photo-analysis/photo-analysis";
+import {
+  analyzePhotoInWorker,
+  readFileAsImageData,
+} from "@/features/photo-analysis/photo-analysis-client";
+import { PhotoAnalysisHistogramChart } from "@/features/photo-analysis/photo-analysis-histogram-chart";
+import {
+  getHueInsightLabel,
+  getSaturationInsightLabel,
+} from "@/features/photo-analysis/photo-analysis-insights";
+import analysisStyles from "@/features/workbench/workbench-analysis-shared.module.css";
+import previewStyles from "@/features/workbench/photo-preview-shared.module.css";
 import { t } from "@/i18n/translate";
 
 type AnalysisState = {
@@ -20,200 +31,13 @@ type Props = {
   onAnalysisComplete?: (result: PhotoAnalysisResult | null) => void;
 };
 
-const histogramHeightPercent = 100;
-const histogramMinHeightPercent = 2;
 const fileSummaryPrecision = 1;
 const histogramTooltipPrecision = 2;
-const hueDiverseThreshold = 8;
-const hueModerateThreshold = 4;
-const saturationHighThreshold = 0.55;
-const saturationLowThreshold = 0.25;
 const ratioFormatter = new Intl.NumberFormat(undefined, {
   style: "percent",
   minimumFractionDigits: 1,
   maximumFractionDigits: 1,
 });
-const histogramChartViewboxWidth = 100;
-const histogramChartViewboxHeight = 100;
-
-const drawSourceToImageData = (
-  width: number,
-  height: number,
-  draw: (context: CanvasRenderingContext2D) => void
-): ImageData => {
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-
-  const context = canvas.getContext("2d");
-  if (!context) {
-    throw new Error("2d context unavailable");
-  }
-
-  draw(context);
-  return context.getImageData(0, 0, canvas.width, canvas.height);
-};
-
-const readFileAsImageData = async (file: File): Promise<ImageData> => {
-  try {
-    const imageBitmap = await createImageBitmap(file);
-    try {
-      return drawSourceToImageData(imageBitmap.width, imageBitmap.height, (context) => {
-        context.drawImage(imageBitmap, 0, 0);
-      });
-    } finally {
-      imageBitmap.close();
-    }
-  } catch {
-    const objectUrl = URL.createObjectURL(file);
-    try {
-      const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-        const node = new window.Image();
-        node.onload = () => resolve(node);
-        node.onerror = () => reject(new Error("image-load-failed"));
-        node.src = objectUrl;
-      });
-
-      return drawSourceToImageData(image.naturalWidth, image.naturalHeight, (context) => {
-        context.drawImage(image, 0, 0);
-      });
-    } finally {
-      URL.revokeObjectURL(objectUrl);
-    }
-  }
-};
-
-const analyzePhotoInWorker = (imageData: ImageData): Promise<PhotoAnalysisResult> => {
-  return new Promise((resolve) => {
-    if (typeof window === "undefined" || typeof Worker === "undefined") {
-      resolve(analyzePhoto(imageData));
-      return;
-    }
-
-    let worker: Worker;
-
-    try {
-      worker = new Worker(new URL("./photo-analysis-worker.ts", import.meta.url), {
-        type: "module",
-      });
-    } catch {
-      resolve(analyzePhoto(imageData));
-      return;
-    }
-
-    worker.onmessage = (event: MessageEvent<{ result?: PhotoAnalysisResult; error?: string }>) => {
-      const { result, error } = event.data;
-      worker.terminate();
-
-      if (error || !result) {
-        resolve(analyzePhoto(imageData));
-        return;
-      }
-      resolve(result);
-    };
-
-    worker.onerror = () => {
-      worker.terminate();
-      resolve(analyzePhoto(imageData));
-    };
-
-    try {
-      worker.postMessage({ imageData });
-    } catch {
-      worker.terminate();
-      resolve(analyzePhoto(imageData));
-    }
-  });
-};
-
-const getHueInsightLabel = (result: PhotoAnalysisResult): string => {
-  const activeBins = result.hueHistogram.filter((bin) => bin.count > 0).length;
-  if (activeBins >= hueDiverseThreshold) {
-    return t("photoInsightHueBalanced");
-  }
-  if (activeBins >= hueModerateThreshold) {
-    return t("photoInsightHueModerate");
-  }
-  return t("photoInsightHueNarrow");
-};
-
-const getSaturationInsightLabel = (result: PhotoAnalysisResult): string => {
-  const total = result.saturationHistogram.reduce((sum, bin) => sum + bin.count, 0);
-  if (total === 0) {
-    return t("photoInsightSatMid");
-  }
-
-  const weighted = result.saturationHistogram.reduce((sum, bin) => {
-    const mid = (bin.start + bin.end) / 2;
-    return sum + mid * bin.count;
-  }, 0);
-
-  const mean = weighted / total;
-  if (mean >= saturationHighThreshold) {
-    return t("photoInsightSatHigh");
-  }
-  if (mean <= saturationLowThreshold) {
-    return t("photoInsightSatLow");
-  }
-  return t("photoInsightSatMid");
-};
-
-const renderHistogramChart = ({
-  bins,
-  maxCount,
-  gradientId,
-  gradientStops,
-  titleFormatter,
-  variantClassName = "",
-}: {
-  bins: PhotoAnalysisResult["hueHistogram"] | PhotoAnalysisResult["saturationHistogram"];
-  maxCount: number;
-  gradientId: string;
-  gradientStops: { offset: string; color: string }[];
-  titleFormatter: (bin: { start: number; end: number; count: number }) => string;
-  variantClassName?: string;
-}) => {
-  const barWidth = histogramChartViewboxWidth / bins.length;
-
-  return (
-    <svg
-      viewBox={`0 0 ${histogramChartViewboxWidth} ${histogramChartViewboxHeight}`}
-      className={`histogramBars${variantClassName ? ` ${variantClassName}` : ""}`}
-      role="img"
-      preserveAspectRatio="none"
-    >
-      <defs>
-        <linearGradient id={gradientId} x1="0" y1="1" x2="0" y2="0">
-          {gradientStops.map((stop) => (
-            <stop key={stop.offset} offset={stop.offset} stopColor={stop.color} />
-          ))}
-        </linearGradient>
-      </defs>
-      {bins.map((bin, index) => {
-        const height = Math.max(
-          histogramMinHeightPercent,
-          (bin.count / maxCount) * histogramHeightPercent
-        );
-
-        return (
-          <rect
-            key={`${bin.start}-${bin.end}`}
-            className="histogramBar"
-            x={index * barWidth}
-            y={histogramChartViewboxHeight - height}
-            width={Math.max(barWidth - 0.4, barWidth * 0.72)}
-            height={height}
-            fill={`url(#${gradientId})`}
-            rx="0.5"
-            ry="0.5"
-          >
-            <title>{titleFormatter(bin)}</title>
-          </rect>
-        );
-      })}
-    </svg>
-  );
-};
 
 export function PhotoAnalysisPanel({ sourceFile, onStatusChange, onAnalysisComplete }: Props) {
   const [analysis, setAnalysis] = useState<AnalysisState>(null);
@@ -320,37 +144,37 @@ export function PhotoAnalysisPanel({ sourceFile, onStatusChange, onAnalysisCompl
     <section className="panel">
       <PanelHeader titleKey="panelPhotoAnalysis" requirementsKey="panelPhotoAnalysisRequirements" />
 
-      <div className="photoAnalysisTopRow">
-        <article className="photoPreviewCard">
-          <div className="photoPreviewHeader">
+      <div className={analysisStyles.topRow}>
+        <article className={previewStyles.previewCard}>
+          <div className={previewStyles.previewHeader}>
             <h3>{t("photoPreviewTitle")}</h3>
-            {sourceFile ? <p className="photoPreviewFileName">{sourceFile.name}</p> : null}
+            {sourceFile ? <p className={previewStyles.previewFileName}>{sourceFile.name}</p> : null}
           </div>
           {previewUrl ? (
             <NextImage
               src={previewUrl}
               alt={t("photoPreviewAlt", { fileName: sourceFile?.name ?? t("photoUploadLabel") })}
-              className="photoPreviewImage"
+              className={previewStyles.previewImage}
               width={320}
               height={240}
               unoptimized
             />
           ) : (
-            <div className="photoPreviewEmpty">{t("photoPreviewEmpty")}</div>
+            <div className={previewStyles.previewEmpty}>{t("photoPreviewEmpty")}</div>
           )}
         </article>
 
-        <article className="photoAnalysisStatusCard">
+        <article className={analysisStyles.statusCard}>
           <h3>{t("photoInsightTitle")}</h3>
           {isAnalyzing ? <p className="muted">{t("photoAnalyzing")}</p> : null}
           {statusMessage ? (
-            <p className="muted photoPasteStatus" aria-live="polite">
+            <p className={`muted ${analysisStyles.statusLine}`} aria-live="polite">
               {statusMessage}
             </p>
           ) : null}
           {error ? <p className="errorText">{error}</p> : null}
           {!sourceFile && !analysis ? <p className="muted">{t("photoUploadLabel")}</p> : null}
-          <ul className="insightList">
+          <ul className={analysisStyles.insightList}>
             <li>
               {t("photoInsightHue", {
                 label: analysis
@@ -369,57 +193,59 @@ export function PhotoAnalysisPanel({ sourceFile, onStatusChange, onAnalysisCompl
         </article>
       </div>
 
-      <div className="analysisGrid">
+      <div className={analysisStyles.analysisGrid}>
         {analysis ? (
           <>
-            <article className="analysisCard">
+            <article className={analysisStyles.analysisCard}>
               <h3>{t("photoHueHistogram")}</h3>
               <GraphFrame
                 xLabel={t("graphAxisHue")}
                 yLabel={t("graphAxisCount")}
-                className="analysisGraphFrame"
+                className={analysisStyles.analysisGraphFrame}
               >
-                {renderHistogramChart({
-                  bins: analysis.result.hueHistogram,
-                  maxCount: maxHueCount,
-                  gradientId: "photo-hue-histogram-gradient",
-                  gradientStops: [
+                <PhotoAnalysisHistogramChart
+                  bins={analysis.result.hueHistogram}
+                  maxCount={maxHueCount}
+                  gradientId="photo-hue-histogram-gradient"
+                  gradientStops={[
                     { offset: "0%", color: "#1f9bd1" },
                     { offset: "100%", color: "#60d1ff" },
-                  ],
-                  titleFormatter: (bin) =>
-                    `${Math.round(bin.start)}-${Math.round(bin.end)}: ${bin.count}`,
-                })}
+                  ]}
+                  titleFormatter={(bin) =>
+                    `${Math.round(bin.start)}-${Math.round(bin.end)}: ${bin.count}`
+                  }
+                />
               </GraphFrame>
             </article>
 
-            <article className="analysisCard">
+            <article className={analysisStyles.analysisCard}>
               <h3>{t("photoSaturationHistogram")}</h3>
               <GraphFrame
                 xLabel={t("graphAxisSaturation")}
                 yLabel={t("graphAxisCount")}
-                className="analysisGraphFrame"
+                className={analysisStyles.analysisGraphFrame}
               >
-                {renderHistogramChart({
-                  bins: analysis.result.saturationHistogram,
-                  maxCount: maxSaturationCount,
-                  gradientId: "photo-saturation-histogram-gradient",
-                  gradientStops: [
+                <PhotoAnalysisHistogramChart
+                  bins={analysis.result.saturationHistogram}
+                  maxCount={maxSaturationCount}
+                  gradientId="photo-saturation-histogram-gradient"
+                  gradientStops={[
                     { offset: "0%", color: "#2bbd79" },
                     { offset: "100%", color: "#7bf0b8" },
-                  ],
-                  titleFormatter: (bin) =>
+                  ]}
+                  titleFormatter={(bin) =>
                     `${bin.start.toFixed(histogramTooltipPrecision)}-${bin.end.toFixed(
                       histogramTooltipPrecision
-                    )}: ${bin.count}`,
-                  variantClassName: "saturationBars",
-                })}
+                    )}: ${bin.count}`
+                  }
+                  variantClassName="saturationBars"
+                />
               </GraphFrame>
             </article>
 
-            <article className="analysisCard">
+            <article className={analysisStyles.analysisCard}>
               <h3>{t("photoColorAreaRatio")}</h3>
-              <ul className="areaList">
+              <ul className={`${analysisStyles.areaList} areaList`}>
                 {analysis.result.colorAreas.map((area) => (
                   <li key={area.label}>
                     <ColorSwatch color={area.rgb} />
@@ -431,7 +257,7 @@ export function PhotoAnalysisPanel({ sourceFile, onStatusChange, onAnalysisCompl
             </article>
           </>
         ) : (
-          <article className="analysisCard analysisCardEmpty">
+          <article className={`${analysisStyles.analysisCard} ${analysisStyles.analysisCardEmpty}`}>
             <h3>{t("photoHueHistogram")}</h3>
             <p className="muted">{t("photoPreviewEmpty")}</p>
           </article>
