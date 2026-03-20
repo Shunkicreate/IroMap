@@ -201,17 +201,17 @@ export function ColorInspector({
                     type="button"
                     className="iconButton"
                     onClick={() => void copyValue(item.value)}
-                  disabled={!selectedColor}
-                  aria-label={`${t("copyButton")}: ${item.label}`}
-                  title={`${t("copyButton")}: ${item.label}`}
-                >
-                  <Copy className="inlineIcon" aria-hidden="true" />
-                </button>
-              </div>
-            ))}
+                    disabled={!selectedColor}
+                    aria-label={`${t("copyButton")}: ${item.label}`}
+                    title={`${t("copyButton")}: ${item.label}`}
+                  >
+                    <Copy className="inlineIcon" aria-hidden="true" />
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
         <p className="muted copyStatus" aria-live="polite">
           {message || (!selectedColor ? t("copyNeedSelection") : "")}
