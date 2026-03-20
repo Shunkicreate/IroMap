@@ -15,8 +15,13 @@ test("ワークベンチの主要UIが表示される", async ({ page }) => {
 test("サイズスライダーの表示切り替えができる", async ({ page }) => {
   await page.goto("/");
 
-  const toggle = page.getByLabel("サイズスライダーを表示");
-  const cubeSizeSlider = page.getByRole("slider", { name: /キューブサイズ:/ });
+  const cubePanel = page.locator("section.panel", {
+    has: page.getByRole("heading", { name: "3Dキューブ" }),
+  });
+  await cubePanel.getByRole("button", { name: "表示オプション" }).click();
+
+  const toggle = cubePanel.getByLabel("サイズスライダーを表示");
+  const cubeSizeSlider = cubePanel.getByRole("slider", { name: /キューブサイズ:/ });
 
   await expect(cubeSizeSlider).toBeVisible();
 

@@ -327,6 +327,18 @@ export const toAnalyzeSuccessResponse = ({
         value: defaultSliceValue,
         points: [],
       },
+      labScatter: {
+        sampleCount: analysis.samples.length,
+        points: analysis.samples.map((sample) => ({
+          x: roundTo(sample.lab.a, 2),
+          y: roundTo(sample.lab.b, 2),
+          rgb: {
+            r: sample.color.r,
+            g: sample.color.g,
+            b: sample.color.b,
+          },
+        })),
+      },
       hueHistogram: {
         bins: analysis.hueHistogram.map((bin) => ({
           start: roundTo(bin.start, 2),

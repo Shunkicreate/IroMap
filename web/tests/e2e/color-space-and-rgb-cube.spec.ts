@@ -59,6 +59,7 @@ test("T-105(color-space-3d): タブ選択状態の視認性を確認", async ({ 
 test("T-106(color-space-3d): 3D軸ガイドのON/OFFを確認", async ({ page }) => {
   await page.goto("/");
   const cubePanel = getPanel(page, "3Dキューブ");
+  await cubePanel.getByRole("button", { name: "表示オプション" }).click();
   const axisGuide = cubePanel.getByLabel("軸ガイドを表示");
   await expect(axisGuide).toBeChecked();
   await axisGuide.uncheck();
@@ -90,6 +91,7 @@ test("T-108(color-space-3d): RGBキューブとSliceの近接配置を確認", a
 test("T-109(color-space-3d): キューブサイズスライダー表示とサイズ変更を確認", async ({ page }) => {
   await page.goto("/");
   const cubePanel = getPanel(page, "3Dキューブ");
+  await cubePanel.getByRole("button", { name: "表示オプション" }).click();
   const slider = cubePanel.getByRole("slider", { name: /キューブサイズ:/ });
   await slider.evaluate((node) => {
     const input = node as HTMLInputElement;

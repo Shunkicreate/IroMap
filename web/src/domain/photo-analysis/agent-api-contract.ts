@@ -76,6 +76,14 @@ export type AnalyzeSuccessResponse = {
         rgb: PlainRgbColor;
       }>;
     };
+    labScatter: {
+      sampleCount: number;
+      points: Array<{
+        x: number;
+        y: number;
+        rgb: PlainRgbColor;
+      }>;
+    };
     hueHistogram: {
       bins: Array<{ start: number; end: number; count: number }>;
     };

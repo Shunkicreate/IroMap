@@ -236,6 +236,13 @@
   align-items: start;
 }
 
+.workbenchInteractiveGrid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+
 .visualizationGrid {
   display: grid;
   gap: 0.75rem;
@@ -1225,7 +1232,8 @@
 
   .workbenchMainGrid,
   .visualizationGrid,
-  .photoAnalysisOverviewGrid {
+  .photoAnalysisOverviewGrid,
+  .workbenchInteractiveGrid {
     grid-template-columns: 1fr;
   }
 
@@ -1262,6 +1270,10 @@
 }
 
 @media (min-width: 48em) {
+  .workbenchInteractiveGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .visualizationGrid {
     grid-template-rows: auto auto;
   }
@@ -1274,6 +1286,10 @@
 @media (min-width: 64em) {
   .workbenchMainGrid {
     grid-template-columns: minmax(0, 1.55fr) minmax(22rem, 1fr);
+  }
+
+  .workbenchInteractiveGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .photoAnalysisOverviewGrid {
@@ -1313,5 +1329,11 @@
 
   .analysisCardEmpty {
     grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 90em) {
+  .workbenchInteractiveGrid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 }

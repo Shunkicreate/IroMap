@@ -1,11 +1,8 @@
-export const dynamic = "force-dynamic";
+export const dynamic = "force-static";
 
 export function GET(request: Request): Response {
-  const forwardedHost = request.headers.get("x-forwarded-host");
-  const host = forwardedHost ?? request.headers.get("host") ?? new URL(request.url).host;
-  const forwardedProto = request.headers.get("x-forwarded-proto");
-  const protocol = forwardedProto ?? new URL(request.url).protocol.replace(":", "");
-  const baseUrl = `${protocol}://${host}`;
+  const url = new URL(request.url);
+  const baseUrl = url.origin;
   const body = `# IroMap
 
 IroMap provides image color analysis for humans and agents.
