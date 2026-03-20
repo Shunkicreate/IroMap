@@ -581,6 +581,7 @@ export function SliceCanvas({
             min={axisRange.min}
             max={axisRange.max}
             value={value}
+            onInput={(event) => onValueChange(Number(event.currentTarget.value))}
             onChange={(event) => onValueChange(Number(event.target.value))}
           />
         </label>

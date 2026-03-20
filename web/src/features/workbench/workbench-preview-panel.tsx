@@ -202,9 +202,7 @@ export function WorkbenchPreviewPanel({
             <strong>{t("photoUploadCtaTitle")}</strong>
             <p>{t("photoUploadCtaDescription")}</p>
             {target.file ? (
-              <p className={previewStyles.uploadCtaStatus}>
-                {t("photoUploadSelected", { fileName: target.file.name })}
-              </p>
+              <p className={previewStyles.uploadCtaStatus}>{target.file.name}</p>
             ) : null}
           </div>
           <label className="photoUploadButton">
@@ -243,6 +241,7 @@ export function WorkbenchPreviewPanel({
             ref={imageRef}
             width={640}
             height={480}
+            priority
             unoptimized
           />
         ) : (
@@ -288,6 +287,11 @@ export function WorkbenchPreviewPanel({
       <div className={`${previewStyles.statusGrid} previewStatusGrid`}>
         <div>
           <strong>{t("workbenchBaselineLabel")}</strong>
+          {target.file ? (
+            <p className={`muted ${previewStyles.statusLine} previewStatusLine`}>
+              {t("photoUploadSelected", { fileName: target.file.name })}
+            </p>
+          ) : null}
           <p className={`muted ${previewStyles.statusLine} previewStatusLine`}>
             {target.statusMessage || (target.file ? t("photoAnalyzing") : t("photoPreviewEmpty"))}
           </p>
