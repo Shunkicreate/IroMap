@@ -31,17 +31,6 @@ export const hoverColorOnSlice = async (page: Page): Promise<void> => {
   await canvas.hover({ position: { x: 40, y: 40 } });
 };
 
-export const applyManualColor = async (
-  page: Page,
-  color: { r: number; g: number; b: number }
-): Promise<void> => {
-  const picker = page.locator(".manualColorPicker");
-  await picker.getByRole("spinbutton", { name: "R" }).fill(String(color.r));
-  await picker.getByRole("spinbutton", { name: "G" }).fill(String(color.g));
-  await picker.getByRole("spinbutton", { name: "B" }).fill(String(color.b));
-  await picker.getByRole("button", { name: "選択色に反映" }).click();
-};
-
 const setFile = async (page: Page, fileName: string, base64: string): Promise<void> => {
   await page.getByLabel("画像をアップロード").setInputFiles({
     name: fileName,

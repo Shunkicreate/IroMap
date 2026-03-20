@@ -13,7 +13,7 @@ test("T-105(photo-analysis): 評価基準ヘルプの表示とラベル判定を
   await expect(analysis.getByText(/^分布の広がり:/)).toBeVisible();
 });
 
-test("T-005(photo-analysis): 画像アップロード操作を写真分析パネル内で完結できる", async ({
+test("T-005(photo-analysis): 画像アップロード操作で分析結果表示まで完結できる", async ({
   page,
 }) => {
   await page.goto("/");
@@ -22,11 +22,6 @@ test("T-005(photo-analysis): 画像アップロード操作を写真分析パネ
   await expect(page.getByLabel("画像をアップロード")).toBeVisible();
 
   const analysis = getPanel(page, "写真分析");
-  await expect(analysis.getByRole("button", { name: "キューブで確認" }).first()).toBeVisible({
-    timeout: 15000,
-  });
-  await analysis.getByRole("button", { name: "キューブで確認" }).first().click();
-
-  const inspector = getPanel(page, "インスペクタ");
-  await expect(inspector.getByText(/^#[0-9A-F]{6}$/i).last()).toBeVisible();
+  await expect(analysis.getByText("Lab a-b 散布図")).toBeVisible({ timeout: 15000 });
+  await expect(analysis.getByRole("img", { name: "分析対象画像: red.png" })).toBeVisible();
 });
