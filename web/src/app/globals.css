@@ -285,6 +285,70 @@
   color: var(--workbench-muted);
 }
 
+.infoTooltip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.infoTooltipTrigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 2rem;
+  block-size: 2rem;
+  border-radius: 62.4375rem;
+  border: 0.0625rem solid color-mix(in oklab, var(--workbench-surface-border) 88%, white 12%);
+  background: color-mix(in oklab, var(--workbench-surface) 94%, transparent);
+  color: var(--workbench-muted);
+  cursor: help;
+  transition:
+    color 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.infoTooltipIcon {
+  inline-size: 1.375rem !important;
+  block-size: 1.375rem !important;
+  flex: none;
+  stroke-width: 2.4;
+}
+
+.infoTooltipTrigger:hover,
+.infoTooltipTrigger:focus-visible {
+  color: var(--workbench-text);
+  border-color: color-mix(in oklab, var(--primary) 50%, var(--foreground) 20%);
+  background: color-mix(in oklab, var(--primary) 12%, var(--workbench-surface) 88%);
+  transform: translateY(-0.0313rem);
+}
+
+.infoTooltipContent {
+  position: absolute;
+  inset-block-end: calc(100% + 0.4rem);
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  inline-size: min(18rem, 70vw);
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.625rem;
+  border: 0.0625rem solid color-mix(in oklab, var(--workbench-surface-border) 86%, white 14%);
+  background: color-mix(in oklab, var(--workbench-surface) 94%, black 6%);
+  color: var(--workbench-text);
+  font-size: 0.79rem;
+  line-height: 1.45;
+  box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 20%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms ease;
+  z-index: 20;
+}
+
+.infoTooltip:hover .infoTooltipContent,
+.infoTooltip:focus-within .infoTooltipContent {
+  opacity: 1;
+}
+
 .cubeCanvas {
   inline-size: 100%;
   block-size: 100%;
