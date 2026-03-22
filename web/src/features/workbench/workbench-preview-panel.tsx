@@ -28,6 +28,7 @@ type Props = {
   onSampleSelect: (sample: PhotoSample) => void;
   onSourceFileSelected: (file: File | null) => void;
   onPaste: (event: React.ClipboardEvent<HTMLDivElement>) => void;
+  onPasteButtonClick: () => Promise<void>;
 };
 
 export function WorkbenchPreviewPanel({
@@ -43,6 +44,7 @@ export function WorkbenchPreviewPanel({
   onSampleSelect,
   onSourceFileSelected,
   onPaste,
+  onPasteButtonClick,
 }: Props) {
   const imageWrapRef = useRef<HTMLDivElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
@@ -215,9 +217,17 @@ export function WorkbenchPreviewPanel({
               onChange={(event) => onSourceFileSelected(event.target.files?.[0] ?? null)}
             />
           </label>
-          <div className="photoPasteZone">
+          <div className={`photoPasteZone ${previewStyles.pasteZone}`}>
             <strong>{t("photoPasteZoneTitle")}</strong>
-            <p>{t("photoPasteZoneHint")}</p>
+            <p>{t("photoPasteZoneDescription")}</p>
+            <p className={previewStyles.pasteShortcutHint}>{t("photoPasteZoneShortcut")}</p>
+            <button
+              type="button"
+              className={`photoUploadButton ${previewStyles.pasteButton}`}
+              onClick={() => void onPasteButtonClick()}
+            >
+              {t("photoPasteButton")}
+            </button>
           </div>
         </div>
       </PersistedDisclosure>
