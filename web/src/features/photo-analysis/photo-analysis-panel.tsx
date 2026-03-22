@@ -9,7 +9,11 @@ import { PanelHeader } from "@/components/workbench/panel-header";
 import { colorChannelLevels } from "@/domain/color/color-constants";
 import { rgbToHex } from "@/domain/color/color-format";
 import type { RgbColor } from "@/domain/color/color-types";
-import { analyzePhoto, type PhotoAnalysisResult } from "@/domain/photo-analysis/photo-analysis";
+import type { PhotoAnalysisResult } from "@/domain/photo-analysis/photo-analysis";
+import {
+  analyzePhotoInWorker,
+  readFileAsImageData,
+} from "@/features/photo-analysis/photo-analysis-client";
 import { t } from "@/i18n/translate";
 
 type AnalysisState = {
@@ -46,98 +50,8 @@ const ratioFormatter = new Intl.NumberFormat(undefined, {
 const histogramChartViewboxWidth = 100;
 const histogramChartViewboxHeight = 100;
 
-const drawSourceToImageData = (
-  width: number,
-  height: number,
-  draw: (context: CanvasRenderingContext2D) => void
-): ImageData => {
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-
-  const context = canvas.getContext("2d");
-  if (!context) {
-    throw new Error("2d context unavailable");
-  }
-
-  draw(context);
-  return context.getImageData(0, 0, canvas.width, canvas.height);
-};
-
-const readFileAsImageData = async (file: File): Promise<ImageData> => {
-  try {
-    const imageBitmap = await createImageBitmap(file);
-    try {
-      return drawSourceToImageData(imageBitmap.width, imageBitmap.height, (context) => {
-        context.drawImage(imageBitmap, 0, 0);
-      });
-    } finally {
-      imageBitmap.close();
-    }
-  } catch {
-    const objectUrl = URL.createObjectURL(file);
-    try {
-      const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-        const node = new window.Image();
-        node.onload = () => resolve(node);
-        node.onerror = () => reject(new Error("image-load-failed"));
-        node.src = objectUrl;
-      });
-
-      return drawSourceToImageData(image.naturalWidth, image.naturalHeight, (context) => {
-        context.drawImage(image, 0, 0);
-      });
-    } finally {
-      URL.revokeObjectURL(objectUrl);
-    }
-  }
-};
-
 const toScatterPosition = (value: number): number => {
   return ((value + maxScatterRange) / (maxScatterRange * 2)) * scatterViewboxSize;
-};
-
-const analyzePhotoInWorker = (imageData: ImageData): Promise<PhotoAnalysisResult> => {
-  return new Promise((resolve) => {
-    if (typeof window === "undefined" || typeof Worker === "undefined") {
-      resolve(analyzePhoto(imageData));
-      return;
-    }
-
-    let worker: Worker;
-
-    try {
-      worker = new Worker(new URL("./photo-analysis-worker.ts", import.meta.url), {
-        type: "module",
-      });
-    } catch {
-      resolve(analyzePhoto(imageData));
-      return;
-    }
-
-    worker.onmessage = (event: MessageEvent<{ result?: PhotoAnalysisResult; error?: string }>) => {
-      const { result, error } = event.data;
-      worker.terminate();
-
-      if (error || !result) {
-        resolve(analyzePhoto(imageData));
-        return;
-      }
-      resolve(result);
-    };
-
-    worker.onerror = () => {
-      worker.terminate();
-      resolve(analyzePhoto(imageData));
-    };
-
-    try {
-      worker.postMessage({ imageData });
-    } catch {
-      worker.terminate();
-      resolve(analyzePhoto(imageData));
-    }
-  });
 };
 
 const getHueInsightLabel = (result: PhotoAnalysisResult): string => {
@@ -173,7 +87,7 @@ const getSaturationInsightLabel = (result: PhotoAnalysisResult): string => {
 };
 
 const getSpreadInsightLabel = (result: PhotoAnalysisResult): string => {
-  if (result.scatter.length === 0) {
+  if (result.samples.length === 0) {
     return t("photoInsightSpreadMedium");
   }
 
@@ -182,11 +96,11 @@ const getSpreadInsightLabel = (result: PhotoAnalysisResult): string => {
   let minB = Number.POSITIVE_INFINITY;
   let maxB = Number.NEGATIVE_INFINITY;
 
-  for (const point of result.scatter) {
-    minA = Math.min(minA, point.x);
-    maxA = Math.max(maxA, point.x);
-    minB = Math.min(minB, point.y);
-    maxB = Math.max(maxB, point.y);
+  for (const sample of result.samples) {
+    minA = Math.min(minA, sample.lab.a);
+    maxA = Math.max(maxA, sample.lab.a);
+    minB = Math.min(minB, sample.lab.b);
+    maxB = Math.max(maxB, sample.lab.b);
   }
 
   const spread = (maxA - minA + (maxB - minB)) / 2;
@@ -366,7 +280,7 @@ export function PhotoAnalysisPanel({
     <section className="panel">
       <PanelHeader titleKey="panelPhotoAnalysis" requirementsKey="panelPhotoAnalysisRequirements" />
 
-      <div className="photoAnalysisTopRow">
+      <div className="photoAnalysisOverviewGrid">
         <article className="photoPreviewCard">
           <div className="photoPreviewHeader">
             <h3>{t("photoPreviewTitle")}</h3>
@@ -384,18 +298,26 @@ export function PhotoAnalysisPanel({
           ) : (
             <div className="photoPreviewEmpty">{t("photoPreviewEmpty")}</div>
           )}
+          <details className="photoMetaDetails">
+            <summary>{t("photoMetaSummary")}</summary>
+            {sourceFile ? (
+              <p className="photoMetaFileName">
+                {t("photoUploadSelected", { fileName: sourceFile.name })}
+              </p>
+            ) : null}
+            {statusMessage ? (
+              <p className="muted photoPasteStatus" aria-live="polite">
+                {statusMessage}
+              </p>
+            ) : null}
+            {isAnalyzing ? <p className="muted">{t("photoAnalyzing")}</p> : null}
+            {error ? <p className="errorText">{error}</p> : null}
+            {!sourceFile && !analysis ? <p className="muted">{t("photoUploadLabel")}</p> : null}
+          </details>
         </article>
 
         <article className="photoAnalysisStatusCard">
           <h3>{t("photoInsightTitle")}</h3>
-          {isAnalyzing ? <p className="muted">{t("photoAnalyzing")}</p> : null}
-          {statusMessage ? (
-            <p className="muted photoPasteStatus" aria-live="polite">
-              {statusMessage}
-            </p>
-          ) : null}
-          {error ? <p className="errorText">{error}</p> : null}
-          {!sourceFile && !analysis ? <p className="muted">{t("photoUploadLabel")}</p> : null}
           <ul className="insightList">
             <li>
               {t("photoInsightHue", {
@@ -420,45 +342,9 @@ export function PhotoAnalysisPanel({
             </li>
           </ul>
         </article>
-      </div>
-
-      <div className="analysisGrid">
         {analysis ? (
           <>
-            <article className="analysisCard analysisCardScatter">
-              <h3>{t("photoLabScatter")}</h3>
-              <GraphFrame
-                xLabel={t("graphAxisLabA")}
-                yLabel={t("graphAxisLabB")}
-                className="analysisGraphFrame"
-              >
-                <svg
-                  viewBox={`0 0 ${scatterViewboxSize} ${scatterViewboxSize}`}
-                  className="scatterPlot"
-                  role="img"
-                >
-                  <rect
-                    x="0"
-                    y="0"
-                    width={scatterViewboxSize}
-                    height={scatterViewboxSize}
-                    fill="#0f172a"
-                  />
-                  {analysis.result.scatter.map((point, index) => (
-                    <circle
-                      key={`${index}-${point.x}-${point.y}`}
-                      cx={toScatterPosition(point.x)}
-                      cy={scatterViewboxSize - toScatterPosition(point.y)}
-                      r={pointRadius}
-                      fill={rgbToHex(point.color)}
-                      opacity={pointOpacity}
-                    />
-                  ))}
-                </svg>
-              </GraphFrame>
-            </article>
-
-            <article className="analysisCard">
+            <article className="analysisCard analysisCardHue">
               <h3>{t("photoHueHistogram")}</h3>
               <GraphFrame
                 xLabel={t("graphAxisHue")}
@@ -479,7 +365,7 @@ export function PhotoAnalysisPanel({
               </GraphFrame>
             </article>
 
-            <article className="analysisCard">
+            <article className="analysisCard analysisCardSaturation">
               <h3>{t("photoSaturationHistogram")}</h3>
               <GraphFrame
                 xLabel={t("graphAxisSaturation")}
@@ -503,7 +389,7 @@ export function PhotoAnalysisPanel({
               </GraphFrame>
             </article>
 
-            <article className="analysisCard">
+            <article className="analysisCard analysisCardArea">
               <h3>{t("photoColorAreaRatio")}</h3>
               <ul className="areaList">
                 {analysis.result.colorAreas.map((area) => (
@@ -524,6 +410,39 @@ export function PhotoAnalysisPanel({
                 ))}
               </ul>
             </article>
+
+            <article className="analysisCard analysisCardScatter">
+              <h3>{t("photoLabScatter")}</h3>
+              <GraphFrame
+                xLabel={t("graphAxisLabA")}
+                yLabel={t("graphAxisLabB")}
+                className="analysisGraphFrame"
+              >
+                <svg
+                  viewBox={`0 0 ${scatterViewboxSize} ${scatterViewboxSize}`}
+                  className="scatterPlot"
+                  role="img"
+                >
+                  <rect
+                    x="0"
+                    y="0"
+                    width={scatterViewboxSize}
+                    height={scatterViewboxSize}
+                    fill="#0f172a"
+                  />
+                  {analysis.result.samples.map((sample) => (
+                    <circle
+                      key={sample.sampleId}
+                      cx={toScatterPosition(sample.lab.a)}
+                      cy={scatterViewboxSize - toScatterPosition(sample.lab.b)}
+                      r={pointRadius}
+                      fill={rgbToHex(sample.color)}
+                      opacity={pointOpacity}
+                    />
+                  ))}
+                </svg>
+              </GraphFrame>
+            </article>
           </>
         ) : (
           <article className="analysisCard analysisCardEmpty">
@@ -532,16 +451,6 @@ export function PhotoAnalysisPanel({
           </article>
         )}
       </div>
-
-      {analysis ? (
-        <p className="muted">
-          {t("photoSummary", {
-            fileName: analysis.fileName,
-            sampledPixels: analysis.result.sampledPixels,
-            elapsedMs: analysis.result.elapsedMs.toFixed(fileSummaryPrecision),
-          })}
-        </p>
-      ) : null}
     </section>
   );
 }

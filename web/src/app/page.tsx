@@ -16,7 +16,6 @@ export default function Home() {
       </section>
 
       <section id="workbench" className="landingSection">
-        <h2>{t("landingWorkbenchHeading")}</h2>
         <ColorWorkbench />
       </section>
     </main>

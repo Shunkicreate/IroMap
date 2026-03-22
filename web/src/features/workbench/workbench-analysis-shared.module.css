@@ -1,0 +1,99 @@
+.topRow {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: minmax(0, 1.5fr) minmax(18rem, 1fr);
+  margin-bottom: 0.75rem;
+}
+
+.statusCard {
+  border: 0.0625rem solid var(--workbench-surface-border);
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  background: color-mix(in oklab, var(--workbench-surface) 90%, var(--background) 10%);
+  align-content: start;
+}
+
+.statusCard h3 {
+  margin-top: 0;
+  font-size: 0.95rem;
+}
+
+.statusLine {
+  color: var(--workbench-muted);
+  font-size: 0.84rem;
+}
+
+.insightList {
+  margin: 0;
+  padding-left: 1rem;
+  display: grid;
+  gap: 0.375rem;
+  color: var(--workbench-muted);
+  font-size: 0.84rem;
+}
+
+.analysisGrid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+}
+
+.analysisCard {
+  border: 0.0625rem solid var(--workbench-surface-border);
+  border-radius: 0.625rem;
+  padding: 0.625rem;
+  background: color-mix(in oklab, var(--workbench-surface) 90%, var(--background) 10%);
+}
+
+.analysisCard h3 {
+  margin-top: 0;
+  font-size: 0.95rem;
+}
+
+.analysisCardEmpty {
+  min-block-size: 12rem;
+}
+
+.analysisGraphFrame {
+  align-items: center;
+}
+
+.areaList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.375rem;
+}
+
+.areaList li {
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+@media (max-width: 39.9375em) {
+  .topRow,
+  .analysisGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .areaList li {
+    grid-template-columns: 2.75rem minmax(0, 1fr);
+  }
+
+  .areaList strong {
+    grid-column: 2;
+  }
+}
+
+@media (min-width: 64em) {
+  .analysisGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .analysisCardEmpty {
+    grid-column: 1 / -1;
+  }
+}

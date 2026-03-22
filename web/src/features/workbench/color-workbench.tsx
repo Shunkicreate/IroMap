@@ -1,83 +1,77 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { PersistedDisclosure } from "@/components/workbench/persisted-disclosure";
 import { PanelHeader } from "@/components/workbench/panel-header";
-import {
-  toRgbColor,
-  type ColorSpace3d,
-  type RgbColor,
-  type SliceAxis,
-} from "@/domain/color/color-types";
-import {
-  type PhotoAnalysisResult,
-  type RgbCubePoint,
-} from "@/domain/photo-analysis/photo-analysis";
+import { usePersistedBoolean } from "@/components/workbench/use-persisted-boolean";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { rgbToHex } from "@/domain/color/color-format";
+import { type ColorSpace3d, type RgbColor, type SliceAxis } from "@/domain/color/color-types";
+import {
+  buildCubePointsFromSamples,
+  buildHistogramBins,
+  buildMetricRows,
+  buildPointSelection,
+  buildRectangleSelection,
+  getSelectedSamples,
+  serializeHistogramBins,
+  serializeMetricRows,
+  type ExportFormat,
+  type PhotoSample,
+  type TargetSelectionState,
+} from "@/domain/photo-analysis/photo-analysis";
+import {
+  analyzePhotoInWorker,
+  readFileAsImageData,
+} from "@/features/photo-analysis/photo-analysis-client";
 import { ColorInspector } from "@/features/inspector/color-inspector";
-import { PhotoAnalysisPanel } from "@/features/photo-analysis/photo-analysis-panel";
 import { RgbCubeCanvas } from "@/features/rgb-cube/rgb-cube-canvas";
 import { SliceCanvas } from "@/features/slice/slice-canvas";
+import { WorkbenchAnalysisPanel } from "@/features/workbench/workbench-analysis-panel";
+import controlStyles from "@/features/workbench/workbench-controls.module.css";
+import { WorkbenchMetricsPanel } from "@/features/workbench/workbench-metrics-panel";
+import { WorkbenchPreviewPanel } from "@/features/workbench/workbench-preview-panel";
+import { WorkbenchScatterPanel } from "@/features/workbench/workbench-scatter-panel";
+import {
+  buildSampleBuckets,
+  clamp,
+  clipboardImageFileName,
+  defaultCubeSize,
+  defaultRotation,
+  defaultSelectionState,
+  defaultSliceValue,
+  emptyTarget,
+  fileSummaryPrecision,
+  findNearestSampleByColor,
+  getAxisRange,
+  localizeMetricRows,
+  mapAxisValue,
+  storageKeys,
+  type HoverState,
+  type RgbCubeOverlayMode,
+  type Rotation,
+  type SelectionDraft,
+  type WorkbenchTarget,
+} from "@/features/workbench/workbench-shared";
 import { t } from "@/i18n/translate";
 
-type Rotation = {
-  x: number;
-  y: number;
-};
-
-type RgbCubeOverlayMode = "grid" | "image" | "both";
-
-const defaultSliceValue = 128;
-const defaultRotation: Rotation = { x: -0.7, y: 0.6 };
-const defaultCubeSize = 520;
-const manualChannelLabels = {
-  r: "R",
-  g: "G",
-  b: "B",
-} as const;
-const defaultSliceAxisBySpace: Record<ColorSpace3d, SliceAxis> = {
-  rgb: "r",
-  hsl: "h",
-  lab: "lab-l",
-};
-const clipboardImageFileName = "clipboard-image.png";
-
-const clamp = (value: number, min: number, max: number): number => {
-  return Math.min(max, Math.max(min, value));
-};
-
-const getAxisRange = (axis: SliceAxis): { min: number; max: number } => {
-  if (axis === "h") {
-    return { min: 0, max: 360 };
-  }
-  if (axis === "s" || axis === "l" || axis === "lab-l") {
-    return { min: 0, max: 100 };
-  }
-  if (axis === "lab-a" || axis === "lab-b") {
-    return { min: -128, max: 127 };
-  }
-  return { min: 0, max: 255 };
-};
-
-const mapAxisValue = (
-  value: number,
-  sourceRange: { min: number; max: number },
-  targetRange: { min: number; max: number }
-): number => {
-  const sourceSpan = sourceRange.max - sourceRange.min;
-  const targetSpan = targetRange.max - targetRange.min;
-  if (sourceSpan === 0) {
-    return targetRange.min;
-  }
-  const ratio = (value - sourceRange.min) / sourceSpan;
-  return Math.round(targetRange.min + ratio * targetSpan);
-};
-
 export function ColorWorkbench() {
-  const [hoverColor, setHoverColor] = useState<RgbColor | null>(null);
+  const [baselineTarget, setBaselineTarget] = useState<WorkbenchTarget>(() =>
+    emptyTarget("baseline", "Baseline")
+  );
+  const [selectionStateByTarget, setSelectionStateByTarget] = useState<
+    Record<string, TargetSelectionState>
+  >({
+    baseline: { ...defaultSelectionState },
+  });
+  const [hoverState, setHoverState] = useState<HoverState>({
+    targetId: "baseline",
+    sample: null,
+    source: "preview",
+  });
   const [selectedColor, setSelectedColor] = useState<RgbColor | null>(null);
-  const [analysisSourceFile, setAnalysisSourceFile] = useState<File | null>(null);
-  const [liveMessage, setLiveMessage] = useState<string>("");
+  const [copyFormat, setCopyFormat] = useState<ExportFormat>("markdown");
   const [sliceAxis, setSliceAxis] = useState<SliceAxis>("r");
   const [sliceValue, setSliceValue] = useState<number>(defaultSliceValue);
   const [space, setSpace] = useState<ColorSpace3d>("rgb");
@@ -86,19 +80,168 @@ export function ColorWorkbench() {
   const [cubeSize, setCubeSize] = useState<number>(defaultCubeSize);
   const [rotation, setRotation] = useState<Rotation>(defaultRotation);
   const [cubeOverlayMode, setCubeOverlayMode] = useState<RgbCubeOverlayMode>("both");
-  const [photoCubePoints, setPhotoCubePoints] = useState<RgbCubePoint[]>([]);
-  const [manualR, setManualR] = useState<number>(128);
-  const [manualG, setManualG] = useState<number>(128);
-  const [manualB, setManualB] = useState<number>(128);
+  const [liveMessage, setLiveMessage] = useState<string>("");
+  const [selectionDraft, setSelectionDraft] = useState<SelectionDraft>(null);
+  const [isCubeImageMappingVisible, setIsCubeImageMappingVisible] = usePersistedBoolean({
+    storageKey: storageKeys.cubeImageMapping,
+    isdefaultValue: true,
+  });
+  const [isCubeSelectionMappingVisible, setIsCubeSelectionMappingVisible] = usePersistedBoolean({
+    storageKey: storageKeys.cubeSelectionMapping,
+    isdefaultValue: true,
+  });
+  const [isSliceImageMappingVisible, setIsSliceImageMappingVisible] = usePersistedBoolean({
+    storageKey: storageKeys.sliceImageMapping,
+    isdefaultValue: true,
+  });
+  const [isSliceSelectionMappingVisible, setIsSliceSelectionMappingVisible] = usePersistedBoolean({
+    storageKey: storageKeys.sliceSelectionMapping,
+    isdefaultValue: true,
+  });
+
+  const baselineBuckets = useMemo(
+    () => buildSampleBuckets(baselineTarget.result),
+    [baselineTarget.result]
+  );
+
+  useEffect(() => {
+    const file = baselineTarget.file;
+    let objectUrl = "";
+    let isStale = false;
+    const loadTarget = async (): Promise<void> => {
+      if (!file) {
+        setBaselineTarget((current) => ({ ...emptyTarget("baseline", current.label), file: null }));
+        return;
+      }
+
+      objectUrl = URL.createObjectURL(file);
+      setBaselineTarget((current) => ({
+        ...current,
+        file,
+        previewUrl: objectUrl,
+        isAnalyzing: true,
+        statusMessage: t("photoAnalyzing"),
+        error: "",
+        result: null,
+      }));
+
+      try {
+        const imageData = await readFileAsImageData(file);
+        const result = await analyzePhotoInWorker(imageData);
+        if (isStale) {
+          return;
+        }
+        const success = t("photoSummary", {
+          fileName: file.name,
+          sampledPixels: result.sampledPixels,
+          elapsedMs: result.elapsedMs.toFixed(fileSummaryPrecision),
+        });
+        setBaselineTarget((current) => ({
+          ...current,
+          file,
+          previewUrl: objectUrl,
+          result,
+          isAnalyzing: false,
+          statusMessage: success,
+          error: "",
+        }));
+      } catch {
+        if (isStale) {
+          return;
+        }
+        setBaselineTarget((current) => ({
+          ...current,
+          file,
+          previewUrl: objectUrl,
+          result: null,
+          isAnalyzing: false,
+          statusMessage: t("photoError"),
+          error: t("photoError"),
+        }));
+      }
+    };
+
+    void loadTarget();
+    return () => {
+      isStale = true;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [baselineTarget.file]);
+
+  const baselineSelectionState = selectionStateByTarget.baseline ?? defaultSelectionState;
+  const activeBaselineSelection = baselineSelectionState.activeSelection;
+  const sliceMappedSamples = baselineTarget.result?.samples ?? [];
+  const baselineMetricRows = useMemo(
+    () =>
+      baselineTarget.result
+        ? buildMetricRows({
+            result: baselineTarget.result,
+            selectionState: baselineSelectionState,
+          })
+        : [],
+    [baselineTarget.result, baselineSelectionState]
+  );
+  const localizedBaselineMetricRows = useMemo(
+    () => localizeMetricRows(baselineMetricRows),
+    [baselineMetricRows]
+  );
+  const baselineLuminanceHistogram = useMemo(
+    () => buildHistogramBins(baselineTarget.result?.samples ?? [], "luminance"),
+    [baselineTarget.result]
+  );
+  const baselineHueHistogram = useMemo(
+    () => buildHistogramBins(baselineTarget.result?.samples ?? [], "hue"),
+    [baselineTarget.result]
+  );
+  const baselineSaturationHistogram = useMemo(
+    () => buildHistogramBins(baselineTarget.result?.samples ?? [], "saturation"),
+    [baselineTarget.result]
+  );
+
+  const selectionCubePoints = useMemo(
+    () =>
+      baselineTarget.result && activeBaselineSelection
+        ? buildCubePointsFromSamples(
+            getSelectedSamples(baselineTarget.result, baselineSelectionState)
+          )
+        : [],
+    [activeBaselineSelection, baselineSelectionState, baselineTarget.result]
+  );
+  const hoverColor = hoverState.sample?.color ?? null;
+
+  const selectedSample = useMemo(() => {
+    if (!baselineTarget.result || !selectedColor) {
+      return null;
+    }
+    return findNearestSampleByColor(baselineTarget.result, baselineBuckets, selectedColor);
+  }, [baselineTarget.result, baselineBuckets, selectedColor]);
+  const selectedSamples = useMemo(() => {
+    if (!baselineTarget.result || !activeBaselineSelection || !selectedSample) {
+      return [];
+    }
+
+    if (activeBaselineSelection.source === "image-rect") {
+      return baselineTarget.result.samples.filter((sample) =>
+        activeBaselineSelection.sampleIds.includes(sample.sampleId)
+      );
+    }
+
+    return baselineTarget.result.samples.filter(
+      (sample) =>
+        sample.color.r === selectedSample.color.r &&
+        sample.color.g === selectedSample.color.g &&
+        sample.color.b === selectedSample.color.b
+    );
+  }, [activeBaselineSelection, baselineTarget.result, selectedSample]);
 
   const normalizeSliceValueForAxis = (nextAxis: SliceAxis, currentValue: number): number => {
     const nextRange = getAxisRange(nextAxis);
     const currentRange = getAxisRange(sliceAxis);
-
     if (sliceAxis === nextAxis) {
       return clamp(currentValue, nextRange.min, nextRange.max);
     }
-
     return clamp(mapAxisValue(currentValue, currentRange, nextRange), nextRange.min, nextRange.max);
   };
 
@@ -109,24 +252,89 @@ export function ColorWorkbench() {
 
   const handleSpaceChange = (nextSpace: ColorSpace3d): void => {
     setSpace(nextSpace);
-    const nextAxis = defaultSliceAxisBySpace[nextSpace];
-    const sourceRange = getAxisRange(sliceAxis);
-    const targetRange = getAxisRange(nextAxis);
+    const nextAxis: SliceAxis = nextSpace === "rgb" ? "r" : nextSpace === "hsl" ? "h" : "lab-l";
     setSliceAxis(nextAxis);
-    setSliceValue(
-      clamp(mapAxisValue(sliceValue, sourceRange, targetRange), targetRange.min, targetRange.max)
-    );
+    setSliceValue(normalizeSliceValueForAxis(nextAxis, sliceValue));
   };
 
-  const applyManualColor = (): void => {
-    const nextColor = toRgbColor(
-      clamp(manualR, 0, 255),
-      clamp(manualG, 0, 255),
-      clamp(manualB, 0, 255)
+  const setActiveSelection = (
+    selectionFactory: () =>
+      | ReturnType<typeof buildPointSelection>
+      | ReturnType<typeof buildRectangleSelection>
+  ) => {
+    if (!baselineTarget.result) {
+      return;
+    }
+    setSelectionStateByTarget((current) => {
+      const nextSelection = selectionFactory();
+      return {
+        ...current,
+        baseline: {
+          activeSelection: nextSelection,
+        },
+      };
+    });
+  };
+
+  const handlePreviewSelectionCommit = (bounds: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }): void => {
+    if (!baselineTarget.result) {
+      return;
+    }
+    setActiveSelection(() =>
+      buildRectangleSelection({
+        result: baselineTarget.result!,
+        targetId: baselineTarget.targetId,
+        bounds,
+      })
     );
-    setSelectedColor(nextColor);
-    setLiveMessage(t("workbenchManualApplied"));
-    toast.success(t("workbenchManualApplied"));
+    setLiveMessage(t("workbenchSelectionUpdated"));
+  };
+
+  const handleColorHover = (color: RgbColor | null, source: HoverState["source"]): void => {
+    const sample = findNearestSampleByColor(baselineTarget.result, baselineBuckets, color);
+    setHoverState({
+      targetId: baselineTarget.targetId,
+      sample,
+      source,
+    });
+  };
+
+  const handleColorSelect = (color: RgbColor): void => {
+    if (!baselineTarget.result) {
+      return;
+    }
+    const sample = findNearestSampleByColor(baselineTarget.result, baselineBuckets, color);
+    setSelectedColor(color);
+    if (!sample) {
+      return;
+    }
+    setActiveSelection(() =>
+      buildPointSelection({
+        result: baselineTarget.result!,
+        targetId: baselineTarget.targetId,
+        sampleId: sample.sampleId,
+        source: "color-space-pick",
+      })
+    );
+    setLiveMessage(t("workbenchSelectedColorUpdated", { value: rgbToHex(color) }));
+  };
+
+  const handlePreviewSampleSelect = (sample: PhotoSample): void => {
+    setSelectedColor(sample.color);
+    setActiveSelection(() =>
+      buildPointSelection({
+        result: baselineTarget.result!,
+        targetId: baselineTarget.targetId,
+        sampleId: sample.sampleId,
+        source: "image-point",
+      })
+    );
+    setLiveMessage(t("workbenchSelectedColorUpdated", { value: rgbToHex(sample.color) }));
   };
 
   const handleStatusChange = (message: string): void => {
@@ -134,35 +342,18 @@ export function ColorWorkbench() {
   };
 
   const handleSourceFileSelected = (file: File | null): void => {
-    setAnalysisSourceFile(file);
-    setPhotoCubePoints([]);
-    if (file) {
-      setLiveMessage(t("photoUploadSelected", { fileName: file.name }));
-      return;
-    }
-    setLiveMessage(t("photoUploadCleared"));
+    setBaselineTarget((current) => ({ ...current, file }));
+    setSelectedColor(null);
+    setHoverState({ targetId: "baseline", sample: null, source: "preview" });
   };
 
-  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>): void => {
-    const file = event.target.files?.[0] ?? null;
-    event.target.value = "";
-    handleSourceFileSelected(file);
-  };
-
-  const handlePhotoPaste = (event: React.ClipboardEvent<HTMLButtonElement>): void => {
-    const items = Array.from(event.clipboardData?.items ?? []);
+  const getClipboardImageFile = (clipboardData: DataTransfer | null | undefined): File | null => {
+    const items = Array.from(clipboardData?.items ?? []);
     const imageItem = items.find((item) => item.kind === "file" && item.type.startsWith("image/"));
-    const file = imageItem?.getAsFile();
+    return imageItem?.getAsFile() ?? null;
+  };
 
-    if (!file) {
-      const message = t("photoPasteNoImage");
-      setLiveMessage(message);
-      toast.error(message);
-      return;
-    }
-
-    event.preventDefault();
-
+  const applyPastedImageFile = (file: File): void => {
     const pastedFile = new File([file], file.name || clipboardImageFileName, {
       type: file.type || "image/png",
       lastModified: Date.now(),
@@ -173,200 +364,284 @@ export function ColorWorkbench() {
     handleSourceFileSelected(pastedFile);
   };
 
-  const handleAnalysisComplete = (result: PhotoAnalysisResult | null): void => {
-    setPhotoCubePoints(result?.cubePoints ?? []);
+  const handlePhotoPaste = (event: React.ClipboardEvent<HTMLDivElement>): void => {
+    const file = getClipboardImageFile(event.clipboardData);
+    if (!file) {
+      const message = t("photoPasteNoImage");
+      setLiveMessage(message);
+      toast.error(message);
+      return;
+    }
+    event.preventDefault();
+    applyPastedImageFile(file);
+  };
+
+  useEffect(() => {
+    const handleWindowPaste = (event: ClipboardEvent): void => {
+      const items = Array.from(event.clipboardData?.items ?? []);
+      const imageItem = items.find(
+        (item) => item.kind === "file" && item.type.startsWith("image/")
+      );
+      const file = imageItem?.getAsFile();
+      if (!file) {
+        return;
+      }
+
+      event.preventDefault();
+      const pastedFile = new File([file], file.name || clipboardImageFileName, {
+        type: file.type || "image/png",
+        lastModified: Date.now(),
+      });
+      const message = t("photoPasteApplied");
+      setLiveMessage(message);
+      toast.success(message);
+      handleSourceFileSelected(pastedFile);
+    };
+
+    window.addEventListener("paste", handleWindowPaste);
+    return () => {
+      window.removeEventListener("paste", handleWindowPaste);
+    };
+  }, []);
+
+  const copyMetricTable = async (): Promise<void> => {
+    const payload = serializeMetricRows(localizedBaselineMetricRows, copyFormat, {
+      headerLabels: {
+        group: t("workbenchTableGroup"),
+        key: t("workbenchTableKey"),
+        label: t("workbenchTableMetric"),
+        value: t("workbenchTableValue"),
+        unit: t("workbenchTableUnit"),
+        description: t("workbenchTableDescription"),
+      },
+    });
+    await navigator.clipboard.writeText(payload);
+    handleStatusChange(t("workbenchMetricTableCopied", { format: copyFormat }));
+    toast.success(t("workbenchMetricTableCopied", { format: copyFormat }));
+  };
+
+  const copyHistogram = async (): Promise<void> => {
+    const payload = serializeHistogramBins(
+      [...baselineLuminanceHistogram, ...baselineHueHistogram, ...baselineSaturationHistogram],
+      copyFormat,
+      {
+        headerLabels: {
+          metric: t("workbenchTableMetric"),
+          binIndex: t("graphAxisBin"),
+          start: t("graphAxisStart"),
+          end: t("graphAxisEnd"),
+          count: t("graphAxisCount"),
+          ratio: t("graphAxisRatio"),
+        },
+        metricLabels: {
+          luminance: t("workbenchHistogramCardTitle"),
+          hue: t("photoHueHistogram"),
+          saturation: t("photoSaturationHistogram"),
+        },
+      }
+    );
+    await navigator.clipboard.writeText(payload);
+    handleStatusChange(t("workbenchHistogramCopied", { format: copyFormat }));
+    toast.success(t("workbenchHistogramCopied", { format: copyFormat }));
   };
 
   return (
     <section className="workbenchRoot">
-      <PhotoAnalysisPanel
-        sourceFile={analysisSourceFile}
-        onColorInspect={setSelectedColor}
-        onStatusChange={handleStatusChange}
-        onAnalysisComplete={handleAnalysisComplete}
-      />
-
-      <div className="workbenchMainGrid">
-        <section className="panel">
-          <PanelHeader titleKey="panelRgbCube" requirementsKey="panelRgbCubeRequirements" />
-
-          <div className="cubeInputStack">
-            <div className="photoUploadCta">
-              <div className="photoUploadCtaCopy">
-                <strong>{t("photoUploadCtaTitle")}</strong>
-                <p>{t("photoUploadCtaDescription")}</p>
-                {analysisSourceFile ? (
-                  <p className="photoUploadCtaStatus">
-                    {t("photoUploadSelected", { fileName: analysisSourceFile.name })}
-                  </p>
-                ) : null}
-              </div>
-              <label className="photoUploadButton">
-                <span>{t("photoUploadButton")}</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  aria-label={t("photoUploadLabel")}
-                  className="srOnly"
-                  onChange={handlePhotoUpload}
-                />
-              </label>
-            </div>
-
-            <button
-              type="button"
-              className="photoPasteZone"
-              onPaste={handlePhotoPaste}
-              aria-label={t("photoPasteZoneLabel")}
-            >
-              <strong>{t("photoPasteZoneTitle")}</strong>
-              <p>{t("photoPasteZoneHint")}</p>
-            </button>
-          </div>
-
-          <Tabs
-            value={space}
-            onValueChange={(value) => handleSpaceChange(value as ColorSpace3d)}
-            className="spaceTabs"
-          >
-            <TabsList className="spaceTabsList">
-              <TabsTrigger value="rgb" className="spaceTabTrigger">
-                {t("spaceRgb")}
-              </TabsTrigger>
-              <TabsTrigger value="hsl" className="spaceTabTrigger">
-                {t("spaceHsl")}
-              </TabsTrigger>
-              <TabsTrigger value="lab" className="spaceTabTrigger">
-                {t("spaceLab")}
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-          <div className="cubeSettings">
-            <div className="cubeOverlayMode">
-              <span className="cubeControlLabel">{t("cubeOverlayModeLabel")}</span>
-              <Tabs
-                value={cubeOverlayMode}
-                onValueChange={(value) => setCubeOverlayMode(value as RgbCubeOverlayMode)}
-                className="spaceTabs"
-              >
-                <TabsList className="spaceTabsList">
-                  <TabsTrigger value="grid" className="spaceTabTrigger">
-                    {t("cubeOverlayModeGrid")}
-                  </TabsTrigger>
-                  <TabsTrigger value="image" className="spaceTabTrigger">
-                    {t("cubeOverlayModeImage")}
-                  </TabsTrigger>
-                  <TabsTrigger value="both" className="spaceTabTrigger">
-                    {t("cubeOverlayModeBoth")}
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-            <div className="cubeToggleRow">
-              <label className="toggleLabel">
-                <input
-                  type="checkbox"
-                  checked={isAxisGuideVisible}
-                  onChange={(event) => setIsAxisGuideVisible(event.target.checked)}
-                />
-                {t("cubeShowAxisGuide")}
-              </label>
-              <label className="toggleLabel">
-                <input
-                  type="checkbox"
-                  checked={isCubeSizeSliderVisible}
-                  onChange={(event) => setIsCubeSizeSliderVisible(event.target.checked)}
-                />
-                {t("cubeShowSizeSlider")}
-              </label>
-            </div>
-            <div className="manualColorPicker" aria-label={t("workbenchManualPickerTitle")}>
-              <strong>{t("workbenchManualPickerTitle")}</strong>
-              <div className="manualColorInputs">
-                <label>
-                  {manualChannelLabels.r}
-                  <input
-                    type="number"
-                    min={0}
-                    max={255}
-                    value={manualR}
-                    onChange={(event) => setManualR(Number(event.target.value))}
-                  />
-                </label>
-                <label>
-                  {manualChannelLabels.g}
-                  <input
-                    type="number"
-                    min={0}
-                    max={255}
-                    value={manualG}
-                    onChange={(event) => setManualG(Number(event.target.value))}
-                  />
-                </label>
-                <label>
-                  {manualChannelLabels.b}
-                  <input
-                    type="number"
-                    min={0}
-                    max={255}
-                    value={manualB}
-                    onChange={(event) => setManualB(Number(event.target.value))}
-                  />
-                </label>
-                <button type="button" onClick={applyManualColor}>
-                  {t("workbenchManualApply")}
-                </button>
-              </div>
-            </div>
-            {isCubeSizeSliderVisible ? (
-              <label>
-                {t("cubeSizeLabel", { size: cubeSize })}
-                <input
-                  type="range"
-                  min={320}
-                  max={900}
-                  step={10}
-                  value={cubeSize}
-                  onChange={(event) => setCubeSize(Number(event.target.value))}
-                />
-              </label>
-            ) : null}
-          </div>
-          <RgbCubeCanvas
-            space={space}
-            rotation={rotation}
-            cubeSize={cubeSize}
-            axisGuideMode={isAxisGuideVisible ? "visible" : "hidden"}
-            sliceAxis={sliceAxis}
-            sliceValue={sliceValue}
-            imageCubePoints={photoCubePoints}
-            overlayMode={cubeOverlayMode}
-            onRotationChange={setRotation}
-            onHoverColorChange={setHoverColor}
-            onColorSelect={setSelectedColor}
+      <div className="workbenchInteractiveGrid">
+        <div className="workbenchPreviewStack">
+          <WorkbenchPreviewPanel
+            target={baselineTarget}
+            hoverSample={hoverState.sample}
+            selectedSamples={selectedSamples}
+            selectionState={baselineSelectionState}
+            selectionDraft={selectionDraft}
+            uploadDisclosureStorageKey={storageKeys.uploadPanel}
+            onHoverSampleChange={(sample) =>
+              setHoverState({ targetId: baselineTarget.targetId, sample, source: "preview" })
+            }
+            onSelectionDraftChange={setSelectionDraft}
+            onSelectionCommit={handlePreviewSelectionCommit}
+            onSampleSelect={handlePreviewSampleSelect}
+            onSourceFileSelected={handleSourceFileSelected}
+            onPaste={handlePhotoPaste}
           />
-        </section>
 
-        <div className="visualizationGrid">
-          <SliceCanvas
-            space={space}
-            axis={sliceAxis}
-            value={sliceValue}
-            onAxisChange={handleSliceAxisChange}
-            onValueChange={setSliceValue}
-            onHoverColorChange={setHoverColor}
-            onColorSelect={setSelectedColor}
-          />
-          <ColorInspector
-            hoverColor={hoverColor}
-            selectedColor={selectedColor}
-            onColorPasted={setSelectedColor}
-            onStatusChange={handleStatusChange}
+          <WorkbenchMetricsPanel
+            copyFormat={copyFormat}
+            metricRows={localizedBaselineMetricRows}
+            onCopyFormatChange={setCopyFormat}
+            onCopyMetricTable={copyMetricTable}
           />
         </div>
+
+        <div className="workbenchVisualStack">
+          <WorkbenchScatterPanel result={baselineTarget.result} />
+
+          <section className="panel">
+            <PanelHeader titleKey="panelRgbCube" requirementsKey="panelRgbCubeRequirements" />
+
+            <Tabs
+              value={space}
+              onValueChange={(value) => handleSpaceChange(value as ColorSpace3d)}
+              className={controlStyles.spaceTabs}
+            >
+              <TabsList className={controlStyles.spaceTabsList}>
+                <TabsTrigger value="rgb" className={controlStyles.spaceTabTrigger}>
+                  {t("spaceRgb")}
+                </TabsTrigger>
+                <TabsTrigger value="hsl" className={controlStyles.spaceTabTrigger}>
+                  {t("spaceHsl")}
+                </TabsTrigger>
+                <TabsTrigger value="lab" className={controlStyles.spaceTabTrigger}>
+                  {t("spaceLab")}
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            <PersistedDisclosure
+              storageKey={storageKeys.cubeOptionsPanel}
+              isdefaultOpen={false}
+              summary={t("workbenchDisplayOptionsDisclosure")}
+              className={controlStyles.inlineDisclosure}
+              contentClassName={controlStyles.inlineDisclosureContent}
+            >
+              <div className={controlStyles.cubeSettings}>
+                <div className={controlStyles.cubeOverlayMode}>
+                  <span className={controlStyles.cubeControlLabel}>
+                    {t("cubeOverlayModeLabel")}
+                  </span>
+                  <Tabs
+                    value={cubeOverlayMode}
+                    onValueChange={(value) => setCubeOverlayMode(value as RgbCubeOverlayMode)}
+                    className={controlStyles.spaceTabs}
+                  >
+                    <TabsList className={controlStyles.spaceTabsList}>
+                      <TabsTrigger value="grid" className={controlStyles.spaceTabTrigger}>
+                        {t("cubeOverlayModeGrid")}
+                      </TabsTrigger>
+                      <TabsTrigger value="image" className={controlStyles.spaceTabTrigger}>
+                        {t("cubeOverlayModeImage")}
+                      </TabsTrigger>
+                      <TabsTrigger value="both" className={controlStyles.spaceTabTrigger}>
+                        {t("cubeOverlayModeBoth")}
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
+                <div className={controlStyles.toggleRow}>
+                  <label className={controlStyles.toggleLabel}>
+                    <input
+                      type="checkbox"
+                      checked={isCubeImageMappingVisible}
+                      onChange={(event) => setIsCubeImageMappingVisible(event.target.checked)}
+                      aria-label={t("workbenchShowWhiteMappingCube")}
+                    />
+                    <span>{t("workbenchShowWhiteMappingCube")}</span>
+                  </label>
+                  <label className={controlStyles.toggleLabel}>
+                    <input
+                      type="checkbox"
+                      checked={isCubeSelectionMappingVisible}
+                      onChange={(event) => setIsCubeSelectionMappingVisible(event.target.checked)}
+                      aria-label={t("workbenchShowSelectedMappingCube")}
+                    />
+                    <span>{t("workbenchShowSelectedMappingCube")}</span>
+                  </label>
+                </div>
+                <label className={controlStyles.toggleLabel}>
+                  <input
+                    type="checkbox"
+                    checked={isAxisGuideVisible}
+                    onChange={(event) => setIsAxisGuideVisible(event.target.checked)}
+                    aria-label={t("cubeShowAxisGuide")}
+                  />
+                  <span>{t("cubeShowAxisGuide")}</span>
+                </label>
+                <label className={controlStyles.toggleLabel}>
+                  <input
+                    type="checkbox"
+                    checked={isCubeSizeSliderVisible}
+                    onChange={(event) => setIsCubeSizeSliderVisible(event.target.checked)}
+                    aria-label={t("cubeShowSizeSlider")}
+                  />
+                  <span>{t("cubeShowSizeSlider")}</span>
+                </label>
+                {isCubeSizeSliderVisible ? (
+                  <label>
+                    {t("cubeSizeLabel", { size: cubeSize })}
+                    <input
+                      type="range"
+                      min={320}
+                      max={900}
+                      step={10}
+                      value={cubeSize}
+                      onChange={(event) => setCubeSize(Number(event.target.value))}
+                    />
+                  </label>
+                ) : null}
+              </div>
+            </PersistedDisclosure>
+
+            <RgbCubeCanvas
+              space={space}
+              rotation={rotation}
+              cubeSize={cubeSize}
+              axisGuideMode={isAxisGuideVisible ? "visible" : "hidden"}
+              sliceAxis={sliceAxis}
+              sliceValue={sliceValue}
+              imageCubePoints={baselineTarget.result?.cubePoints ?? []}
+              selectionCubePoints={selectionCubePoints}
+              isimageMappingVisible={isCubeImageMappingVisible}
+              isselectionMappingVisible={isCubeSelectionMappingVisible}
+              hoverColor={hoverColor}
+              selectedColor={selectedColor}
+              overlayMode={cubeOverlayMode}
+              onRotationChange={setRotation}
+              onHoverColorChange={(color) => handleColorHover(color, "cube")}
+              onColorSelect={handleColorSelect}
+            />
+          </section>
+        </div>
+
+        <SliceCanvas
+          space={space}
+          axis={sliceAxis}
+          value={sliceValue}
+          displayOptionsStorageKey={storageKeys.sliceOptionsPanel}
+          mappedSamples={sliceMappedSamples}
+          selectedSamples={selectedSamples}
+          ismappedSamplesVisible={isSliceImageMappingVisible}
+          isselectedSamplesVisible={isSliceSelectionMappingVisible}
+          hoverColor={hoverColor}
+          onAxisChange={handleSliceAxisChange}
+          onValueChange={setSliceValue}
+          onHoverColorChange={(color) => handleColorHover(color, "slice")}
+          onColorSelect={handleColorSelect}
+          onMappedSamplesVisibilityChange={setIsSliceImageMappingVisible}
+          onSelectedSamplesVisibilityChange={setIsSliceSelectionMappingVisible}
+        />
       </div>
 
-      <p className="srOnly" aria-live="polite">
+      <WorkbenchAnalysisPanel
+        result={baselineTarget.result}
+        luminanceHistogram={baselineLuminanceHistogram}
+        hueHistogram={baselineHueHistogram}
+        saturationHistogram={baselineSaturationHistogram}
+        onCopyHistogram={copyHistogram}
+      />
+
+      <ColorInspector
+        hoverColor={hoverColor}
+        selectedColor={selectedColor}
+        contentStorageKey={storageKeys.inspectorPanel}
+        onColorPasted={(color) => {
+          setSelectedColor(color);
+          handleColorSelect(color);
+        }}
+        onStatusChange={handleStatusChange}
+      />
+
+      <p className="muted copyStatus" aria-live="polite">
         {liveMessage}
       </p>
     </section>

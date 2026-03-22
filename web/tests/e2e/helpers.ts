@@ -12,7 +12,7 @@ export const getPanel = (page: Page, heading: string): Locator => {
 };
 
 export const getSliceCanvas = (page: Page): Locator => {
-  return page.locator(".sliceCanvas");
+  return page.locator(".sliceCanvas:not(.sliceCanvasOverlay)");
 };
 
 export const getCubeCanvas = (page: Page): Locator => {
@@ -49,6 +49,15 @@ export const uploadGrayPng = async (page: Page): Promise<void> => {
 
 export const pasteRedPngToPhotoAnalysis = async (page: Page): Promise<void> => {
   await pasteImageToPhotoAnalysis(page, {
+    fileName: "clipboard-image.png",
+    mimeType: "image/png",
+    base64: redPngBase64,
+  });
+};
+
+export const pasteRedPngGlobally = async (page: Page): Promise<void> => {
+  await pasteImageToTarget(page, {
+    target: "document.body",
     fileName: "clipboard-image.png",
     mimeType: "image/png",
     base64: redPngBase64,
@@ -113,37 +122,39 @@ const pasteImageToPhotoAnalysis = async (
   await expect(pasteZone).toBeVisible();
   await pasteZone.focus();
 
-  await page.evaluate(
-    async ({
-      targetLabel,
-      fileName,
-      mimeType,
-      base64,
-    }: {
-      targetLabel: string;
-      fileName: string;
-      mimeType: string;
-      base64: string;
-    }) => {
-      const target = Array.from(document.querySelectorAll<HTMLElement>("[aria-label]")).find(
-        (element) => element.getAttribute("aria-label") === targetLabel
-      );
-      if (!target) {
-        throw new Error("paste target not found");
-      }
+  await pasteImageToTarget(page, {
+    targetLabel: "画像貼り付けエリア",
+    ...payload,
+  });
+};
 
-      const response = await fetch(`data:${mimeType};base64,${base64}`);
-      const blob = await response.blob();
-      const file = new File([blob], fileName, { type: mimeType });
-      const clipboardData = new DataTransfer();
-      clipboardData.items.add(file);
-      const pasteEvent = new Event("paste", { bubbles: true, cancelable: true });
-      Object.defineProperty(pasteEvent, "clipboardData", {
-        value: clipboardData,
-      });
+const pasteImageToTarget = async (
+  page: Page,
+  payload:
+    | { targetLabel: string; fileName: string; mimeType: string; base64: string }
+    | { target: "document.body"; fileName: string; mimeType: string; base64: string }
+): Promise<void> => {
+  await page.evaluate(async (input) => {
+    const target =
+      "targetLabel" in input
+        ? Array.from(document.querySelectorAll<HTMLElement>("[aria-label]")).find(
+            (element) => element.getAttribute("aria-label") === input.targetLabel
+          )
+        : document.body;
+    if (!target) {
+      throw new Error("paste target not found");
+    }
 
-      target.dispatchEvent(pasteEvent);
-    },
-    { targetLabel: "画像貼り付けエリア", ...payload }
-  );
+    const response = await fetch(`data:${input.mimeType};base64,${input.base64}`);
+    const blob = await response.blob();
+    const file = new File([blob], input.fileName, { type: input.mimeType });
+    const clipboardData = new DataTransfer();
+    clipboardData.items.add(file);
+    const pasteEvent = new Event("paste", { bubbles: true, cancelable: true });
+    Object.defineProperty(pasteEvent, "clipboardData", {
+      value: clipboardData,
+    });
+
+    target.dispatchEvent(pasteEvent);
+  }, payload);
 };

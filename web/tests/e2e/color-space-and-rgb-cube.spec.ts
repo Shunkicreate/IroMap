@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { getCubeCanvas, getPanel } from "./helpers";
+import { getCubeCanvas, getPanel, getSliceCanvas } from "./helpers";
 
 const dragOnCube = async (page: Page): Promise<void> => {
   const cube = getCubeCanvas(page);
@@ -58,7 +58,9 @@ test("T-105(color-space-3d): タブ選択状態の視認性を確認", async ({ 
 
 test("T-106(color-space-3d): 3D軸ガイドのON/OFFを確認", async ({ page }) => {
   await page.goto("/");
-  const axisGuide = page.getByLabel("軸ガイドを表示");
+  const cubePanel = getPanel(page, "3Dキューブ");
+  await cubePanel.getByRole("button", { name: "表示オプション" }).click();
+  const axisGuide = cubePanel.getByLabel("軸ガイドを表示");
   await expect(axisGuide).toBeChecked();
   await axisGuide.uncheck();
   await expect(axisGuide).not.toBeChecked();
@@ -72,23 +74,28 @@ test("T-107(color-space-3d): Sliceの軸ラベル表示を確認", async ({ page
   await expect(page.getByText(/^Y軸: [RGB] \(下→上\)$/)).toBeVisible();
 });
 
-test("T-108(color-space-3d): RGBキューブとSliceの近接配置を確認", async ({ page }) => {
+test("T-108(color-space-3d): 3DキューブとSliceの近接配置を確認", async ({ page }) => {
   await page.setViewportSize({ width: 1600, height: 900 });
   await page.goto("/");
   const cubeBox = await getCubeCanvas(page).boundingBox();
-  const sliceBox = await page.locator(".sliceCanvas").boundingBox();
+  const sliceBox = await getSliceCanvas(page).boundingBox();
+  const interactiveGrid = page.locator(".workbenchInteractiveGrid");
 
   expect(cubeBox).not.toBeNull();
   expect(sliceBox).not.toBeNull();
+  await expect(interactiveGrid).toHaveCount(1);
   if (!cubeBox || !sliceBox) {
     return;
   }
-  expect(Math.abs(sliceBox.y - cubeBox.y)).toBeLessThan(700);
+  expect(sliceBox.x).toBeGreaterThan(cubeBox.x);
+  expect(Math.abs(sliceBox.x - cubeBox.x)).toBeLessThan(1200);
 });
 
 test("T-109(color-space-3d): キューブサイズスライダー表示とサイズ変更を確認", async ({ page }) => {
   await page.goto("/");
-  const slider = page.getByRole("slider", { name: /キューブサイズ:/ });
+  const cubePanel = getPanel(page, "3Dキューブ");
+  await cubePanel.getByRole("button", { name: "表示オプション" }).click();
+  const slider = cubePanel.getByRole("slider", { name: /キューブサイズ:/ });
   await slider.evaluate((node) => {
     const input = node as HTMLInputElement;
     input.value = "520";
@@ -166,6 +173,6 @@ test("T-102(rgb-cube): 回転操作の動作確認", async ({ page }) => {
 
 test("T-103(rgb-cube): 解像度固定の確認", async ({ page }) => {
   await page.goto("/");
-  await expect(page.locator(".sliceCanvas")).toHaveAttribute("width", "256");
-  await expect(page.locator(".sliceCanvas")).toHaveAttribute("height", "256");
+  await expect(getSliceCanvas(page)).toHaveAttribute("width", "256");
+  await expect(getSliceCanvas(page)).toHaveAttribute("height", "256");
 });
