@@ -58,7 +58,7 @@ test("T-105(color-space-3d): タブ選択状態の視認性を確認", async ({ 
 
 test("T-106(color-space-3d): 3D軸ガイドのON/OFFを確認", async ({ page }) => {
   await page.goto("/");
-  const cubePanel = getPanel(page, "RGBキューブ");
+  const cubePanel = getPanel(page, "3Dキューブ");
   await cubePanel.getByRole("button", { name: "表示オプション" }).click();
   const axisGuide = cubePanel.getByLabel("軸ガイドを表示");
   await expect(axisGuide).toBeChecked();
@@ -74,23 +74,26 @@ test("T-107(color-space-3d): Sliceの軸ラベル表示を確認", async ({ page
   await expect(page.getByText(/^Y軸: [RGB] \(下→上\)$/)).toBeVisible();
 });
 
-test("T-108(color-space-3d): RGBキューブとSliceの近接配置を確認", async ({ page }) => {
+test("T-108(color-space-3d): 3DキューブとSliceの近接配置を確認", async ({ page }) => {
   await page.setViewportSize({ width: 1600, height: 900 });
   await page.goto("/");
   const cubeBox = await getCubeCanvas(page).boundingBox();
   const sliceBox = await getSliceCanvas(page).boundingBox();
+  const interactiveGrid = page.locator(".workbenchInteractiveGrid");
 
   expect(cubeBox).not.toBeNull();
   expect(sliceBox).not.toBeNull();
+  await expect(interactiveGrid).toHaveCount(1);
   if (!cubeBox || !sliceBox) {
     return;
   }
-  expect(Math.abs(sliceBox.y - cubeBox.y)).toBeLessThan(700);
+  expect(sliceBox.x).toBeGreaterThan(cubeBox.x);
+  expect(Math.abs(sliceBox.x - cubeBox.x)).toBeLessThan(1200);
 });
 
 test("T-109(color-space-3d): キューブサイズスライダー表示とサイズ変更を確認", async ({ page }) => {
   await page.goto("/");
-  const cubePanel = getPanel(page, "RGBキューブ");
+  const cubePanel = getPanel(page, "3Dキューブ");
   await cubePanel.getByRole("button", { name: "表示オプション" }).click();
   const slider = cubePanel.getByRole("slider", { name: /キューブサイズ:/ });
   await slider.evaluate((node) => {

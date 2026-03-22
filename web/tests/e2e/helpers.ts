@@ -31,17 +31,6 @@ export const hoverColorOnSlice = async (page: Page): Promise<void> => {
   await canvas.hover({ position: { x: 40, y: 40 } });
 };
 
-export const applyManualColor = async (
-  page: Page,
-  color: { r: number; g: number; b: number }
-): Promise<void> => {
-  const picker = page.locator(".manualColorPicker");
-  await picker.getByRole("spinbutton", { name: "R" }).fill(String(color.r));
-  await picker.getByRole("spinbutton", { name: "G" }).fill(String(color.g));
-  await picker.getByRole("spinbutton", { name: "B" }).fill(String(color.b));
-  await picker.getByRole("button", { name: "選択色に反映" }).click();
-};
-
 const setFile = async (page: Page, fileName: string, base64: string): Promise<void> => {
   await page.getByLabel("画像をアップロード").setInputFiles({
     name: fileName,
@@ -64,16 +53,6 @@ export const pasteRedPngToPhotoAnalysis = async (page: Page): Promise<void> => {
     mimeType: "image/png",
     base64: redPngBase64,
   });
-};
-
-export const clickPasteButtonWithRedPng = async (page: Page): Promise<void> => {
-  await mockClipboardRead(page, {
-    mimeType: "image/png",
-    base64: redPngBase64,
-  });
-  const pasteButton = page.getByRole("button", { name: "画像を貼り付け" });
-  await expect(pasteButton).toBeVisible();
-  await pasteButton.click();
 };
 
 export const pasteRedPngGlobally = async (page: Page): Promise<void> => {
@@ -147,40 +126,6 @@ const pasteImageToPhotoAnalysis = async (
     targetLabel: "画像貼り付けエリア",
     ...payload,
   });
-};
-
-const mockClipboardRead = async (
-  page: Page,
-  payload: { mimeType: string; base64: string } | null
-): Promise<void> => {
-  await page.evaluate((input) => {
-    const clipboard = navigator.clipboard;
-    Object.defineProperty(navigator, "clipboard", {
-      configurable: true,
-      value: {
-        ...clipboard,
-        read: async () => {
-          if (!input) {
-            return [];
-          }
-
-          const response = await fetch(`data:${input.mimeType};base64,${input.base64}`);
-          const blob = await response.blob();
-          return [
-            {
-              types: [input.mimeType],
-              getType: async (type: string) => {
-                if (type !== input.mimeType) {
-                  throw new DOMException("Requested type not found", "NotFoundError");
-                }
-                return blob;
-              },
-            },
-          ];
-        },
-      },
-    });
-  }, payload);
 };
 
 const pasteImageToTarget = async (

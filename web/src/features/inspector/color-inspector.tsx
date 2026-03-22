@@ -181,6 +181,10 @@ export function ColorInspector({
           <div className="inspectorCard">
             <div className="inspectorCardHeader">
               <strong>{t("inspectorSelected")}</strong>
+            </div>
+            {renderSwatch(selectedColor)}
+            <div className="copyValueRow">
+              <small>{t("inspectorPasteSection")}</small>
               <button
                 type="button"
                 className="inspectorPasteButton"
@@ -190,7 +194,7 @@ export function ColorInspector({
                 <span>{t("copyPasteButton")}</span>
               </button>
             </div>
-            {renderSwatch(selectedColor)}
+            <p className="muted">{t("inspectorPasteHint")}</p>
             <div className="colorRow colorRowSelected">
               <span>{t("inspectorSelectedLabel")}</span>
               {selectedFormats.map((item) => (

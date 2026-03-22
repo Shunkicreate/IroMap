@@ -7,12 +7,7 @@ import { PanelHeader } from "@/components/workbench/panel-header";
 import { usePersistedBoolean } from "@/components/workbench/use-persisted-boolean";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { rgbToHex } from "@/domain/color/color-format";
-import {
-  toRgbColor,
-  type ColorSpace3d,
-  type RgbColor,
-  type SliceAxis,
-} from "@/domain/color/color-types";
+import { type ColorSpace3d, type RgbColor, type SliceAxis } from "@/domain/color/color-types";
 import {
   buildCubePointsFromSamples,
   buildHistogramBins,
@@ -35,7 +30,9 @@ import { RgbCubeCanvas } from "@/features/rgb-cube/rgb-cube-canvas";
 import { SliceCanvas } from "@/features/slice/slice-canvas";
 import { WorkbenchAnalysisPanel } from "@/features/workbench/workbench-analysis-panel";
 import controlStyles from "@/features/workbench/workbench-controls.module.css";
+import { WorkbenchMetricsPanel } from "@/features/workbench/workbench-metrics-panel";
 import { WorkbenchPreviewPanel } from "@/features/workbench/workbench-preview-panel";
+import { WorkbenchScatterPanel } from "@/features/workbench/workbench-scatter-panel";
 import {
   buildSampleBuckets,
   clamp,
@@ -83,9 +80,6 @@ export function ColorWorkbench() {
   const [cubeSize, setCubeSize] = useState<number>(defaultCubeSize);
   const [rotation, setRotation] = useState<Rotation>(defaultRotation);
   const [cubeOverlayMode, setCubeOverlayMode] = useState<RgbCubeOverlayMode>("both");
-  const [manualR, setManualR] = useState<number>(128);
-  const [manualG, setManualG] = useState<number>(128);
-  const [manualB, setManualB] = useState<number>(128);
   const [liveMessage, setLiveMessage] = useState<string>("");
   const [selectionDraft, setSelectionDraft] = useState<SelectionDraft>(null);
   const [isCubeImageMappingVisible, setIsCubeImageMappingVisible] = usePersistedBoolean({
@@ -456,18 +450,6 @@ export function ColorWorkbench() {
     };
   }, []);
 
-  const applyManualColor = (): void => {
-    const nextColor = toRgbColor(
-      clamp(manualR, 0, 255),
-      clamp(manualG, 0, 255),
-      clamp(manualB, 0, 255)
-    );
-    setSelectedColor(nextColor);
-    handleColorSelect(nextColor);
-    setLiveMessage(t("workbenchManualApplied"));
-    toast.success(t("workbenchManualApplied"));
-  };
-
   const copyMetricTable = async (): Promise<void> => {
     const payload = serializeMetricRows(localizedBaselineMetricRows, copyFormat, {
       headerLabels: {
@@ -511,217 +493,187 @@ export function ColorWorkbench() {
 
   return (
     <section className="workbenchRoot">
-      <div className="workbenchMainGrid workbenchThreePane">
-        <WorkbenchPreviewPanel
-          target={baselineTarget}
-          hoverSample={hoverState.sample}
-          selectedSamples={selectedSamples}
-          selectionState={baselineSelectionState}
-          selectionDraft={selectionDraft}
-          uploadDisclosureStorageKey={storageKeys.uploadPanel}
-          onHoverSampleChange={(sample) =>
-            setHoverState({ targetId: baselineTarget.targetId, sample, source: "preview" })
-          }
-          onSelectionDraftChange={setSelectionDraft}
-          onSelectionCommit={handlePreviewSelectionCommit}
-          onSampleSelect={handlePreviewSampleSelect}
-          onSourceFileSelected={handleSourceFileSelected}
-          onPaste={handlePhotoPaste}
-          onPasteButtonClick={handlePhotoPasteButtonClick}
-        />
-
-        <section className="panel">
-          <PanelHeader titleKey="panelRgbCube" requirementsKey="panelRgbCubeRequirements" />
-
-          <Tabs
-            value={space}
-            onValueChange={(value) => handleSpaceChange(value as ColorSpace3d)}
-            className={controlStyles.spaceTabs}
-          >
-            <TabsList className={controlStyles.spaceTabsList}>
-              <TabsTrigger value="rgb" className={controlStyles.spaceTabTrigger}>
-                {t("spaceRgb")}
-              </TabsTrigger>
-              <TabsTrigger value="hsl" className={controlStyles.spaceTabTrigger}>
-                {t("spaceHsl")}
-              </TabsTrigger>
-              <TabsTrigger value="lab" className={controlStyles.spaceTabTrigger}>
-                {t("spaceLab")}
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          <PersistedDisclosure
-            storageKey={storageKeys.cubeOptionsPanel}
-            isdefaultOpen={false}
-            summary={t("workbenchDisplayOptionsDisclosure")}
-            className={controlStyles.inlineDisclosure}
-            contentClassName={controlStyles.inlineDisclosureContent}
-          >
-            <div className={controlStyles.cubeSettings}>
-              <div className={controlStyles.cubeOverlayMode}>
-                <span className={controlStyles.cubeControlLabel}>{t("cubeOverlayModeLabel")}</span>
-                <Tabs
-                  value={cubeOverlayMode}
-                  onValueChange={(value) => setCubeOverlayMode(value as RgbCubeOverlayMode)}
-                  className={controlStyles.spaceTabs}
-                >
-                  <TabsList className={controlStyles.spaceTabsList}>
-                    <TabsTrigger value="grid" className={controlStyles.spaceTabTrigger}>
-                      {t("cubeOverlayModeGrid")}
-                    </TabsTrigger>
-                    <TabsTrigger value="image" className={controlStyles.spaceTabTrigger}>
-                      {t("cubeOverlayModeImage")}
-                    </TabsTrigger>
-                    <TabsTrigger value="both" className={controlStyles.spaceTabTrigger}>
-                      {t("cubeOverlayModeBoth")}
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              </div>
-              <div className={controlStyles.toggleRow}>
-                <label className={controlStyles.toggleLabel}>
-                  <input
-                    type="checkbox"
-                    checked={isCubeImageMappingVisible}
-                    onChange={(event) => setIsCubeImageMappingVisible(event.target.checked)}
-                    aria-label={t("workbenchShowWhiteMappingCube")}
-                  />
-                  <span>{t("workbenchShowWhiteMappingCube")}</span>
-                </label>
-                <label className={controlStyles.toggleLabel}>
-                  <input
-                    type="checkbox"
-                    checked={isCubeSelectionMappingVisible}
-                    onChange={(event) => setIsCubeSelectionMappingVisible(event.target.checked)}
-                    aria-label={t("workbenchShowSelectedMappingCube")}
-                  />
-                  <span>{t("workbenchShowSelectedMappingCube")}</span>
-                </label>
-              </div>
-              <label className={controlStyles.toggleLabel}>
-                <input
-                  type="checkbox"
-                  checked={isAxisGuideVisible}
-                  onChange={(event) => setIsAxisGuideVisible(event.target.checked)}
-                  aria-label={t("cubeShowAxisGuide")}
-                />
-                <span>{t("cubeShowAxisGuide")}</span>
-              </label>
-              <label className={controlStyles.toggleLabel}>
-                <input
-                  type="checkbox"
-                  checked={isCubeSizeSliderVisible}
-                  onChange={(event) => setIsCubeSizeSliderVisible(event.target.checked)}
-                  aria-label={t("cubeShowSizeSlider")}
-                />
-                <span>{t("cubeShowSizeSlider")}</span>
-              </label>
-              {isCubeSizeSliderVisible ? (
-                <label>
-                  {t("cubeSizeLabel", { size: cubeSize })}
-                  <input
-                    type="range"
-                    min={320}
-                    max={900}
-                    step={10}
-                    value={cubeSize}
-                    onChange={(event) => setCubeSize(Number(event.target.value))}
-                  />
-                </label>
-              ) : null}
-            </div>
-          </PersistedDisclosure>
-
-          <RgbCubeCanvas
-            space={space}
-            rotation={rotation}
-            cubeSize={cubeSize}
-            axisGuideMode={isAxisGuideVisible ? "visible" : "hidden"}
-            sliceAxis={sliceAxis}
-            sliceValue={sliceValue}
-            imageCubePoints={baselineTarget.result?.cubePoints ?? []}
-            selectionCubePoints={selectionCubePoints}
-            isimageMappingVisible={isCubeImageMappingVisible}
-            isselectionMappingVisible={isCubeSelectionMappingVisible}
-            hoverColor={hoverColor}
-            selectedColor={selectedColor}
-            overlayMode={cubeOverlayMode}
-            onRotationChange={setRotation}
-            onHoverColorChange={(color) => handleColorHover(color, "cube")}
-            onColorSelect={handleColorSelect}
+      <div className="workbenchInteractiveGrid">
+        <div className="workbenchPreviewStack">
+          <WorkbenchPreviewPanel
+            target={baselineTarget}
+            hoverSample={hoverState.sample}
+            selectedSamples={selectedSamples}
+            selectionState={baselineSelectionState}
+            selectionDraft={selectionDraft}
+            uploadDisclosureStorageKey={storageKeys.uploadPanel}
+            onHoverSampleChange={(sample) =>
+              setHoverState({ targetId: baselineTarget.targetId, sample, source: "preview" })
+            }
+            onSelectionDraftChange={setSelectionDraft}
+            onSelectionCommit={handlePreviewSelectionCommit}
+            onSampleSelect={handlePreviewSampleSelect}
+            onSourceFileSelected={handleSourceFileSelected}
+            onPaste={handlePhotoPaste}
+            onPasteButtonClick={handlePhotoPasteButtonClick}
           />
 
-          <div className={`${controlStyles.manualColorPicker} manualColorPicker`}>
-            <strong>{t("workbenchManualPickerTitle")}</strong>
-            <div className={`${controlStyles.manualColorInputs} manualColorInputs`}>
-              <label>
-                R
-                <input
-                  type="number"
-                  value={manualR}
-                  min={0}
-                  max={255}
-                  onChange={(event) => setManualR(Number(event.target.value))}
-                />
-              </label>
-              <label>
-                G
-                <input
-                  type="number"
-                  value={manualG}
-                  min={0}
-                  max={255}
-                  onChange={(event) => setManualG(Number(event.target.value))}
-                />
-              </label>
-              <label>
-                B
-                <input
-                  type="number"
-                  value={manualB}
-                  min={0}
-                  max={255}
-                  onChange={(event) => setManualB(Number(event.target.value))}
-                />
-              </label>
-              <button type="button" onClick={applyManualColor}>
-                {t("workbenchManualApply")}
-              </button>
-            </div>
-          </div>
-        </section>
-
-        <div className="visualizationGrid">
-          <SliceCanvas
-            space={space}
-            axis={sliceAxis}
-            value={sliceValue}
-            displayOptionsStorageKey={storageKeys.sliceOptionsPanel}
-            mappedSamples={sliceMappedSamples}
-            selectedSamples={selectedSamples}
-            ismappedSamplesVisible={isSliceImageMappingVisible}
-            isselectedSamplesVisible={isSliceSelectionMappingVisible}
-            hoverColor={hoverColor}
-            onAxisChange={handleSliceAxisChange}
-            onValueChange={setSliceValue}
-            onHoverColorChange={(color) => handleColorHover(color, "slice")}
-            onColorSelect={handleColorSelect}
-            onMappedSamplesVisibilityChange={setIsSliceImageMappingVisible}
-            onSelectedSamplesVisibilityChange={setIsSliceSelectionMappingVisible}
+          <WorkbenchMetricsPanel
+            copyFormat={copyFormat}
+            metricRows={localizedBaselineMetricRows}
+            onCopyFormatChange={setCopyFormat}
+            onCopyMetricTable={copyMetricTable}
           />
         </div>
+
+        <div className="workbenchVisualStack">
+          <WorkbenchScatterPanel result={baselineTarget.result} />
+
+          <section className="panel">
+            <PanelHeader titleKey="panelRgbCube" requirementsKey="panelRgbCubeRequirements" />
+
+            <Tabs
+              value={space}
+              onValueChange={(value) => handleSpaceChange(value as ColorSpace3d)}
+              className={controlStyles.spaceTabs}
+            >
+              <TabsList className={controlStyles.spaceTabsList}>
+                <TabsTrigger value="rgb" className={controlStyles.spaceTabTrigger}>
+                  {t("spaceRgb")}
+                </TabsTrigger>
+                <TabsTrigger value="hsl" className={controlStyles.spaceTabTrigger}>
+                  {t("spaceHsl")}
+                </TabsTrigger>
+                <TabsTrigger value="lab" className={controlStyles.spaceTabTrigger}>
+                  {t("spaceLab")}
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            <PersistedDisclosure
+              storageKey={storageKeys.cubeOptionsPanel}
+              isdefaultOpen={false}
+              summary={t("workbenchDisplayOptionsDisclosure")}
+              className={controlStyles.inlineDisclosure}
+              contentClassName={controlStyles.inlineDisclosureContent}
+            >
+              <div className={controlStyles.cubeSettings}>
+                <div className={controlStyles.cubeOverlayMode}>
+                  <span className={controlStyles.cubeControlLabel}>
+                    {t("cubeOverlayModeLabel")}
+                  </span>
+                  <Tabs
+                    value={cubeOverlayMode}
+                    onValueChange={(value) => setCubeOverlayMode(value as RgbCubeOverlayMode)}
+                    className={controlStyles.spaceTabs}
+                  >
+                    <TabsList className={controlStyles.spaceTabsList}>
+                      <TabsTrigger value="grid" className={controlStyles.spaceTabTrigger}>
+                        {t("cubeOverlayModeGrid")}
+                      </TabsTrigger>
+                      <TabsTrigger value="image" className={controlStyles.spaceTabTrigger}>
+                        {t("cubeOverlayModeImage")}
+                      </TabsTrigger>
+                      <TabsTrigger value="both" className={controlStyles.spaceTabTrigger}>
+                        {t("cubeOverlayModeBoth")}
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
+                <div className={controlStyles.toggleRow}>
+                  <label className={controlStyles.toggleLabel}>
+                    <input
+                      type="checkbox"
+                      checked={isCubeImageMappingVisible}
+                      onChange={(event) => setIsCubeImageMappingVisible(event.target.checked)}
+                      aria-label={t("workbenchShowWhiteMappingCube")}
+                    />
+                    <span>{t("workbenchShowWhiteMappingCube")}</span>
+                  </label>
+                  <label className={controlStyles.toggleLabel}>
+                    <input
+                      type="checkbox"
+                      checked={isCubeSelectionMappingVisible}
+                      onChange={(event) => setIsCubeSelectionMappingVisible(event.target.checked)}
+                      aria-label={t("workbenchShowSelectedMappingCube")}
+                    />
+                    <span>{t("workbenchShowSelectedMappingCube")}</span>
+                  </label>
+                </div>
+                <label className={controlStyles.toggleLabel}>
+                  <input
+                    type="checkbox"
+                    checked={isAxisGuideVisible}
+                    onChange={(event) => setIsAxisGuideVisible(event.target.checked)}
+                    aria-label={t("cubeShowAxisGuide")}
+                  />
+                  <span>{t("cubeShowAxisGuide")}</span>
+                </label>
+                <label className={controlStyles.toggleLabel}>
+                  <input
+                    type="checkbox"
+                    checked={isCubeSizeSliderVisible}
+                    onChange={(event) => setIsCubeSizeSliderVisible(event.target.checked)}
+                    aria-label={t("cubeShowSizeSlider")}
+                  />
+                  <span>{t("cubeShowSizeSlider")}</span>
+                </label>
+                {isCubeSizeSliderVisible ? (
+                  <label>
+                    {t("cubeSizeLabel", { size: cubeSize })}
+                    <input
+                      type="range"
+                      min={320}
+                      max={900}
+                      step={10}
+                      value={cubeSize}
+                      onChange={(event) => setCubeSize(Number(event.target.value))}
+                    />
+                  </label>
+                ) : null}
+              </div>
+            </PersistedDisclosure>
+
+            <RgbCubeCanvas
+              space={space}
+              rotation={rotation}
+              cubeSize={cubeSize}
+              axisGuideMode={isAxisGuideVisible ? "visible" : "hidden"}
+              sliceAxis={sliceAxis}
+              sliceValue={sliceValue}
+              imageCubePoints={baselineTarget.result?.cubePoints ?? []}
+              selectionCubePoints={selectionCubePoints}
+              isimageMappingVisible={isCubeImageMappingVisible}
+              isselectionMappingVisible={isCubeSelectionMappingVisible}
+              hoverColor={hoverColor}
+              selectedColor={selectedColor}
+              overlayMode={cubeOverlayMode}
+              onRotationChange={setRotation}
+              onHoverColorChange={(color) => handleColorHover(color, "cube")}
+              onColorSelect={handleColorSelect}
+            />
+          </section>
+        </div>
+
+        <SliceCanvas
+          space={space}
+          axis={sliceAxis}
+          value={sliceValue}
+          displayOptionsStorageKey={storageKeys.sliceOptionsPanel}
+          mappedSamples={sliceMappedSamples}
+          selectedSamples={selectedSamples}
+          ismappedSamplesVisible={isSliceImageMappingVisible}
+          isselectedSamplesVisible={isSliceSelectionMappingVisible}
+          hoverColor={hoverColor}
+          onAxisChange={handleSliceAxisChange}
+          onValueChange={setSliceValue}
+          onHoverColorChange={(color) => handleColorHover(color, "slice")}
+          onColorSelect={handleColorSelect}
+          onMappedSamplesVisibilityChange={setIsSliceImageMappingVisible}
+          onSelectedSamplesVisibilityChange={setIsSliceSelectionMappingVisible}
+        />
       </div>
 
       <WorkbenchAnalysisPanel
         result={baselineTarget.result}
-        copyFormat={copyFormat}
-        metricRows={localizedBaselineMetricRows}
         luminanceHistogram={baselineLuminanceHistogram}
         hueHistogram={baselineHueHistogram}
         saturationHistogram={baselineSaturationHistogram}
-        onCopyFormatChange={setCopyFormat}
-        onCopyMetricTable={copyMetricTable}
         onCopyHistogram={copyHistogram}
       />
 

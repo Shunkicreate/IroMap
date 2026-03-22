@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=optional");
 @import "tailwindcss";
 
 @custom-variant dark (&:is(.dark *));
@@ -169,17 +170,6 @@
   padding: 0;
 }
 
-.inlineIcon {
-  inline-size: 1rem;
-  block-size: 1rem;
-  flex: none;
-}
-
-.inlineIconLg {
-  inline-size: 1.25rem;
-  block-size: 1.25rem;
-}
-
 .materialSymbol {
   font-family: "Material Symbols Outlined", sans-serif;
   font-size: 1.25rem;
@@ -246,8 +236,23 @@
   align-items: start;
 }
 
-.workbenchThreePane {
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(20rem, 0.9fr);
+.workbenchInteractiveGrid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+
+.workbenchPreviewStack {
+  display: grid;
+  gap: 0.75rem;
+  align-content: start;
+}
+
+.workbenchVisualStack {
+  display: grid;
+  gap: 0.75rem;
+  align-content: start;
 }
 
 .visualizationGrid {
@@ -280,36 +285,6 @@
   color: var(--workbench-muted);
 }
 
-.persistedDisclosure {
-  display: grid;
-  gap: 0.625rem;
-}
-
-.persistedDisclosureTrigger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  inline-size: 100%;
-  padding: 0.5rem 0.625rem;
-  border: 0.0625rem solid var(--workbench-surface-border);
-  border-radius: 0.625rem;
-  background: color-mix(in oklab, var(--workbench-surface) 92%, var(--background) 8%);
-  color: var(--workbench-text);
-  font-size: 0.88rem;
-}
-
-.persistedDisclosureIcon {
-  font-size: 1rem;
-  line-height: 1;
-  color: var(--workbench-muted);
-}
-
-.persistedDisclosureContent {
-  display: grid;
-  gap: 0.625rem;
-}
-
 .infoTooltip {
   position: relative;
   display: inline-flex;
@@ -323,10 +298,10 @@
   inline-size: 2rem;
   block-size: 2rem;
   border-radius: 62.4375rem;
-  border: 0.0625rem solid color-mix(in oklab, var(--workbench-surface-border) 85%, transparent);
-  background: color-mix(in oklab, var(--workbench-surface) 94%, var(--background) 6%);
+  border: 0.0625rem solid color-mix(in oklab, var(--workbench-surface-border) 88%, white 12%);
+  background: color-mix(in oklab, var(--workbench-surface) 94%, transparent);
   color: var(--workbench-muted);
-  padding: 0;
+  cursor: help;
   transition:
     color 160ms ease,
     border-color 160ms ease,
@@ -357,12 +332,12 @@
   inline-size: min(18rem, 70vw);
   padding: 0.55rem 0.65rem;
   border-radius: 0.625rem;
-  border: 0.0625rem solid color-mix(in oklab, var(--primary) 30%, var(--foreground) 20%);
-  background: color-mix(in oklab, #07111f 90%, var(--background) 10%);
-  color: #f8fbff;
-  font-size: 0.76rem;
+  border: 0.0625rem solid color-mix(in oklab, var(--workbench-surface-border) 86%, white 14%);
+  background: color-mix(in oklab, var(--workbench-surface) 94%, black 6%);
+  color: var(--workbench-text);
+  font-size: 0.79rem;
   line-height: 1.45;
-  box-shadow: 0 0.5rem 1.5rem #0003;
+  box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 20%);
   opacity: 0;
   pointer-events: none;
   transition: opacity 160ms ease;
@@ -384,14 +359,280 @@
 
 .cubeCanvasWrap {
   aspect-ratio: 1;
-  inline-size: min(100%, var(--rgb-cube-inline-size, 25rem));
   margin-inline: auto;
+}
+
+.cubeCanvasWrapSize320 {
+  inline-size: min(100%, 20rem);
+}
+
+.cubeCanvasWrapSize330 {
+  inline-size: min(100%, 20.625rem);
+}
+
+.cubeCanvasWrapSize340 {
+  inline-size: min(100%, 21.25rem);
+}
+
+.cubeCanvasWrapSize350 {
+  inline-size: min(100%, 21.875rem);
+}
+
+.cubeCanvasWrapSize360 {
+  inline-size: min(100%, 22.5rem);
+}
+
+.cubeCanvasWrapSize370 {
+  inline-size: min(100%, 23.125rem);
+}
+
+.cubeCanvasWrapSize380 {
+  inline-size: min(100%, 23.75rem);
+}
+
+.cubeCanvasWrapSize390 {
+  inline-size: min(100%, 24.375rem);
+}
+
+.cubeCanvasWrapSize400 {
+  inline-size: min(100%, 25rem);
+}
+
+.cubeCanvasWrapSize410 {
+  inline-size: min(100%, 25.625rem);
+}
+
+.cubeCanvasWrapSize420 {
+  inline-size: min(100%, 26.25rem);
+}
+
+.cubeCanvasWrapSize430 {
+  inline-size: min(100%, 26.875rem);
+}
+
+.cubeCanvasWrapSize440 {
+  inline-size: min(100%, 27.5rem);
+}
+
+.cubeCanvasWrapSize450 {
+  inline-size: min(100%, 28.125rem);
+}
+
+.cubeCanvasWrapSize460 {
+  inline-size: min(100%, 28.75rem);
+}
+
+.cubeCanvasWrapSize470 {
+  inline-size: min(100%, 29.375rem);
+}
+
+.cubeCanvasWrapSize480 {
+  inline-size: min(100%, 30rem);
+}
+
+.cubeCanvasWrapSize490 {
+  inline-size: min(100%, 30.625rem);
+}
+
+.cubeCanvasWrapSize500 {
+  inline-size: min(100%, 31.25rem);
+}
+
+.cubeCanvasWrapSize510 {
+  inline-size: min(100%, 31.875rem);
+}
+
+.cubeCanvasWrapSize520 {
+  inline-size: min(100%, 32.5rem);
+}
+
+.cubeCanvasWrapSize530 {
+  inline-size: min(100%, 33.125rem);
+}
+
+.cubeCanvasWrapSize540 {
+  inline-size: min(100%, 33.75rem);
+}
+
+.cubeCanvasWrapSize550 {
+  inline-size: min(100%, 34.375rem);
+}
+
+.cubeCanvasWrapSize560 {
+  inline-size: min(100%, 35rem);
+}
+
+.cubeCanvasWrapSize570 {
+  inline-size: min(100%, 35.625rem);
+}
+
+.cubeCanvasWrapSize580 {
+  inline-size: min(100%, 36.25rem);
+}
+
+.cubeCanvasWrapSize590 {
+  inline-size: min(100%, 36.875rem);
+}
+
+.cubeCanvasWrapSize600 {
+  inline-size: min(100%, 37.5rem);
+}
+
+.cubeCanvasWrapSize610 {
+  inline-size: min(100%, 38.125rem);
+}
+
+.cubeCanvasWrapSize620 {
+  inline-size: min(100%, 38.75rem);
+}
+
+.cubeCanvasWrapSize630 {
+  inline-size: min(100%, 39.375rem);
+}
+
+.cubeCanvasWrapSize640 {
+  inline-size: min(100%, 40rem);
+}
+
+.cubeCanvasWrapSize650 {
+  inline-size: min(100%, 40.625rem);
+}
+
+.cubeCanvasWrapSize660 {
+  inline-size: min(100%, 41.25rem);
+}
+
+.cubeCanvasWrapSize670 {
+  inline-size: min(100%, 41.875rem);
+}
+
+.cubeCanvasWrapSize680 {
+  inline-size: min(100%, 42.5rem);
+}
+
+.cubeCanvasWrapSize690 {
+  inline-size: min(100%, 43.125rem);
+}
+
+.cubeCanvasWrapSize700 {
+  inline-size: min(100%, 43.75rem);
+}
+
+.cubeCanvasWrapSize710 {
+  inline-size: min(100%, 44.375rem);
+}
+
+.cubeCanvasWrapSize720 {
+  inline-size: min(100%, 45rem);
+}
+
+.cubeCanvasWrapSize730 {
+  inline-size: min(100%, 45.625rem);
+}
+
+.cubeCanvasWrapSize740 {
+  inline-size: min(100%, 46.25rem);
+}
+
+.cubeCanvasWrapSize750 {
+  inline-size: min(100%, 46.875rem);
+}
+
+.cubeCanvasWrapSize760 {
+  inline-size: min(100%, 47.5rem);
+}
+
+.cubeCanvasWrapSize770 {
+  inline-size: min(100%, 48.125rem);
+}
+
+.cubeCanvasWrapSize780 {
+  inline-size: min(100%, 48.75rem);
+}
+
+.cubeCanvasWrapSize790 {
+  inline-size: min(100%, 49.375rem);
+}
+
+.cubeCanvasWrapSize800 {
+  inline-size: min(100%, 50rem);
+}
+
+.cubeCanvasWrapSize810 {
+  inline-size: min(100%, 50.625rem);
+}
+
+.cubeCanvasWrapSize820 {
+  inline-size: min(100%, 51.25rem);
+}
+
+.cubeCanvasWrapSize830 {
+  inline-size: min(100%, 51.875rem);
+}
+
+.cubeCanvasWrapSize840 {
+  inline-size: min(100%, 52.5rem);
+}
+
+.cubeCanvasWrapSize850 {
+  inline-size: min(100%, 53.125rem);
+}
+
+.cubeCanvasWrapSize860 {
+  inline-size: min(100%, 53.75rem);
+}
+
+.cubeCanvasWrapSize870 {
+  inline-size: min(100%, 54.375rem);
+}
+
+.cubeCanvasWrapSize880 {
+  inline-size: min(100%, 55rem);
+}
+
+.cubeCanvasWrapSize890 {
+  inline-size: min(100%, 55.625rem);
+}
+
+.cubeCanvasWrapSize900 {
+  inline-size: min(100%, 56.25rem);
 }
 
 .cubeInputStack {
   display: grid;
   gap: 0.625rem;
   margin-bottom: 0.875rem;
+}
+
+.photoUploadCta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  padding: 0.875rem 1rem;
+  border: 0.0625rem solid #355078;
+  border-radius: 0.875rem;
+  background:
+    radial-gradient(circle at top left, #244870 0%, transparent 42%),
+    linear-gradient(135deg, #0f2238, #162b44);
+  flex-wrap: wrap;
+}
+
+.photoUploadCtaCopy {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.photoUploadCtaCopy strong {
+  font-size: 1rem;
+}
+
+.photoUploadCtaCopy p,
+.photoUploadCtaStatus {
+  margin: 0;
+  color: var(--workbench-muted);
+  font-size: 0.9rem;
 }
 
 .photoUploadButton {
@@ -437,9 +678,87 @@
   margin: 0;
 }
 
-.photoPasteZone p {
+.photoPasteZone p,
+.photoPasteStatus {
   color: var(--workbench-muted);
   font-size: 0.84rem;
+}
+
+.spaceTabs {
+  margin-bottom: 0.625rem;
+}
+
+.spaceTabsList {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: 0.75rem;
+  background: color-mix(in oklab, var(--workbench-surface) 92%, var(--foreground) 8%);
+  border: 0.0625rem solid var(--workbench-surface-border);
+}
+
+.spaceTabTrigger {
+  min-block-size: 2.125rem;
+  color: var(--workbench-muted);
+  border: 0.0625rem solid transparent;
+  border-radius: 0.5625rem;
+  letter-spacing: 0.02em;
+  transition:
+    color 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.spaceTabTrigger[data-state="active"] {
+  color: var(--workbench-text);
+  background: color-mix(in oklab, var(--primary) 30%, transparent);
+  border-color: color-mix(in oklab, var(--primary) 70%, var(--foreground) 30%);
+  box-shadow:
+    inset 0 0.0625rem 0 #8eb4de44,
+    0 0 0 0.0625rem #6a95cb33;
+}
+
+.spaceTabTrigger:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 0.125rem #6a95cb66;
+}
+
+.cubeSettings {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.cubeOverlayMode {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.cubeControlLabel {
+  font-size: 0.8rem;
+  color: var(--workbench-muted);
+}
+
+.cubeToggleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  flex-wrap: wrap;
+}
+
+.toggleLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.toggleLabel input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
 }
 
 .fileInputInline {
@@ -550,6 +869,11 @@
   font-size: 0.95rem;
 }
 
+.workbenchRoot label.toggleLabel {
+  display: inline-flex;
+  gap: 0.5rem;
+}
+
 .workbenchRoot select,
 .workbenchRoot input[type="range"],
 .workbenchRoot input[type="file"],
@@ -656,16 +980,6 @@
   max-width: 32.5rem;
 }
 
-.sliceCanvasStack {
-  position: relative;
-}
-
-.sliceCanvasOverlay {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
 .sliceAxisBadge {
   justify-self: center;
   font-size: 0.8rem;
@@ -677,23 +991,135 @@
   margin-bottom: 0.5rem;
 }
 
-.segmentedControl {
-  display: inline-flex;
-  padding: 0.25rem;
-  gap: 0.25rem;
+.photoAnalysisOverviewGrid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 1fr;
+}
+
+.analysisCard {
+  border: 0.0625rem solid var(--workbench-surface-border);
+  border-radius: 0.625rem;
+  padding: 0.625rem;
+  background: color-mix(in oklab, var(--workbench-surface) 90%, var(--background) 10%);
+}
+
+.analysisCard h3,
+.photoPreviewCard h3,
+.photoAnalysisStatusCard h3 {
+  margin-top: 0;
+  font-size: 0.95rem;
+}
+
+.analysisCardEmpty {
+  min-block-size: 12rem;
+}
+
+.photoPreviewCard,
+.photoAnalysisStatusCard {
   border: 0.0625rem solid var(--workbench-surface-border);
   border-radius: 0.75rem;
-  background: color-mix(in oklab, var(--workbench-surface) 92%, var(--foreground) 8%);
+  padding: 0.75rem;
+  background: color-mix(in oklab, var(--workbench-surface) 90%, var(--background) 10%);
 }
 
-.segmentedControl button {
-  min-block-size: 2.125rem;
-  border-color: transparent;
+.photoPreviewCard {
+  background:
+    linear-gradient(135deg, color-mix(in oklab, var(--primary) 16%, transparent), transparent 48%),
+    color-mix(in oklab, var(--workbench-surface) 90%, var(--background) 10%);
 }
 
-.segmentedControl .segmentedActive {
-  background: color-mix(in oklab, var(--primary) 30%, transparent);
-  border-color: color-mix(in oklab, var(--primary) 70%, var(--foreground) 30%);
+.photoPreviewHeader {
+  margin-bottom: 0.625rem;
+}
+
+.photoPreviewFileName {
+  margin: 0.25rem 0 0;
+  color: var(--workbench-muted);
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
+.photoMetaDetails {
+  margin-top: 0.75rem;
+  border-top: 0.0625rem solid var(--workbench-surface-border);
+  padding-top: 0.75rem;
+}
+
+.photoMetaDetails summary {
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  list-style: none;
+}
+
+.photoMetaDetails summary::-webkit-details-marker {
+  display: none;
+}
+
+.photoMetaDetails summary::before {
+  content: "▸";
+  display: inline-block;
+  margin-right: 0.4rem;
+  transition: transform 160ms ease;
+}
+
+.photoMetaDetails[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.photoMetaFileName {
+  margin: 0.625rem 0 0;
+  color: var(--workbench-text);
+  font-size: 0.84rem;
+  overflow-wrap: anywhere;
+}
+
+.photoPreviewImage,
+.photoPreviewEmpty {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 0.625rem;
+  border: 0.0625rem solid var(--workbench-surface-border);
+  background: color-mix(in oklab, var(--workbench-surface) 86%, #08111d 14%);
+}
+
+.photoPreviewImage {
+  object-fit: cover;
+}
+
+.photoPreviewEmpty {
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 0.75rem;
+  color: var(--workbench-muted);
+  font-size: 0.85rem;
+}
+
+.photoAnalysisStatusCard {
+  align-content: start;
+}
+
+.analysisCardHue,
+.analysisCardSaturation {
+  min-width: 0;
+}
+
+.analysisCardScatter {
+  min-block-size: 24rem;
+}
+
+.analysisCardArea {
+  align-content: start;
+}
+
+.scatterPlot {
+  width: 100%;
+  height: auto;
+  border: 0.0625rem solid var(--workbench-surface-border);
+  border-radius: 0.5rem;
+  display: block;
 }
 
 .histogramBars {
@@ -715,6 +1141,13 @@
   grid-template-columns: 2.75rem minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.5rem;
+}
+
+.areaInspectButton {
+  font-size: 0.72rem;
+  padding: 0.1875rem 0.375rem;
+  grid-column: 2 / -1;
+  justify-self: start;
 }
 
 .insightList {
@@ -764,8 +1197,68 @@
   white-space: nowrap;
 }
 
+.analysisGraphFrame {
+  align-items: center;
+}
+
 .errorText {
   color: var(--destructive);
+}
+
+.landingRoot {
+  inline-size: min(100% - 1.5rem, 92.5rem);
+  margin: 0.75rem auto 1.75rem;
+  display: grid;
+  gap: 0.875rem;
+}
+
+.landingHero {
+  padding: 1rem;
+  border-radius: 0.875rem;
+  border: 0.0625rem solid var(--border);
+  background:
+    radial-gradient(
+      circle at 100% -10%,
+      color-mix(in oklab, var(--primary) 24%, transparent),
+      transparent 40%
+    ),
+    color-mix(in oklab, var(--card) 95%, var(--background) 5%);
+}
+
+.landingHeroHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.landingHeroHeader > :first-child {
+  flex: 1 1 20rem;
+  min-width: 0;
+}
+
+.landingHero h1 {
+  margin: 0;
+  font-size: clamp(1.2rem, 1.6vw + 0.6rem, 1.85rem);
+}
+
+.landingHero p {
+  margin: 0.5rem 0 0;
+  max-width: 62ch;
+  color: var(--muted-foreground);
+}
+
+.landingSection {
+  border: 0.0625rem solid var(--border);
+  border-radius: 0.875rem;
+  padding: 0.75rem;
+  background: color-mix(in oklab, var(--card) 96%, var(--background) 4%);
+}
+
+.landingSection h2 {
+  margin: 0 0 0.625rem;
+  font-size: 1rem;
 }
 
 @media (max-width: 39.9375em) {
@@ -782,9 +1275,15 @@
   }
 
   .workbenchMainGrid,
-  .workbenchThreePane,
-  .visualizationGrid {
+  .visualizationGrid,
+  .photoAnalysisOverviewGrid,
+  .workbenchInteractiveGrid {
     grid-template-columns: 1fr;
+  }
+
+  .photoUploadCta {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .photoUploadButton {
@@ -800,9 +1299,25 @@
   .graphAxisYLabel {
     font-size: 0.72rem;
   }
+
+  .areaList li {
+    grid-template-columns: 2.75rem minmax(0, 1fr);
+  }
+
+  .areaList strong {
+    grid-column: 2;
+  }
+
+  .areaInspectButton {
+    grid-column: 2;
+  }
 }
 
 @media (min-width: 48em) {
+  .workbenchInteractiveGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .visualizationGrid {
     grid-template-rows: auto auto;
   }
@@ -813,7 +1328,56 @@
 }
 
 @media (min-width: 64em) {
-  .workbenchMainGrid:not(.workbenchThreePane) {
+  .workbenchMainGrid {
     grid-template-columns: minmax(0, 1.55fr) minmax(22rem, 1fr);
+  }
+
+  .workbenchInteractiveGrid {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 0.95fr);
+  }
+
+  .photoAnalysisOverviewGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .photoPreviewCard {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .photoAnalysisStatusCard {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .analysisCardScatter {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .analysisCardHue {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .analysisCardSaturation {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .analysisCardArea {
+    grid-column: 3;
+    grid-row: 2;
+  }
+
+  .analysisCardEmpty {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 90em) {
+  .workbenchInteractiveGrid {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 0.95fr);
   }
 }
