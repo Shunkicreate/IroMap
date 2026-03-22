@@ -66,6 +66,16 @@ export const pasteRedPngToPhotoAnalysis = async (page: Page): Promise<void> => {
   });
 };
 
+export const clickPasteButtonWithRedPng = async (page: Page): Promise<void> => {
+  await mockClipboardRead(page, {
+    mimeType: "image/png",
+    base64: redPngBase64,
+  });
+  const pasteButton = page.getByRole("button", { name: "画像を貼り付け" });
+  await expect(pasteButton).toBeVisible();
+  await pasteButton.click();
+};
+
 export const pasteRedPngGlobally = async (page: Page): Promise<void> => {
   await pasteImageToTarget(page, {
     target: "document.body",
@@ -137,6 +147,40 @@ const pasteImageToPhotoAnalysis = async (
     targetLabel: "画像貼り付けエリア",
     ...payload,
   });
+};
+
+const mockClipboardRead = async (
+  page: Page,
+  payload: { mimeType: string; base64: string } | null
+): Promise<void> => {
+  await page.evaluate((input) => {
+    const clipboard = navigator.clipboard;
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        ...clipboard,
+        read: async () => {
+          if (!input) {
+            return [];
+          }
+
+          const response = await fetch(`data:${input.mimeType};base64,${input.base64}`);
+          const blob = await response.blob();
+          return [
+            {
+              types: [input.mimeType],
+              getType: async (type: string) => {
+                if (type !== input.mimeType) {
+                  throw new DOMException("Requested type not found", "NotFoundError");
+                }
+                return blob;
+              },
+            },
+          ];
+        },
+      },
+    });
+  }, payload);
 };
 
 const pasteImageToTarget = async (

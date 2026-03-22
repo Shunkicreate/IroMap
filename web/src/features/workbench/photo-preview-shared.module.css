@@ -84,6 +84,45 @@
   font-size: 0.9rem;
 }
 
+.pasteZone {
+  align-content: start;
+}
+
+.pasteShortcutHint {
+  margin: 0;
+}
+
+.pasteButton {
+  display: none;
+}
+
+.previewPanel .pasteButton {
+  align-items: center;
+  justify-content: center;
+  inline-size: 100%;
+  min-inline-size: 0;
+  min-block-size: 3rem;
+  padding: 0 1rem;
+  border: 0.0625rem solid #66d3a0;
+  border-radius: 62.4375rem;
+  background: linear-gradient(180deg, #51e1a4, #2fbc78);
+  color: #04110b;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow:
+    inset 0 0.0625rem 0 #fff6,
+    0 0.75rem 1.5rem #05131f33;
+}
+
+.previewPanel .pasteButton:hover {
+  filter: brightness(1.03);
+}
+
+.previewPanel .pasteButton:focus-visible {
+  outline: 0.125rem solid #91f0bf;
+  outline-offset: 0.1875rem;
+}
+
 .imageStage {
   position: relative;
   display: grid;
@@ -140,6 +179,12 @@
   margin: 0.25rem 0 0;
 }
 
+@media (max-width: 47.9375em) {
+  .pasteShortcutHint {
+    display: none;
+  }
+}
+
 @media (max-width: 39.9375em) {
   .statusGrid {
     grid-template-columns: 1fr;
@@ -147,5 +192,11 @@
 
   .uploadCta {
     align-items: stretch;
+  }
+}
+
+@media (max-width: 96em) {
+  .pasteButton {
+    display: inline-flex;
   }
 }

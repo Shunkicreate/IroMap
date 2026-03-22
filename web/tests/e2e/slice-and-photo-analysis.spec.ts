@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import {
+  clickPasteButtonWithRedPng,
   getPanel,
   getSliceCanvas,
   pasteRedPngGlobally,
@@ -99,6 +100,49 @@ test("T-205(photo-analysis): 画像入力を閉じても画面全体ペースト
 
   await pasteRedPngGlobally(page);
 
+  const panel = getPanel(page, "写真分析 MVP");
+  await expect(panel.getByText("色相ヒストグラム")).toBeVisible();
+  await expect(previewPanel.locator(".previewStatusGrid")).toContainText(
+    "file=clipboard-image.png"
+  );
+});
+
+test("T-206(photo-analysis): 2xl以下では貼り付けボタンを表示する", async ({ page }) => {
+  await page.setViewportSize({ width: 1536, height: 900 });
+  await page.goto("/");
+
+  const previewPanel = getPanel(page, "選択画像プレビュー");
+  await expect(previewPanel.getByRole("button", { name: "画像を貼り付け" })).toBeVisible();
+});
+
+test("T-207(photo-analysis): 2xl超では貼り付けボタンを表示しない", async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await page.goto("/");
+
+  const previewPanel = getPanel(page, "選択画像プレビュー");
+  await expect(previewPanel.getByRole("button", { name: "画像を貼り付け" })).toBeHidden();
+});
+
+test("T-208(photo-analysis): md未満ではショートカット文言を隠してボタンを表示する", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 767, height: 900 });
+  await page.goto("/");
+
+  const previewPanel = getPanel(page, "選択画像プレビュー");
+  await expect(
+    previewPanel.getByText("クリップボード画像をそのまま分析に使えます。")
+  ).toBeVisible();
+  await expect(previewPanel.getByText("このエリアを選択して Cmd+V / Ctrl+V。")).toBeHidden();
+  await expect(previewPanel.getByRole("button", { name: "画像を貼り付け" })).toBeVisible();
+});
+
+test("T-209(photo-analysis): 貼り付けボタンクリックで結果表示できる", async ({ page }) => {
+  await page.goto("/");
+
+  await clickPasteButtonWithRedPng(page);
+
+  const previewPanel = getPanel(page, "選択画像プレビュー");
   const panel = getPanel(page, "写真分析 MVP");
   await expect(panel.getByText("色相ヒストグラム")).toBeVisible();
   await expect(previewPanel.locator(".previewStatusGrid")).toContainText(
