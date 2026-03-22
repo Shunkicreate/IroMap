@@ -2,9 +2,7 @@ import { GraphFrame } from "@/components/graph/graph-frame";
 import { ColorSwatch } from "@/components/workbench/color-swatch";
 import { PanelHeader } from "@/components/workbench/panel-header";
 import { t } from "@/i18n/translate";
-import type {
-  PhotoAnalysisResult,
-} from "@/domain/photo-analysis/photo-analysis";
+import type { PhotoAnalysisResult } from "@/domain/photo-analysis/photo-analysis";
 import { WorkbenchHistogramChart } from "@/features/workbench/workbench-histogram-chart";
 import analysisStyles from "@/features/workbench/workbench-analysis-shared.module.css";
 import panelStyles from "@/features/workbench/workbench-analysis-panel.module.css";

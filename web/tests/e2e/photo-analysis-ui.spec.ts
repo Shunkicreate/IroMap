@@ -21,5 +21,7 @@ test("T-005(photo-analysis): 画像アップロード操作で分析結果表示
   await expect(page.getByLabel("画像をアップロード")).toBeVisible();
 
   await expect(getPanel(page, "Lab a-b 散布図")).toBeVisible({ timeout: 15000 });
-  await expect(getPanel(page, "選択画像").getByRole("img", { name: "分析対象画像: red.png" })).toBeVisible();
+  await expect(
+    getPanel(page, "選択画像").getByRole("img", { name: "分析対象画像: red.png" })
+  ).toBeVisible();
 });

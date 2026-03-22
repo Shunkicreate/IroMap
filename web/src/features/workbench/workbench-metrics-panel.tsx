@@ -1,15 +1,9 @@
 import { InfoTooltip } from "@/components/workbench/info-tooltip";
 import { PanelHeader } from "@/components/workbench/panel-header";
-import type {
-  ExportFormat,
-  WorkbenchMetricRow,
-} from "@/domain/photo-analysis/photo-analysis";
+import type { ExportFormat, WorkbenchMetricRow } from "@/domain/photo-analysis/photo-analysis";
 import controlStyles from "@/features/workbench/workbench-controls.module.css";
 import panelStyles from "@/features/workbench/workbench-analysis-panel.module.css";
-import {
-  formatMetricValue,
-  isVisibleMetricRow,
-} from "@/features/workbench/workbench-shared";
+import { formatMetricValue, isVisibleMetricRow } from "@/features/workbench/workbench-shared";
 import { t } from "@/i18n/translate";
 
 type Props = {
