@@ -370,6 +370,29 @@ export function ColorWorkbench() {
     handleSourceFileSelected(pastedFile);
   };
 
+  const getClipboardImageFileFromItems = async (): Promise<File | null> => {
+    if (!navigator.clipboard?.read) {
+      throw new Error("clipboard-read-unsupported");
+    }
+
+    const clipboardItems = await navigator.clipboard.read();
+    for (const item of clipboardItems) {
+      const imageType = item.types.find((type) => type.startsWith("image/"));
+      if (!imageType) {
+        continue;
+      }
+
+      const blob = await item.getType(imageType);
+      const extension = imageType.split("/")[1] || "png";
+      return new File([blob], `clipboard-image.${extension}`, {
+        type: imageType,
+        lastModified: Date.now(),
+      });
+    }
+
+    return null;
+  };
+
   const handlePhotoPaste = (event: React.ClipboardEvent<HTMLDivElement>): void => {
     const file = getClipboardImageFile(event.clipboardData);
     if (!file) {
@@ -380,6 +403,29 @@ export function ColorWorkbench() {
     }
     event.preventDefault();
     applyPastedImageFile(file);
+  };
+
+  const handlePhotoPasteButtonClick = async (): Promise<void> => {
+    try {
+      const file = await getClipboardImageFileFromItems();
+      if (!file) {
+        const message = t("photoPasteNoImage");
+        setLiveMessage(message);
+        toast.error(message);
+        return;
+      }
+
+      applyPastedImageFile(file);
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message === "clipboard-read-unsupported"
+          ? t("photoPasteUnsupported")
+          : error instanceof DOMException && error.name === "NotAllowedError"
+            ? t("photoPastePermissionDenied")
+            : t("photoPasteReadFailed");
+      setLiveMessage(message);
+      toast.error(message);
+    }
   };
 
   useEffect(() => {
@@ -481,6 +527,7 @@ export function ColorWorkbench() {
           onSampleSelect={handlePreviewSampleSelect}
           onSourceFileSelected={handleSourceFileSelected}
           onPaste={handlePhotoPaste}
+          onPasteButtonClick={handlePhotoPasteButtonClick}
         />
 
         <section className="panel">

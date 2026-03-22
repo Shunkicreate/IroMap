@@ -155,8 +155,9 @@ export const i18nMessages = {
     photoPreviewEmpty: "画像を選択するとここにプレビューを表示します",
     photoPasteZoneLabel: "画像貼り付けエリア",
     photoPasteZoneTitle: "画像を貼り付けて分析",
-    photoPasteZoneHint:
-      "このエリアを選択して Cmd+V / Ctrl+V。画像ファイルのアップロードもそのまま使えます。",
+    photoPasteZoneDescription: "クリップボード画像をそのまま分析に使えます。",
+    photoPasteZoneShortcut: "このエリアを選択して Cmd+V / Ctrl+V。",
+    photoPasteButton: "画像を貼り付け",
     photoUploadCtaTitle: "写真をアップロードして分析を始める",
     photoUploadCtaDescription:
       "入口はここです。選んだ画像の分析結果は上部の写真分析パネルに表示されます。",
@@ -165,6 +166,9 @@ export const i18nMessages = {
     photoUploadCleared: "画像選択をクリアしました",
     photoPasteApplied: "クリップボード画像を適用しました",
     photoPasteNoImage: "クリップボード内に画像がありません",
+    photoPasteUnsupported: "このブラウザではクリップボード画像の直接読み取りに対応していません",
+    photoPastePermissionDenied: "クリップボード画像の読み取りが許可されていません",
+    photoPasteReadFailed: "クリップボード画像の読み取りに失敗しました",
     photoAnalyzing: "分析中...",
     photoError: "画像のデコードまたは分析に失敗しました",
     photoHueHistogram: "色相ヒストグラム",
@@ -350,8 +354,9 @@ export const i18nMessages = {
     photoPreviewEmpty: "Choose an image to preview it here",
     photoPasteZoneLabel: "Image paste area",
     photoPasteZoneTitle: "Paste image to analyze",
-    photoPasteZoneHint:
-      "Focus this area and press Cmd+V / Ctrl+V. File upload remains available as well.",
+    photoPasteZoneDescription: "Use an image from your clipboard for analysis.",
+    photoPasteZoneShortcut: "Focus this area and press Cmd+V / Ctrl+V.",
+    photoPasteButton: "Paste image",
     photoUploadCtaTitle: "Upload a photo to start analysis",
     photoUploadCtaDescription:
       "Start here. The selected image will appear in the primary Photo Analysis panel above.",
@@ -360,6 +365,9 @@ export const i18nMessages = {
     photoUploadCleared: "Cleared image selection",
     photoPasteApplied: "Applied clipboard image",
     photoPasteNoImage: "No image found in clipboard",
+    photoPasteUnsupported: "This browser does not support direct clipboard image reads",
+    photoPastePermissionDenied: "Clipboard image access was not allowed",
+    photoPasteReadFailed: "Failed to read an image from the clipboard",
     photoAnalyzing: "Analyzing...",
     photoError: "Failed to decode image or compute analysis",
     photoHueHistogram: "Hue histogram",
