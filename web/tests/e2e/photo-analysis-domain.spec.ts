@@ -5,7 +5,10 @@ import {
   buildHistogramBins,
   buildMetricRows,
   buildPointSelection,
+  createPhotoAnalysisHandle,
   getSelectedSamples,
+  normalizeSelectionToRoi,
+  refineSelectionRegionFromHandle,
   serializeHistogramBins,
   serializeMetricRows,
   type TargetSelectionState,
@@ -178,4 +181,62 @@ test("T-206(photo-analysis): derived analysis が同期計算と同じ内容を�
   expect(derived.saturationHistogram).toEqual(buildHistogramBins(result.samples, "saturation"));
   expect(derived.selectedSamples).toEqual(getSelectedSamples(result, selectionState));
   expect(derived.timings.totalMs).toBeGreaterThanOrEqual(0);
+});
+
+test("T-207(photo-analysis): point selection を ROI に正規化して詳細サンプルを再計算できる", async () => {
+  const imageData = createImageDataLike(256, 256, (x, y) => ({
+    r: x % 256,
+    g: y % 256,
+    b: ((x * 3 + y * 5) / 2) % 256,
+  }));
+  const handle = createPhotoAnalysisHandle({
+    imageData,
+    samplingPolicy: "fast",
+  });
+  const selection = buildPointSelection({
+    result: handle.result,
+    targetId: "roi",
+    sampleId: handle.result.samples[0]!.sampleId,
+    source: "image-point",
+  });
+  const selectionState: TargetSelectionState = {
+    activeSelection: selection,
+  };
+
+  const roiBounds = normalizeSelectionToRoi({
+    width: handle.result.width,
+    height: handle.result.height,
+    selectionState,
+  });
+
+  expect(roiBounds).not.toBeNull();
+
+  const refinement = refineSelectionRegionFromHandle({
+    handle,
+    roiBounds: roiBounds!,
+    samplingPolicy: "detail",
+  });
+
+  expect(refinement.roiBounds.width).toBeGreaterThan(1);
+  expect(refinement.roiBounds.height).toBeGreaterThan(1);
+  expect(refinement.selectedSamples.length).toBeGreaterThan(0);
+  expect(refinement.selectedSamples.length).toBeLessThanOrEqual(
+    refinement.roiBounds.width * refinement.roiBounds.height
+  );
+  expect(refinement.selectionCubePoints.length).toBeGreaterThan(0);
+});
+
+test("T-208(photo-analysis): sampling policy に応じて sampledPixels が増える", async () => {
+  const imageData = createImageDataLike(1024, 1024, (x, y) => ({
+    r: (x * 7) % 256,
+    g: (y * 11) % 256,
+    b: ((x + y) * 13) % 256,
+  }));
+
+  const fast = analyzePhoto(imageData, { samplingPolicy: "fast" });
+  const balanced = analyzePhoto(imageData, { samplingPolicy: "balanced" });
+  const detail = analyzePhoto(imageData, { samplingPolicy: "detail" });
+
+  expect(fast.sampledPixels).toBeLessThanOrEqual(balanced.sampledPixels);
+  expect(balanced.sampledPixels).toBeLessThanOrEqual(detail.sampledPixels);
 });
