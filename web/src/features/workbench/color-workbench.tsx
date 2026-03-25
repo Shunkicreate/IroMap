@@ -32,7 +32,6 @@ import { WorkbenchAnalysisPanel } from "@/features/workbench/workbench-analysis-
 import controlStyles from "@/features/workbench/workbench-controls.module.css";
 import { WorkbenchMetricsPanel } from "@/features/workbench/workbench-metrics-panel";
 import { WorkbenchPreviewPanel } from "@/features/workbench/workbench-preview-panel";
-import { WorkbenchScatterPanel } from "@/features/workbench/workbench-scatter-panel";
 import {
   buildSampleBuckets,
   clamp,
@@ -668,10 +667,6 @@ export function ColorWorkbench() {
             onCopyFormatChange={setCopyFormat}
             onCopyMetricTable={copyMetricTable}
           />
-        </div>
-
-        <div className="workbenchScatterRegion">
-          <WorkbenchScatterPanel result={baselineTarget.result} />
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 import { GraphFrame } from "@/components/graph/graph-frame";
 import { ColorSwatch } from "@/components/workbench/color-swatch";
 import { PanelHeader } from "@/components/workbench/panel-header";
+import { rgbToHex } from "@/domain/color/color-format";
 import { t } from "@/i18n/translate";
 import type { PhotoAnalysisResult } from "@/domain/photo-analysis/photo-analysis";
 import { WorkbenchHistogramChart } from "@/features/workbench/workbench-histogram-chart";
@@ -11,6 +12,14 @@ import {
   getSaturationInsightLabel,
   ratioFormatter,
 } from "@/features/workbench/workbench-shared";
+
+const scatterViewboxSize = 100;
+const maxScatterRange = 128;
+const pointRadius = 0.7;
+const pointOpacity = 0.8;
+
+const toScatterPosition = (value: number): number =>
+  ((value + maxScatterRange) / (maxScatterRange * 2)) * scatterViewboxSize;
 
 type Props = {
   result: PhotoAnalysisResult | null;
@@ -125,10 +134,43 @@ export function WorkbenchAnalysisPanel({
                 <WorkbenchHistogramChart bins={saturationHistogram} />
               </GraphFrame>
             </article>
+
+            <article className={analysisStyles.analysisCard}>
+              <h3>{t("photoLabScatter")}</h3>
+              <GraphFrame
+                xLabel={t("graphAxisLabA")}
+                yLabel={t("graphAxisLabB")}
+                className={analysisStyles.analysisGraphFrame}
+              >
+                <svg
+                  viewBox={`0 0 ${scatterViewboxSize} ${scatterViewboxSize}`}
+                  className="scatterPlot"
+                  role="img"
+                >
+                  <rect
+                    x="0"
+                    y="0"
+                    width={scatterViewboxSize}
+                    height={scatterViewboxSize}
+                    fill="#0f172a"
+                  />
+                  {result.samples.map((sample) => (
+                    <circle
+                      key={sample.sampleId}
+                      cx={toScatterPosition(sample.lab.a)}
+                      cy={scatterViewboxSize - toScatterPosition(sample.lab.b)}
+                      r={pointRadius}
+                      fill={rgbToHex(sample.color)}
+                      opacity={pointOpacity}
+                    />
+                  ))}
+                </svg>
+              </GraphFrame>
+            </article>
           </>
         ) : (
           <article className={`${analysisStyles.analysisCard} ${analysisStyles.analysisCardEmpty}`}>
-            <h3>{t("workbenchHistogramAllTitle")}</h3>
+            <h3>{t("photoLabScatter")}</h3>
             <p className="muted">{t("photoPreviewEmpty")}</p>
           </article>
         )}

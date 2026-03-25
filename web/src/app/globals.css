@@ -258,8 +258,7 @@
 .workbenchPreviewRegion,
 .workbenchCubeRegion,
 .workbenchSliceRegion,
-.workbenchMetricsRegion,
-.workbenchScatterRegion {
+.workbenchMetricsRegion {
   display: grid;
   gap: 0.75rem;
   align-content: start;
@@ -983,6 +982,16 @@
   border: 0.0625rem solid #2a3d5d;
 }
 
+.sliceCanvasStack {
+  position: relative;
+}
+
+.sliceCanvasOverlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
 .sliceCanvasWrap {
   display: grid;
   gap: 0.5rem;
@@ -1348,11 +1357,6 @@
     grid-row: 3;
   }
 
-  .workbenchScatterRegion {
-    grid-column: 2;
-    grid-row: 3;
-  }
-
   .visualizationGrid {
     grid-template-rows: auto auto;
   }
@@ -1384,11 +1388,6 @@
   .workbenchCubeRegion {
     grid-column: 2;
     grid-row: 1;
-  }
-
-  .workbenchScatterRegion {
-    grid-column: 2;
-    grid-row: 2;
   }
 
   .workbenchSliceRegion {
