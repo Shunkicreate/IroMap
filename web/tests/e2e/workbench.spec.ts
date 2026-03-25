@@ -23,20 +23,15 @@ test.describe("モバイルレイアウト", () => {
     const cubePanel = getPanel(page, "3Dキューブ");
     const slicePanel = getPanel(page, "スライス");
     const metricsPanel = getPanel(page, "分析表");
-    const previewRegion = page.locator(".workbenchPreviewRegion");
-    const cubeRegion = page.locator(".workbenchCubeRegion");
-    const sliceRegion = page.locator(".workbenchSliceRegion");
-    const metricsRegion = page.locator(".workbenchMetricsRegion");
-
     await expect(previewPanel).toBeVisible();
     await expect(cubePanel).toBeVisible();
     await expect(slicePanel).toBeVisible();
     await expect(metricsPanel).toBeVisible();
 
-    const previewBox = await previewRegion.boundingBox();
-    const cubeBox = await cubeRegion.boundingBox();
-    const sliceBox = await sliceRegion.boundingBox();
-    const metricsBox = await metricsRegion.boundingBox();
+    const previewBox = await previewPanel.boundingBox();
+    const cubeBox = await cubePanel.boundingBox();
+    const sliceBox = await slicePanel.boundingBox();
+    const metricsBox = await metricsPanel.boundingBox();
 
     expect(previewBox).not.toBeNull();
     expect(cubeBox).not.toBeNull();
@@ -60,10 +55,10 @@ test.describe("ワイドレイアウト", () => {
     await expect(getPanel(page, "スライス")).toBeVisible();
     await expect(getPanel(page, "分析表")).toBeVisible();
 
-    const previewBox = await page.locator(".workbenchPreviewRegion").boundingBox();
-    const cubeBox = await page.locator(".workbenchCubeRegion").boundingBox();
-    const sliceBox = await page.locator(".workbenchSliceRegion").boundingBox();
-    const metricsBox = await page.locator(".workbenchMetricsRegion").boundingBox();
+    const previewBox = await getPanel(page, "選択画像").boundingBox();
+    const cubeBox = await getPanel(page, "3Dキューブ").boundingBox();
+    const sliceBox = await getPanel(page, "スライス").boundingBox();
+    const metricsBox = await getPanel(page, "分析表").boundingBox();
 
     expect(previewBox).not.toBeNull();
     expect(cubeBox).not.toBeNull();
@@ -91,10 +86,10 @@ test.describe("中間レイアウト", () => {
     await expect(getPanel(page, "スライス")).toBeVisible();
     await expect(getPanel(page, "分析表")).toBeVisible();
 
-    const previewBox = await page.locator(".workbenchPreviewRegion").boundingBox();
-    const cubeBox = await page.locator(".workbenchCubeRegion").boundingBox();
-    const sliceBox = await page.locator(".workbenchSliceRegion").boundingBox();
-    const metricsBox = await page.locator(".workbenchMetricsRegion").boundingBox();
+    const previewBox = await getPanel(page, "選択画像").boundingBox();
+    const cubeBox = await getPanel(page, "3Dキューブ").boundingBox();
+    const sliceBox = await getPanel(page, "スライス").boundingBox();
+    const metricsBox = await getPanel(page, "分析表").boundingBox();
 
     expect(previewBox).not.toBeNull();
     expect(cubeBox).not.toBeNull();
@@ -104,9 +99,9 @@ test.describe("中間レイアウト", () => {
     expect(Math.abs(previewBox!.y - cubeBox!.y)).toBeLessThan(40);
     expect(previewBox!.x).toBeLessThan(cubeBox!.x);
 
+    expect(Math.abs(sliceBox!.y - metricsBox!.y)).toBeLessThan(40);
+    expect(sliceBox!.x).toBeLessThan(metricsBox!.x);
     expect(sliceBox!.y).toBeGreaterThan(previewBox!.y + 40);
-    expect(Math.abs(sliceBox!.x - metricsBox!.x)).toBeLessThan(40);
-    expect(sliceBox!.y).toBeLessThan(metricsBox!.y);
   });
 });
 
