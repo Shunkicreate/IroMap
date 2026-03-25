@@ -264,7 +264,8 @@ export function ColorWorkbench() {
 
       try {
         const startedAt = performance.now();
-        const { imageData, decodeMs } = await readFileAsImageData(file);
+        const { imageData, decodeMs, downscaleMs, width, height, analysisWidth, analysisHeight } =
+          await readFileAsImageData(file);
         const { analysisId, result } = await analyzePhotoInWorker(imageData);
         if (isStale) {
           return;
@@ -272,10 +273,13 @@ export function ColorWorkbench() {
         recordPerformanceEntry("workbench.photo-analysis.total", startedAt, {
           fileName: file.name,
           decodeMs,
+          downscaleMs,
           analyzeMs: result.timings.totalMs,
           sampledPixels: result.sampledPixels,
-          width: result.width,
-          height: result.height,
+          width,
+          height,
+          analysisWidth,
+          analysisHeight,
         });
         const success = t("photoSummary", {
           fileName: file.name,

@@ -15,6 +15,11 @@ import type {
 export type ReadFileAsImageDataResult = {
   imageData: ImageData;
   decodeMs: number;
+  downscaleMs: number;
+  width: number;
+  height: number;
+  analysisWidth: number;
+  analysisHeight: number;
 };
 
 export type AnalyzePhotoTaskResult = {
@@ -194,6 +199,23 @@ class PhotoAnalysisWorkerClient {
 }
 
 const client = new PhotoAnalysisWorkerClient();
+const maxAnalysisEdge = 2048;
+
+const getAnalysisDimensions = (
+  width: number,
+  height: number
+): { width: number; height: number } => {
+  const longestEdge = Math.max(width, height);
+  if (longestEdge <= maxAnalysisEdge) {
+    return { width, height };
+  }
+
+  const scale = maxAnalysisEdge / longestEdge;
+  return {
+    width: Math.max(1, Math.round(width * scale)),
+    height: Math.max(1, Math.round(height * scale)),
+  };
+};
 
 const drawSourceToImageData = (
   width: number,
@@ -214,35 +236,77 @@ const drawSourceToImageData = (
 };
 
 export const readFileAsImageData = async (file: File): Promise<ReadFileAsImageDataResult> => {
-  const startAt = performance.now();
-
   try {
-    const imageBitmap = await createImageBitmap(file);
+    const decodeStartedAt = performance.now();
+    const sourceBitmap = await createImageBitmap(file);
+    const decodeMs = performance.now() - decodeStartedAt;
     try {
+      const { width, height } = sourceBitmap;
+      const analysisSize = getAnalysisDimensions(width, height);
+      const downscaleStartedAt = performance.now();
+      const analysisBitmap =
+        analysisSize.width === width && analysisSize.height === height
+          ? sourceBitmap
+          : await createImageBitmap(sourceBitmap, {
+              resizeWidth: analysisSize.width,
+              resizeHeight: analysisSize.height,
+              resizeQuality: "high",
+            });
+
+      const imageData = drawSourceToImageData(
+        analysisSize.width,
+        analysisSize.height,
+        (context) => {
+          context.drawImage(analysisBitmap, 0, 0);
+        }
+      );
+      const downscaleMs = performance.now() - downscaleStartedAt;
+
+      if (analysisBitmap !== sourceBitmap) {
+        analysisBitmap.close();
+      }
+
       return {
-        imageData: drawSourceToImageData(imageBitmap.width, imageBitmap.height, (context) => {
-          context.drawImage(imageBitmap, 0, 0);
-        }),
-        decodeMs: performance.now() - startAt,
+        imageData,
+        decodeMs,
+        downscaleMs,
+        width,
+        height,
+        analysisWidth: analysisSize.width,
+        analysisHeight: analysisSize.height,
       };
     } finally {
-      imageBitmap.close();
+      sourceBitmap.close();
     }
   } catch {
     const objectUrl = URL.createObjectURL(file);
     try {
+      const decodeStartedAt = performance.now();
       const image = await new Promise<HTMLImageElement>((resolve, reject) => {
         const node = new window.Image();
         node.onload = () => resolve(node);
         node.onerror = () => reject(new Error("image-load-failed"));
         node.src = objectUrl;
       });
+      const decodeMs = performance.now() - decodeStartedAt;
+      const analysisSize = getAnalysisDimensions(image.naturalWidth, image.naturalHeight);
+      const downscaleStartedAt = performance.now();
+      const imageData = drawSourceToImageData(
+        analysisSize.width,
+        analysisSize.height,
+        (context) => {
+          context.drawImage(image, 0, 0, analysisSize.width, analysisSize.height);
+        }
+      );
 
       return {
-        imageData: drawSourceToImageData(image.naturalWidth, image.naturalHeight, (context) => {
-          context.drawImage(image, 0, 0);
-        }),
-        decodeMs: performance.now() - startAt,
+        imageData,
+        decodeMs,
+        downscaleMs: performance.now() - downscaleStartedAt,
+        width: image.naturalWidth,
+        height: image.naturalHeight,
+        analysisWidth: analysisSize.width,
+        analysisHeight: analysisSize.height,
       };
     } finally {
       URL.revokeObjectURL(objectUrl);
