@@ -3,8 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { PersistedDisclosure } from "@/components/workbench/persisted-disclosure";
+import { usePersistedState } from "@/components/workbench/use-persisted-state";
 import { PanelHeader } from "@/components/workbench/panel-header";
 import { usePersistedBoolean } from "@/components/workbench/use-persisted-boolean";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { rgbToHex } from "@/domain/color/color-format";
 import { type ColorSpace3d, type RgbColor, type SliceAxis } from "@/domain/color/color-types";
@@ -54,6 +56,57 @@ import {
 } from "@/features/workbench/workbench-shared";
 import { t } from "@/i18n/translate";
 
+const parseColorSpace3d = (rawValue: string): ColorSpace3d | null =>
+  rawValue === "rgb" || rawValue === "hsl" || rawValue === "lab" ? rawValue : null;
+
+const parseSliceAxis = (rawValue: string): SliceAxis | null => {
+  switch (rawValue) {
+    case "r":
+    case "g":
+    case "b":
+    case "h":
+    case "s":
+    case "l":
+    case "lab-l":
+    case "lab-a":
+    case "lab-b":
+      return rawValue;
+    default:
+      return null;
+  }
+};
+
+const parseCubeOverlayMode = (rawValue: string): RgbCubeOverlayMode | null =>
+  rawValue === "grid" || rawValue === "image" || rawValue === "both" ? rawValue : null;
+
+const parseNumberValue =
+  (isValid: (value: number) => boolean) =>
+  (rawValue: string): number | null => {
+    const value = Number(rawValue);
+    return Number.isFinite(value) && isValid(value) ? value : null;
+  };
+
+const parsePersistedSliceValue = parseNumberValue((value) => value >= -128 && value <= 360);
+const parsePersistedCubeSize = parseNumberValue((value) => value >= 320 && value <= 900);
+
+const parseRotation = (rawValue: string): Rotation | null => {
+  try {
+    const value = JSON.parse(rawValue) as Partial<Rotation>;
+    if (
+      typeof value.x === "number" &&
+      Number.isFinite(value.x) &&
+      typeof value.y === "number" &&
+      Number.isFinite(value.y)
+    ) {
+      return { x: value.x, y: value.y };
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+};
+
 export function ColorWorkbench() {
   const [baselineTarget, setBaselineTarget] = useState<WorkbenchTarget>(() =>
     emptyTarget("baseline", "Baseline")
@@ -70,14 +123,49 @@ export function ColorWorkbench() {
   });
   const [selectedColor, setSelectedColor] = useState<RgbColor | null>(null);
   const [copyFormat, setCopyFormat] = useState<ExportFormat>("markdown");
-  const [sliceAxis, setSliceAxis] = useState<SliceAxis>("r");
-  const [sliceValue, setSliceValue] = useState<number>(defaultSliceValue);
-  const [space, setSpace] = useState<ColorSpace3d>("rgb");
-  const [isAxisGuideVisible, setIsAxisGuideVisible] = useState<boolean>(true);
-  const [isCubeSizeSliderVisible, setIsCubeSizeSliderVisible] = useState<boolean>(true);
-  const [cubeSize, setCubeSize] = useState<number>(defaultCubeSize);
-  const [rotation, setRotation] = useState<Rotation>(defaultRotation);
-  const [cubeOverlayMode, setCubeOverlayMode] = useState<RgbCubeOverlayMode>("both");
+  const [sliceAxis, setSliceAxis] = usePersistedState<SliceAxis>({
+    storageKey: storageKeys.cubeSliceAxis,
+    initialValue: "r",
+    parse: parseSliceAxis,
+    serialize: String,
+  });
+  const [sliceValue, setSliceValue] = usePersistedState<number>({
+    storageKey: storageKeys.cubeSliceValue,
+    initialValue: defaultSliceValue,
+    parse: parsePersistedSliceValue,
+    serialize: String,
+  });
+  const [space, setSpace] = usePersistedState<ColorSpace3d>({
+    storageKey: storageKeys.cubeSpace,
+    initialValue: "rgb",
+    parse: parseColorSpace3d,
+    serialize: String,
+  });
+  const [isAxisGuideVisible, setIsAxisGuideVisible] = usePersistedBoolean({
+    storageKey: storageKeys.cubeAxisGuideVisible,
+    isdefaultValue: true,
+  });
+  const [isCubeSizeSliderVisible, setIsCubeSizeSliderVisible] = usePersistedBoolean({
+    storageKey: storageKeys.cubeSizeSliderVisible,
+    isdefaultValue: true,
+  });
+  const [cubeSize, setCubeSize] = usePersistedState<number>({
+    storageKey: storageKeys.cubeSize,
+    initialValue: defaultCubeSize,
+    parse: parsePersistedCubeSize,
+    serialize: String,
+  });
+  const [rotation, setRotation] = usePersistedState<Rotation>({
+    storageKey: storageKeys.cubeRotation,
+    initialValue: defaultRotation,
+    parse: parseRotation,
+  });
+  const [cubeOverlayMode, setCubeOverlayMode] = usePersistedState<RgbCubeOverlayMode>({
+    storageKey: storageKeys.cubeOverlayMode,
+    initialValue: "both",
+    parse: parseCubeOverlayMode,
+    serialize: String,
+  });
   const [liveMessage, setLiveMessage] = useState<string>("");
   const [selectionDraft, setSelectionDraft] = useState<SelectionDraft>(null);
   const [derivedAnalysis, setDerivedAnalysis] = useState(() =>
@@ -590,13 +678,22 @@ export function ColorWorkbench() {
               className={controlStyles.spaceTabs}
             >
               <TabsList className={controlStyles.spaceTabsList}>
-                <TabsTrigger value="rgb" className={controlStyles.spaceTabTrigger}>
+                <TabsTrigger
+                  value="rgb"
+                  className={`${controlStyles.spaceTabTrigger} ${controlStyles.spaceTabTriggerRgb}`}
+                >
                   {t("spaceRgb")}
                 </TabsTrigger>
-                <TabsTrigger value="hsl" className={controlStyles.spaceTabTrigger}>
+                <TabsTrigger
+                  value="hsl"
+                  className={`${controlStyles.spaceTabTrigger} ${controlStyles.spaceTabTriggerHsl}`}
+                >
                   {t("spaceHsl")}
                 </TabsTrigger>
-                <TabsTrigger value="lab" className={controlStyles.spaceTabTrigger}>
+                <TabsTrigger
+                  value="lab"
+                  className={`${controlStyles.spaceTabTrigger} ${controlStyles.spaceTabTriggerLab}`}
+                >
                   {t("spaceLab")}
                 </TabsTrigger>
               </TabsList>
@@ -620,13 +717,22 @@ export function ColorWorkbench() {
                     className={controlStyles.spaceTabs}
                   >
                     <TabsList className={controlStyles.spaceTabsList}>
-                      <TabsTrigger value="grid" className={controlStyles.spaceTabTrigger}>
+                      <TabsTrigger
+                        value="grid"
+                        className={`${controlStyles.spaceTabTrigger} ${controlStyles.overlayTabTriggerGrid}`}
+                      >
                         {t("cubeOverlayModeGrid")}
                       </TabsTrigger>
-                      <TabsTrigger value="image" className={controlStyles.spaceTabTrigger}>
+                      <TabsTrigger
+                        value="image"
+                        className={`${controlStyles.spaceTabTrigger} ${controlStyles.overlayTabTriggerImage}`}
+                      >
                         {t("cubeOverlayModeImage")}
                       </TabsTrigger>
-                      <TabsTrigger value="both" className={controlStyles.spaceTabTrigger}>
+                      <TabsTrigger
+                        value="both"
+                        className={`${controlStyles.spaceTabTrigger} ${controlStyles.overlayTabTriggerBoth}`}
+                      >
                         {t("cubeOverlayModeBoth")}
                       </TabsTrigger>
                     </TabsList>
@@ -634,44 +740,42 @@ export function ColorWorkbench() {
                 </div>
                 <div className={controlStyles.toggleRow}>
                   <label className={controlStyles.toggleLabel}>
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={isCubeImageMappingVisible}
-                      onChange={(event) => setIsCubeImageMappingVisible(event.target.checked)}
+                      onCheckedChange={(checked) => setIsCubeImageMappingVisible(checked === true)}
                       aria-label={t("workbenchShowWhiteMappingCube")}
                     />
                     <span>{t("workbenchShowWhiteMappingCube")}</span>
                   </label>
                   <label className={controlStyles.toggleLabel}>
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={isCubeSelectionMappingVisible}
-                      onChange={(event) => setIsCubeSelectionMappingVisible(event.target.checked)}
+                      onCheckedChange={(checked) =>
+                        setIsCubeSelectionMappingVisible(checked === true)
+                      }
                       aria-label={t("workbenchShowSelectedMappingCube")}
                     />
                     <span>{t("workbenchShowSelectedMappingCube")}</span>
                   </label>
+                  <label className={controlStyles.toggleLabel}>
+                    <Checkbox
+                      checked={isAxisGuideVisible}
+                      onCheckedChange={(checked) => setIsAxisGuideVisible(checked === true)}
+                      aria-label={t("cubeShowAxisGuide")}
+                    />
+                    <span>{t("cubeShowAxisGuide")}</span>
+                  </label>
+                  <label className={controlStyles.toggleLabel}>
+                    <Checkbox
+                      checked={isCubeSizeSliderVisible}
+                      onCheckedChange={(checked) => setIsCubeSizeSliderVisible(checked === true)}
+                      aria-label={t("cubeShowSizeSlider")}
+                    />
+                    <span>{t("cubeShowSizeSlider")}</span>
+                  </label>
                 </div>
-                <label className={controlStyles.toggleLabel}>
-                  <input
-                    type="checkbox"
-                    checked={isAxisGuideVisible}
-                    onChange={(event) => setIsAxisGuideVisible(event.target.checked)}
-                    aria-label={t("cubeShowAxisGuide")}
-                  />
-                  <span>{t("cubeShowAxisGuide")}</span>
-                </label>
-                <label className={controlStyles.toggleLabel}>
-                  <input
-                    type="checkbox"
-                    checked={isCubeSizeSliderVisible}
-                    onChange={(event) => setIsCubeSizeSliderVisible(event.target.checked)}
-                    aria-label={t("cubeShowSizeSlider")}
-                  />
-                  <span>{t("cubeShowSizeSlider")}</span>
-                </label>
                 {isCubeSizeSliderVisible ? (
-                  <label>
+                  <label className={controlStyles.stackedLabel}>
                     {t("cubeSizeLabel", { size: cubeSize })}
                     <input
                       type="range"
