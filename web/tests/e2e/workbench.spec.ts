@@ -80,6 +80,36 @@ test.describe("ワイドレイアウト", () => {
   });
 });
 
+test.describe("中間レイアウト", () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test("主要UIが2カラムで表示される", async ({ page }) => {
+    await page.goto("/");
+
+    await expect(getPanel(page, "選択画像")).toBeVisible();
+    await expect(getPanel(page, "3Dキューブ")).toBeVisible();
+    await expect(getPanel(page, "スライス")).toBeVisible();
+    await expect(getPanel(page, "分析表")).toBeVisible();
+
+    const previewBox = await page.locator(".workbenchPreviewRegion").boundingBox();
+    const cubeBox = await page.locator(".workbenchCubeRegion").boundingBox();
+    const sliceBox = await page.locator(".workbenchSliceRegion").boundingBox();
+    const metricsBox = await page.locator(".workbenchMetricsRegion").boundingBox();
+
+    expect(previewBox).not.toBeNull();
+    expect(cubeBox).not.toBeNull();
+    expect(sliceBox).not.toBeNull();
+    expect(metricsBox).not.toBeNull();
+
+    expect(Math.abs(previewBox!.y - cubeBox!.y)).toBeLessThan(40);
+    expect(previewBox!.x).toBeLessThan(cubeBox!.x);
+
+    expect(sliceBox!.y).toBeGreaterThan(previewBox!.y + 40);
+    expect(Math.abs(sliceBox!.x - metricsBox!.x)).toBeLessThan(40);
+    expect(sliceBox!.y).toBeLessThan(metricsBox!.y);
+  });
+});
+
 test("サイズスライダーの表示切り替えができる", async ({ page }) => {
   await page.goto("/");
 

@@ -1384,13 +1384,6 @@
     grid-template-columns: minmax(0, 1.55fr) minmax(22rem, 1fr);
   }
 
-  .workbenchInteractiveGrid {
-    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 0.95fr);
-    grid-template-areas:
-      "preview cube slice"
-      "metrics . slice";
-  }
-
   .photoAnalysisOverviewGrid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: start;
