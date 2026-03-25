@@ -74,7 +74,9 @@ test("T-107(color-space-3d): Sliceの軸ラベル表示を確認", async ({ page
   await expect(page.getByText(/^Y軸: [RGB] \(下→上\)$/)).toBeVisible();
 });
 
-test("T-108(color-space-3d): 3DキューブとSliceの近接配置を確認", async ({ page }) => {
+test("T-108(color-space-3d): 中間幅で3DキューブとSliceが同じワークベンチ内に収まる", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 1600, height: 900 });
   await page.goto("/");
   const cubeBox = await getCubeCanvas(page).boundingBox();
@@ -87,8 +89,8 @@ test("T-108(color-space-3d): 3DキューブとSliceの近接配置を確認", as
   if (!cubeBox || !sliceBox) {
     return;
   }
-  expect(sliceBox.x).toBeGreaterThan(cubeBox.x);
   expect(Math.abs(sliceBox.x - cubeBox.x)).toBeLessThan(1200);
+  expect(Math.abs(sliceBox.y - cubeBox.y)).toBeLessThan(1200);
 });
 
 test("T-109(color-space-3d): キューブサイズスライダー表示とサイズ変更を確認", async ({ page }) => {

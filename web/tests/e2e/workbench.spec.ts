@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { uploadRedPng } from "./helpers";
+import { getPanel, uploadRedPng } from "./helpers";
 
 test("ワークベンチの主要UIが表示される", async ({ page }) => {
   await page.goto("/");
@@ -11,6 +11,98 @@ test("ワークベンチの主要UIが表示される", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "インスペクタ" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "スライス" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "写真分析" })).toBeVisible();
+});
+
+test.describe("モバイルレイアウト", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test("主要UIが意図した順番で並ぶ", async ({ page }) => {
+    await page.goto("/");
+
+    const previewPanel = getPanel(page, "選択画像");
+    const cubePanel = getPanel(page, "3Dキューブ");
+    const slicePanel = getPanel(page, "スライス");
+    const metricsPanel = getPanel(page, "分析表");
+    await expect(previewPanel).toBeVisible();
+    await expect(cubePanel).toBeVisible();
+    await expect(slicePanel).toBeVisible();
+    await expect(metricsPanel).toBeVisible();
+
+    const previewBox = await previewPanel.boundingBox();
+    const cubeBox = await cubePanel.boundingBox();
+    const sliceBox = await slicePanel.boundingBox();
+    const metricsBox = await metricsPanel.boundingBox();
+
+    expect(previewBox).not.toBeNull();
+    expect(cubeBox).not.toBeNull();
+    expect(sliceBox).not.toBeNull();
+    expect(metricsBox).not.toBeNull();
+
+    expect(previewBox!.y).toBeLessThan(cubeBox!.y);
+    expect(cubeBox!.y).toBeLessThan(sliceBox!.y);
+    expect(sliceBox!.y).toBeLessThan(metricsBox!.y);
+  });
+});
+
+test.describe("ワイドレイアウト", () => {
+  test.use({ viewport: { width: 1920, height: 1080 } });
+
+  test("主要UIが横並びで表示される", async ({ page }) => {
+    await page.goto("/");
+
+    await expect(getPanel(page, "選択画像")).toBeVisible();
+    await expect(getPanel(page, "3Dキューブ")).toBeVisible();
+    await expect(getPanel(page, "スライス")).toBeVisible();
+    await expect(getPanel(page, "分析表")).toBeVisible();
+
+    const previewBox = await getPanel(page, "選択画像").boundingBox();
+    const cubeBox = await getPanel(page, "3Dキューブ").boundingBox();
+    const sliceBox = await getPanel(page, "スライス").boundingBox();
+    const metricsBox = await getPanel(page, "分析表").boundingBox();
+
+    expect(previewBox).not.toBeNull();
+    expect(cubeBox).not.toBeNull();
+    expect(sliceBox).not.toBeNull();
+    expect(metricsBox).not.toBeNull();
+
+    expect(Math.abs(previewBox!.y - cubeBox!.y)).toBeLessThan(40);
+    expect(Math.abs(cubeBox!.y - sliceBox!.y)).toBeLessThan(40);
+    expect(Math.abs(sliceBox!.y - metricsBox!.y)).toBeLessThan(40);
+
+    expect(previewBox!.x).toBeLessThan(cubeBox!.x);
+    expect(cubeBox!.x).toBeLessThan(sliceBox!.x);
+    expect(sliceBox!.x).toBeLessThan(metricsBox!.x);
+  });
+});
+
+test.describe("中間レイアウト", () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test("主要UIが2カラムで表示される", async ({ page }) => {
+    await page.goto("/");
+
+    await expect(getPanel(page, "選択画像")).toBeVisible();
+    await expect(getPanel(page, "3Dキューブ")).toBeVisible();
+    await expect(getPanel(page, "スライス")).toBeVisible();
+    await expect(getPanel(page, "分析表")).toBeVisible();
+
+    const previewBox = await getPanel(page, "選択画像").boundingBox();
+    const cubeBox = await getPanel(page, "3Dキューブ").boundingBox();
+    const sliceBox = await getPanel(page, "スライス").boundingBox();
+    const metricsBox = await getPanel(page, "分析表").boundingBox();
+
+    expect(previewBox).not.toBeNull();
+    expect(cubeBox).not.toBeNull();
+    expect(sliceBox).not.toBeNull();
+    expect(metricsBox).not.toBeNull();
+
+    expect(Math.abs(previewBox!.y - cubeBox!.y)).toBeLessThan(40);
+    expect(previewBox!.x).toBeLessThan(cubeBox!.x);
+
+    expect(Math.abs(sliceBox!.y - metricsBox!.y)).toBeLessThan(40);
+    expect(sliceBox!.x).toBeLessThan(metricsBox!.x);
+    expect(sliceBox!.y).toBeGreaterThan(previewBox!.y + 40);
+  });
 });
 
 test("サイズスライダーの表示切り替えができる", async ({ page }) => {
