@@ -14,6 +14,7 @@ import {
   analyzePhotoInWorker,
   readFileAsImageData,
 } from "@/features/photo-analysis/photo-analysis-client";
+import { recordPerformanceEntry } from "@/features/photo-analysis/photo-analysis-performance";
 import { t } from "@/i18n/translate";
 
 type AnalysisState = {
@@ -231,9 +232,10 @@ export function PhotoAnalysisPanel({
     toast(inProgress);
 
     void (async () => {
+      const startedAt = performance.now();
       try {
-        const imageData = await readFileAsImageData(sourceFile);
-        const result = await analyzePhotoInWorker(imageData);
+        const { imageData, decodeMs } = await readFileAsImageData(sourceFile);
+        const { result } = await analyzePhotoInWorker(imageData);
         if (isCancelled) {
           return;
         }
@@ -248,6 +250,14 @@ export function PhotoAnalysisPanel({
           fileName: sourceFile.name,
           sampledPixels: result.sampledPixels,
           elapsedMs: result.elapsedMs.toFixed(fileSummaryPrecision),
+        });
+        recordPerformanceEntry("photo-analysis.total", startedAt, {
+          fileName: sourceFile.name,
+          decodeMs,
+          analyzeMs: result.timings.totalMs,
+          sampledPixels: result.sampledPixels,
+          width: result.width,
+          height: result.height,
         });
         setStatusMessage(success);
         onStatusChangeRef.current?.(success);
