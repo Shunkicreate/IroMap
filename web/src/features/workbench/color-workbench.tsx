@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { PersistedDisclosure } from "@/components/workbench/persisted-disclosure";
 import { usePersistedState } from "@/components/workbench/use-persisted-state";
@@ -116,11 +116,13 @@ export function ColorWorkbench() {
   >({
     baseline: { ...defaultSelectionState },
   });
-  const [hoverState, setHoverState] = useState<HoverState>({
+  const [sharedHoverState, setSharedHoverState] = useState<HoverState>({
     targetId: "baseline",
     sample: null,
     source: "preview",
   });
+  const pendingSharedHoverRef = useRef<HoverState | null>(null);
+  const sharedHoverFrameRef = useRef<number | null>(null);
   const [selectedColor, setSelectedColor] = useState<RgbColor | null>(null);
   const [copyFormat, setCopyFormat] = useState<ExportFormat>("markdown");
   const [sliceAxis, setSliceAxis] = usePersistedState<SliceAxis>({
@@ -360,7 +362,7 @@ export function ColorWorkbench() {
   const baselineSaturationHistogram = derivedAnalysis.saturationHistogram;
 
   const selectionCubePoints = derivedAnalysis.selectionCubePoints;
-  const hoverColor = hoverState.sample?.color ?? null;
+  const hoverColor = sharedHoverState.sample?.color ?? null;
 
   const selectedSample = useMemo(() => {
     if (!baselineTarget.result || !selectedColor) {
@@ -449,9 +451,38 @@ export function ColorWorkbench() {
     setLiveMessage(t("workbenchSelectionUpdated"));
   };
 
+  const flushSharedHover = (): void => {
+    sharedHoverFrameRef.current = null;
+    const nextHover = pendingSharedHoverRef.current;
+    pendingSharedHoverRef.current = null;
+    if (!nextHover) {
+      return;
+    }
+    setSharedHoverState((current) => {
+      if (
+        current.targetId === nextHover.targetId &&
+        current.source === nextHover.source &&
+        current.sample?.sampleId === nextHover.sample?.sampleId
+      ) {
+        return current;
+      }
+      return nextHover;
+    });
+  };
+
+  const enqueueSharedHover = (nextHover: HoverState): void => {
+    pendingSharedHoverRef.current = nextHover;
+    if (sharedHoverFrameRef.current != null) {
+      return;
+    }
+    sharedHoverFrameRef.current = window.requestAnimationFrame(() => {
+      flushSharedHover();
+    });
+  };
+
   const handleColorHover = (color: RgbColor | null, source: HoverState["source"]): void => {
     const sample = findNearestSampleByColor(baselineTarget.result, baselineBuckets, color);
-    setHoverState({
+    enqueueSharedHover({
       targetId: baselineTarget.targetId,
       sample,
       source,
@@ -498,7 +529,12 @@ export function ColorWorkbench() {
   const handleSourceFileSelected = (file: File | null): void => {
     setBaselineTarget((current) => ({ ...current, file }));
     setSelectedColor(null);
-    setHoverState({ targetId: "baseline", sample: null, source: "preview" });
+    pendingSharedHoverRef.current = null;
+    if (sharedHoverFrameRef.current != null) {
+      window.cancelAnimationFrame(sharedHoverFrameRef.current);
+      sharedHoverFrameRef.current = null;
+    }
+    setSharedHoverState({ targetId: "baseline", sample: null, source: "preview" });
   };
 
   const getClipboardImageFile = (clipboardData: DataTransfer | null | undefined): File | null => {
@@ -577,6 +613,14 @@ export function ColorWorkbench() {
   };
 
   useEffect(() => {
+    return () => {
+      if (sharedHoverFrameRef.current != null) {
+        window.cancelAnimationFrame(sharedHoverFrameRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     const handleWindowPaste = (event: ClipboardEvent): void => {
       const items = Array.from(event.clipboardData?.items ?? []);
       const imageItem = items.find(
@@ -651,13 +695,17 @@ export function ColorWorkbench() {
         <div className="workbenchPreviewRegion">
           <WorkbenchPreviewPanel
             target={baselineTarget}
-            hoverSample={hoverState.sample}
+            hoverSample={sharedHoverState.sample}
             selectedSamples={selectedSamples}
             selectionState={baselineSelectionState}
             selectionDraft={selectionDraft}
             uploadDisclosureStorageKey={storageKeys.uploadPanel}
             onHoverSampleChange={(sample) =>
-              setHoverState({ targetId: baselineTarget.targetId, sample, source: "preview" })
+              enqueueSharedHover({
+                targetId: baselineTarget.targetId,
+                sample,
+                source: "preview",
+              })
             }
             onSelectionDraftChange={setSelectionDraft}
             onSelectionCommit={handlePreviewSelectionCommit}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PanelHeader } from "@/components/workbench/panel-header";
 import { PersistedDisclosure } from "@/components/workbench/persisted-disclosure";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -366,7 +366,10 @@ export function SliceCanvas({
   onSelectedSamplesVisibilityChange,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const overlayRef = useRef<HTMLCanvasElement | null>(null);
+  const mappingCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const cursorCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [localHoverColor, setLocalHoverColor] = useState<RgbColor | null>(null);
+  const [isPointerInside, setIsPointerInside] = useState(false);
   const labels = getPlaneLabels(axis);
   const axisRange = useMemo(() => getAxisRange(axis), [axis]);
   const projectedMappedSamples = useMemo(
@@ -377,6 +380,7 @@ export function SliceCanvas({
       }),
     [axis, mappedSamples, value]
   );
+  const displayHoverColor = isPointerInside ? localHoverColor : hoverColor;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -405,7 +409,7 @@ export function SliceCanvas({
   }, [axis, value]);
 
   useEffect(() => {
-    const canvas = overlayRef.current;
+    const canvas = mappingCanvasRef.current;
     if (!canvas) {
       return;
     }
@@ -419,13 +423,9 @@ export function SliceCanvas({
 
     if (ismappedSamplesVisible) {
       context.fillStyle = "rgba(248, 250, 252, 0.42)";
-      for (const sample of mappedSamples) {
-        const point = projectSampleToSlice(sample, axis, value);
-        if (!point) {
-          continue;
-        }
+      for (const projected of projectedMappedSamples) {
         context.beginPath();
-        context.arc(point.x, point.y, 1.8, 0, Math.PI * 2);
+        context.arc(projected.point.x, projected.point.y, 1.8, 0, Math.PI * 2);
         context.fill();
       }
     }
@@ -451,7 +451,27 @@ export function SliceCanvas({
         context.stroke();
       }
     }
+  }, [
+    axis,
+    ismappedSamplesVisible,
+    isselectedSamplesVisible,
+    projectedMappedSamples,
+    selectedSamples,
+    value,
+  ]);
 
+  useEffect(() => {
+    const canvas = cursorCanvasRef.current;
+    if (!canvas) {
+      return;
+    }
+
+    const context = canvas.getContext("2d");
+    if (!context) {
+      return;
+    }
+
+    context.clearRect(0, 0, colorChannelLevels, colorChannelLevels);
     const drawMarker = (color: RgbColor | null, strokeStyle: string, radius: number): void => {
       if (!color) {
         return;
@@ -498,16 +518,8 @@ export function SliceCanvas({
       context.arc(x, y, radius, 0, Math.PI * 2);
       context.stroke();
     };
-    drawMarker(hoverColor, "#ffffff", 7);
-  }, [
-    axis,
-    hoverColor,
-    ismappedSamplesVisible,
-    isselectedSamplesVisible,
-    mappedSamples,
-    selectedSamples,
-    value,
-  ]);
+    drawMarker(displayHoverColor, "#ffffff", 7);
+  }, [axis, displayHoverColor]);
 
   const mapPointerToColor = (
     event: React.PointerEvent<HTMLCanvasElement> | React.MouseEvent<HTMLCanvasElement>
@@ -537,6 +549,8 @@ export function SliceCanvas({
 
   const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>): void => {
     const color = mapPointerToColor(event);
+    setIsPointerInside(true);
+    setLocalHoverColor(color);
     onHoverColorChange(color);
   };
 
@@ -636,11 +650,22 @@ export function SliceCanvas({
               tabIndex={0}
               aria-label={t("sliceCanvasAriaLabel")}
               onPointerMove={handlePointerMove}
-              onPointerLeave={() => onHoverColorChange(null)}
+              onPointerLeave={() => {
+                setIsPointerInside(false);
+                setLocalHoverColor(null);
+                onHoverColorChange(null);
+              }}
               onClick={handleClick}
             />
             <canvas
-              ref={overlayRef}
+              ref={mappingCanvasRef}
+              width={colorChannelLevels}
+              height={colorChannelLevels}
+              className="sliceCanvas sliceCanvasOverlay"
+              aria-hidden="true"
+            />
+            <canvas
+              ref={cursorCanvasRef}
               width={colorChannelLevels}
               height={colorChannelLevels}
               className="sliceCanvas sliceCanvasOverlay"
