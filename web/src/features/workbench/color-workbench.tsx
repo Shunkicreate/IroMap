@@ -764,23 +764,23 @@ export function ColorWorkbench() {
                     />
                     <span>{t("workbenchShowSelectedMappingCube")}</span>
                   </label>
+                  <label className={controlStyles.toggleLabel}>
+                    <Checkbox
+                      checked={isAxisGuideVisible}
+                      onCheckedChange={(checked) => setIsAxisGuideVisible(checked === true)}
+                      aria-label={t("cubeShowAxisGuide")}
+                    />
+                    <span>{t("cubeShowAxisGuide")}</span>
+                  </label>
+                  <label className={controlStyles.toggleLabel}>
+                    <Checkbox
+                      checked={isCubeSizeSliderVisible}
+                      onCheckedChange={(checked) => setIsCubeSizeSliderVisible(checked === true)}
+                      aria-label={t("cubeShowSizeSlider")}
+                    />
+                    <span>{t("cubeShowSizeSlider")}</span>
+                  </label>
                 </div>
-                <label className={controlStyles.toggleLabel}>
-                  <Checkbox
-                    checked={isAxisGuideVisible}
-                    onCheckedChange={(checked) => setIsAxisGuideVisible(checked === true)}
-                    aria-label={t("cubeShowAxisGuide")}
-                  />
-                  <span>{t("cubeShowAxisGuide")}</span>
-                </label>
-                <label className={controlStyles.toggleLabel}>
-                  <Checkbox
-                    checked={isCubeSizeSliderVisible}
-                    onCheckedChange={(checked) => setIsCubeSizeSliderVisible(checked === true)}
-                    aria-label={t("cubeShowSizeSlider")}
-                  />
-                  <span>{t("cubeShowSizeSlider")}</span>
-                </label>
                 {isCubeSizeSliderVisible ? (
                   <label>
                     {t("cubeSizeLabel", { size: cubeSize })}

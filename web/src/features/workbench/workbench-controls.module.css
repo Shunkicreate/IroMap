@@ -96,20 +96,23 @@
 }
 
 .toggleRow {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.75rem;
+  align-items: start;
 }
 
 .toggleLabel {
   display: inline-flex;
   align-items: center;
+  flex-wrap: nowrap;
   gap: 0.625rem;
   min-inline-size: fit-content;
   color: var(--workbench-text);
   font-size: 0.88rem;
   cursor: pointer;
   user-select: none;
+  white-space: nowrap;
 }
 
 .metricLabelWithInfo {
@@ -120,8 +123,7 @@
 
 @media (max-width: 39.9375em) {
   .toggleRow {
-    flex-direction: column;
-    align-items: flex-start;
+    grid-template-columns: 1fr;
   }
 
   .manualColorInputs {
