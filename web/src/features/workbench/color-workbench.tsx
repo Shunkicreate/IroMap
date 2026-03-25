@@ -143,11 +143,11 @@ export function ColorWorkbench() {
   });
   const [isAxisGuideVisible, setIsAxisGuideVisible] = usePersistedBoolean({
     storageKey: storageKeys.cubeAxisGuideVisible,
-    isdefaultValue: true,
+    defaultValue: true,
   });
   const [isCubeSizeSliderVisible, setIsCubeSizeSliderVisible] = usePersistedBoolean({
     storageKey: storageKeys.cubeSizeSliderVisible,
-    isdefaultValue: true,
+    defaultValue: true,
   });
   const [cubeSize, setCubeSize] = usePersistedState<number>({
     storageKey: storageKeys.cubeSize,
