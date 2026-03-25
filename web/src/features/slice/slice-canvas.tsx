@@ -553,7 +553,11 @@ export function SliceCanvas({
       <div className="sliceControls">
         <label className={controlStyles.stackedLabel}>
           {t("sliceAxisLabel")}
-          <select value={axis} onChange={(event) => onAxisChange(event.target.value as SliceAxis)}>
+          <select
+            className={controlStyles.fieldControl}
+            value={axis}
+            onChange={(event) => onAxisChange(event.target.value as SliceAxis)}
+          >
             {space === "hsl" ? (
               <>
                 <option value="h">{t("sliceAxisH")}</option>
@@ -578,6 +582,7 @@ export function SliceCanvas({
         <label className={controlStyles.stackedLabel}>
           {t("sliceValueLabel", { value })}
           <input
+            className={controlStyles.rangeControl}
             type="range"
             min={axisRange.min}
             max={axisRange.max}

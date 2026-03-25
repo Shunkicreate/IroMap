@@ -778,6 +778,7 @@ export function ColorWorkbench() {
                   <label className={controlStyles.stackedLabel}>
                     {t("cubeSizeLabel", { size: cubeSize })}
                     <input
+                      className={controlStyles.rangeControl}
                       type="range"
                       min={320}
                       max={900}
