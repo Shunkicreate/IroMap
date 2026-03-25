@@ -723,13 +723,22 @@ export function ColorWorkbench() {
                     className={controlStyles.spaceTabs}
                   >
                     <TabsList className={controlStyles.spaceTabsList}>
-                      <TabsTrigger value="grid" className={controlStyles.spaceTabTrigger}>
+                      <TabsTrigger
+                        value="grid"
+                        className={`${controlStyles.spaceTabTrigger} ${controlStyles.overlayTabTriggerGrid}`}
+                      >
                         {t("cubeOverlayModeGrid")}
                       </TabsTrigger>
-                      <TabsTrigger value="image" className={controlStyles.spaceTabTrigger}>
+                      <TabsTrigger
+                        value="image"
+                        className={`${controlStyles.spaceTabTrigger} ${controlStyles.overlayTabTriggerImage}`}
+                      >
                         {t("cubeOverlayModeImage")}
                       </TabsTrigger>
-                      <TabsTrigger value="both" className={controlStyles.spaceTabTrigger}>
+                      <TabsTrigger
+                        value="both"
+                        className={`${controlStyles.spaceTabTrigger} ${controlStyles.overlayTabTriggerBoth}`}
+                      >
                         {t("cubeOverlayModeBoth")}
                       </TabsTrigger>
                     </TabsList>

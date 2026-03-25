@@ -50,6 +50,30 @@
     0 0.125rem 0.5rem color-mix(in oklab, #1d4ed8 38%, transparent);
 }
 
+.overlayTabTriggerGrid[data-state="active"] {
+  color: #f8fafc;
+  background: #334155;
+  box-shadow:
+    inset 0 0 0 0.0625rem color-mix(in oklab, #cbd5e1 68%, white 32%),
+    0 0.125rem 0.5rem color-mix(in oklab, #334155 34%, transparent);
+}
+
+.overlayTabTriggerImage[data-state="active"] {
+  color: #fefce8;
+  background: #a16207;
+  box-shadow:
+    inset 0 0 0 0.0625rem color-mix(in oklab, #fde68a 72%, white 28%),
+    0 0.125rem 0.5rem color-mix(in oklab, #a16207 34%, transparent);
+}
+
+.overlayTabTriggerBoth[data-state="active"] {
+  color: #f5f3ff;
+  background: #6d28d9;
+  box-shadow:
+    inset 0 0 0 0.0625rem color-mix(in oklab, #c4b5fd 72%, white 28%),
+    0 0.125rem 0.5rem color-mix(in oklab, #6d28d9 34%, transparent);
+}
+
 .spaceTabTrigger:focus-visible {
   outline: 0.125rem solid color-mix(in oklab, var(--primary) 70%, white 30%);
   outline-offset: 0.125rem;

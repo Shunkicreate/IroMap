@@ -43,7 +43,7 @@ export type SelectionDraft = {
 
 export const defaultSliceValue = 128;
 export const defaultRotation: Rotation = { x: -0.7, y: 0.6 };
-export const defaultCubeSize = 520;
+export const defaultCubeSize = 760;
 export const clipboardImageFileName = "clipboard-image.png";
 export const histogramHeightPercent = 100;
 export const histogramMinHeightPercent = 3;
