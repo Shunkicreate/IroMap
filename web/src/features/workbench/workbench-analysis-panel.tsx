@@ -7,6 +7,7 @@ import type { PhotoAnalysisResult } from "@/domain/photo-analysis/photo-analysis
 import { WorkbenchHistogramChart } from "@/features/workbench/workbench-histogram-chart";
 import analysisStyles from "@/features/workbench/workbench-analysis-shared.module.css";
 import panelStyles from "@/features/workbench/workbench-analysis-panel.module.css";
+import controlStyles from "@/features/workbench/workbench-controls.module.css";
 import {
   getHueInsightLabel,
   getSaturationInsightLabel,
@@ -79,6 +80,7 @@ export function WorkbenchAnalysisPanel({
       <div className={panelStyles.controls}>
         <button
           type="button"
+          className={controlStyles.actionButton}
           onClick={() => void onCopyHistogram()}
           disabled={luminanceHistogram.length === 0}
         >
