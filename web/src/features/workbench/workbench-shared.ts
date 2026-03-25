@@ -20,6 +20,7 @@ export type WorkbenchTarget = {
   targetId: string;
   label: string;
   file: File | null;
+  analysisId: string | null;
   result: PhotoAnalysisResult | null;
   previewUrl: string;
   statusMessage: string;
@@ -72,6 +73,7 @@ export const emptyTarget = (targetId: string, label: string): WorkbenchTarget =>
   targetId,
   label,
   file: null,
+  analysisId: null,
   result: null,
   previewUrl: "",
   statusMessage: "",
