@@ -64,6 +64,19 @@ const selectionOverlayStroke = "#f97316";
 const hoverOverlayStroke = "#ffffff";
 const focusOverlayRadius = 6.5;
 
+const areSameColor = (
+  left: RgbColor | null | undefined,
+  right: RgbColor | null | undefined
+): boolean => {
+  if (!left && !right) {
+    return true;
+  }
+  if (!left || !right) {
+    return false;
+  }
+  return left.r === right.r && left.g === right.g && left.b === right.b;
+};
+
 const getSliceAxisLabel = (axis: SliceAxis): string => {
   if (axis === "lab-l") {
     return "L*";
@@ -116,6 +129,7 @@ export function RgbCubeCanvas({
   const pendingHoverPointerRef = useRef<{ x: number; y: number } | null>(null);
   const pendingDisplayRotationRef = useRef<Rotation | null>(null);
   const displayRotationRef = useRef(rotation);
+  const lastPublishedHoverColorRef = useRef<RgbColor | null>(null);
   const [localHoverColor, setLocalHoverColor] = useState<RgbColor | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isPointerInside, setIsPointerInside] = useState(false);
@@ -230,7 +244,7 @@ export function RgbCubeCanvas({
           .sort((left, right) => left.depth - right.depth)
       : [];
 
-    projectedPointsRef.current = [...projectedGrid, ...projectedImage];
+    projectedPointsRef.current = projectedImage;
 
     for (const point of projectedGrid) {
       context.fillStyle = `rgb(${point.color.r}, ${point.color.g}, ${point.color.b})`;
@@ -394,8 +408,13 @@ export function RgbCubeCanvas({
     pendingHoverPointerRef.current = null;
     const nearest = findNearestColor(pointer.x, pointer.y);
     const nextHoverColor = nearest ? clampRgb(nearest) : null;
-    setLocalHoverColor(nextHoverColor);
-    onHoverColorChange(nextHoverColor);
+    setLocalHoverColor((current) =>
+      areSameColor(current, nextHoverColor) ? current : nextHoverColor
+    );
+    if (!areSameColor(lastPublishedHoverColorRef.current, nextHoverColor)) {
+      lastPublishedHoverColorRef.current = nextHoverColor;
+      onHoverColorChange(nextHoverColor);
+    }
   };
 
   const scheduleInteractionFrame = (): void => {
@@ -482,7 +501,10 @@ export function RgbCubeCanvas({
     pendingHoverPointerRef.current = null;
     pendingDisplayRotationRef.current = null;
     setLocalHoverColor(null);
-    onHoverColorChange(null);
+    if (!areSameColor(lastPublishedHoverColorRef.current, null)) {
+      lastPublishedHoverColorRef.current = null;
+      onHoverColorChange(null);
+    }
   };
 
   useEffect(() => {
