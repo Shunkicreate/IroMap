@@ -1246,7 +1246,7 @@
 }
 
 .landingRoot {
-  inline-size: min(100% - 1.5rem, 92.5rem);
+  inline-size: calc(100% - 1.5rem);
   margin: 0.75rem auto 1.75rem;
   display: grid;
   gap: 0.875rem;
@@ -1302,6 +1302,10 @@
 }
 
 @media (max-width: 39.9375em) {
+  .landingRoot {
+    inline-size: calc(100% - 1rem);
+  }
+
   .pageHeader p {
     display: none;
   }
