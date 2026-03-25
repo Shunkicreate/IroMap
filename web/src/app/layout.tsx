@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -34,6 +35,10 @@ export const metadata: Metadata = {
   },
 };
 
+const googleAnalyticsMeasurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+const isGoogleAnalyticsEnabled =
+  process.env.NODE_ENV === "production" && Boolean(googleAnalyticsMeasurementId);
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -41,6 +46,22 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja" suppressHydrationWarning>
+      {isGoogleAnalyticsEnabled && googleAnalyticsMeasurementId ? (
+        <>
+          <Script
+            async
+            src={`https://www.googletagmanager.com/gtag/js?id=${googleAnalyticsMeasurementId}`}
+          />
+          <Script id="google-analytics">
+            {`
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', '${googleAnalyticsMeasurementId}');
+            `}
+          </Script>
+        </>
+      ) : null}
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ThemeProvider
           attribute="class"

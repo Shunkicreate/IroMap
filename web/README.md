@@ -20,6 +20,16 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
+## Google Analytics
+
+Set the GA4 Measurement ID with a public env var:
+
+```bash
+NEXT_PUBLIC_GA_MEASUREMENT_ID=G-C80RCZLC71
+```
+
+The Google Analytics script is rendered only in production builds. It is not injected in local development.
+
 ## UI Test (Playwright)
 
 ```bash
