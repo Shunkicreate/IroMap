@@ -104,15 +104,12 @@
 .toggleLabel {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.625rem;
+  min-inline-size: fit-content;
   color: var(--workbench-text);
   font-size: 0.88rem;
   cursor: pointer;
   user-select: none;
-}
-
-.toggleLabel input[type="checkbox"] {
-  margin: 0;
 }
 
 .metricLabelWithInfo {

@@ -6,6 +6,7 @@ import { PersistedDisclosure } from "@/components/workbench/persisted-disclosure
 import { usePersistedState } from "@/components/workbench/use-persisted-state";
 import { PanelHeader } from "@/components/workbench/panel-header";
 import { usePersistedBoolean } from "@/components/workbench/use-persisted-boolean";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { rgbToHex } from "@/domain/color/color-format";
 import { type ColorSpace3d, type RgbColor, type SliceAxis } from "@/domain/color/color-types";
@@ -746,38 +747,36 @@ export function ColorWorkbench() {
                 </div>
                 <div className={controlStyles.toggleRow}>
                   <label className={controlStyles.toggleLabel}>
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={isCubeImageMappingVisible}
-                      onChange={(event) => setIsCubeImageMappingVisible(event.target.checked)}
+                      onCheckedChange={(checked) => setIsCubeImageMappingVisible(checked === true)}
                       aria-label={t("workbenchShowWhiteMappingCube")}
                     />
                     <span>{t("workbenchShowWhiteMappingCube")}</span>
                   </label>
                   <label className={controlStyles.toggleLabel}>
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={isCubeSelectionMappingVisible}
-                      onChange={(event) => setIsCubeSelectionMappingVisible(event.target.checked)}
+                      onCheckedChange={(checked) =>
+                        setIsCubeSelectionMappingVisible(checked === true)
+                      }
                       aria-label={t("workbenchShowSelectedMappingCube")}
                     />
                     <span>{t("workbenchShowSelectedMappingCube")}</span>
                   </label>
                 </div>
                 <label className={controlStyles.toggleLabel}>
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={isAxisGuideVisible}
-                    onChange={(event) => setIsAxisGuideVisible(event.target.checked)}
+                    onCheckedChange={(checked) => setIsAxisGuideVisible(checked === true)}
                     aria-label={t("cubeShowAxisGuide")}
                   />
                   <span>{t("cubeShowAxisGuide")}</span>
                 </label>
                 <label className={controlStyles.toggleLabel}>
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={isCubeSizeSliderVisible}
-                    onChange={(event) => setIsCubeSizeSliderVisible(event.target.checked)}
+                    onCheckedChange={(checked) => setIsCubeSizeSliderVisible(checked === true)}
                     aria-label={t("cubeShowSizeSlider")}
                   />
                   <span>{t("cubeShowSizeSlider")}</span>
