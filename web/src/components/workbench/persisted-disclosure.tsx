@@ -1,54 +1,48 @@
 "use client";
 
-import { useId, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { usePersistedBoolean } from "@/components/workbench/use-persisted-boolean";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { cn } from "@/lib/utils";
 
 type Props = {
   storageKey: string;
-  isdefaultOpen: boolean;
+  defaultOpen: boolean;
   summary: string;
   children: ReactNode;
   className?: string;
   contentClassName?: string;
 };
 
-export function PersistedDisclosure({
-  storageKey,
-  isdefaultOpen,
-  summary,
-  children,
-  className = "",
-  contentClassName = "",
-}: Props) {
+const accordionItemValue = "persisted-disclosure";
+
+export function PersistedDisclosure(props: Props) {
   const [isOpen, setIsOpen] = usePersistedBoolean({
-    storageKey,
-    isdefaultValue: isdefaultOpen,
+    storageKey: props.storageKey,
+    defaultValue: props.defaultOpen,
   });
-  const contentId = useId();
 
   return (
-    <div className={`persistedDisclosure${className ? ` ${className}` : ""}`}>
-      <button
-        type="button"
-        className="persistedDisclosureTrigger"
-        aria-expanded={isOpen}
-        aria-controls={contentId}
-        onClick={() => setIsOpen((iscurrentOpen) => !iscurrentOpen)}
-      >
-        <span>{summary}</span>
-        <span className="persistedDisclosureIcon" aria-hidden="true">
-          {isOpen ? "−" : "+"}
-        </span>
-      </button>
-
-      {isOpen ? (
-        <div
-          id={contentId}
-          className={`persistedDisclosureContent${contentClassName ? ` ${contentClassName}` : ""}`}
-        >
-          {children}
-        </div>
-      ) : null}
-    </div>
+    <Accordion
+      type="single"
+      collapsible
+      value={isOpen ? accordionItemValue : ""}
+      onValueChange={(value) => setIsOpen(value === accordionItemValue)}
+      className={cn("persistedDisclosure", props.className)}
+    >
+      <AccordionItem value={accordionItemValue} className="border-b-0">
+        <AccordionTrigger className="persistedDisclosureTrigger px-0 py-0 hover:no-underline">
+          <span>{props.summary}</span>
+        </AccordionTrigger>
+        <AccordionContent className={cn("persistedDisclosureContent", props.contentClassName)}>
+          {props.children}
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   );
 }

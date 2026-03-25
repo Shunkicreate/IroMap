@@ -105,19 +105,19 @@ export function ColorWorkbench() {
   );
   const [isCubeImageMappingVisible, setIsCubeImageMappingVisible] = usePersistedBoolean({
     storageKey: storageKeys.cubeImageMapping,
-    isdefaultValue: true,
+    defaultValue: true,
   });
   const [isCubeSelectionMappingVisible, setIsCubeSelectionMappingVisible] = usePersistedBoolean({
     storageKey: storageKeys.cubeSelectionMapping,
-    isdefaultValue: true,
+    defaultValue: true,
   });
   const [isSliceImageMappingVisible, setIsSliceImageMappingVisible] = usePersistedBoolean({
     storageKey: storageKeys.sliceImageMapping,
-    isdefaultValue: true,
+    defaultValue: true,
   });
   const [isSliceSelectionMappingVisible, setIsSliceSelectionMappingVisible] = usePersistedBoolean({
     storageKey: storageKeys.sliceSelectionMapping,
-    isdefaultValue: true,
+    defaultValue: true,
   });
   const baselineSelectionState = selectionStateByTarget.baseline ?? defaultSelectionState;
   const activeBaselineSelection = baselineSelectionState.activeSelection;
@@ -604,7 +604,7 @@ export function ColorWorkbench() {
 
             <PersistedDisclosure
               storageKey={storageKeys.cubeOptionsPanel}
-              isdefaultOpen={false}
+              defaultOpen={false}
               summary={t("workbenchDisplayOptionsDisclosure")}
               className={controlStyles.inlineDisclosure}
               contentClassName={controlStyles.inlineDisclosureContent}
