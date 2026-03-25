@@ -11,6 +11,7 @@
 - `docs/development/coding-rules.md`: コーディング規約と依存ルール
 - `docs/development/branch-rules.md`: ブランチ運用ルールと GitHub 品質ゲート
 - `docs/development/codex-rules.md`: Codex Rules の設計・運用方針
+- `docs/development/performance-benchmark.md`: ローカル性能計測手順と基準値
 
 ## 2. 基本原則
 
