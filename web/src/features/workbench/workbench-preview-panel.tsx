@@ -1,7 +1,7 @@
 "use client";
 
 import NextImage from "next/image";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { PersistedDisclosure } from "@/components/workbench/persisted-disclosure";
 import { PanelHeader } from "@/components/workbench/panel-header";
 import type { PhotoSample, TargetSelectionState } from "@/domain/photo-analysis/photo-analysis";
@@ -48,6 +48,8 @@ export function WorkbenchPreviewPanel({
 }: Props) {
   const imageWrapRef = useRef<HTMLDivElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
+  const [localHoverSample, setLocalHoverSample] = useState<PhotoSample | null>(null);
+  const [isPointerInside, setIsPointerInside] = useState(false);
 
   const getPreviewBounds = (): DOMRect | null => {
     if (imageRef.current) {
@@ -89,6 +91,8 @@ export function WorkbenchPreviewPanel({
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>): void => {
     const sample = mapPointerToSample(event);
+    setIsPointerInside(true);
+    setLocalHoverSample(sample);
     onHoverSampleChange(sample);
 
     if (!selectionDraft) {
@@ -104,6 +108,8 @@ export function WorkbenchPreviewPanel({
       currentYRatio: clamp((event.clientY - bounds.top) / bounds.height, 0, 1),
     });
   };
+
+  const displayedHoverSample = isPointerInside ? localHoverSample : hoverSample;
 
   const commitDraft = (
     event: React.PointerEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement>
@@ -166,10 +172,10 @@ export function WorkbenchPreviewPanel({
         }
       : null;
   const hoverMarker =
-    hoverSample && target.result
+    displayedHoverSample && target.result
       ? {
-          x: hoverSample.x,
-          y: hoverSample.y,
+          x: displayedHoverSample.x,
+          y: displayedHoverSample.y,
         }
       : null;
   const selectedMarkers = target.result
@@ -188,7 +194,7 @@ export function WorkbenchPreviewPanel({
       <PanelHeader titleKey="photoPreviewTitle" requirementsKey="panelPhotoAnalysisRequirements" />
       <PersistedDisclosure
         storageKey={uploadDisclosureStorageKey}
-        isdefaultOpen={true}
+        defaultOpen={true}
         summary={t("workbenchUploadDisclosure")}
         className={controlStyles.inlineDisclosure}
         contentClassName={controlStyles.inlineDisclosureContent}
@@ -239,6 +245,8 @@ export function WorkbenchPreviewPanel({
         onPointerMove={handlePointerMove}
         onPointerUp={commitDraft}
         onPointerLeave={() => {
+          setIsPointerInside(false);
+          setLocalHoverSample(null);
           onHoverSampleChange(null);
           onSelectionDraftChange(null);
         }}

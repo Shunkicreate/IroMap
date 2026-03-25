@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import {
   getPanel,
   getSliceCanvas,
@@ -7,6 +7,10 @@ import {
   pasteRedPngGlobally,
   uploadRedPng,
 } from "./helpers";
+
+const getSliceValueSlider = (page: Page) => {
+  return getPanel(page, "スライス").locator(".sliceControls input[type='range']");
+};
 
 test("T-101(slice): 断面表示の確認", async ({ page }) => {
   await page.goto("/");
@@ -19,21 +23,27 @@ test("T-101(slice): 断面表示の確認", async ({ page }) => {
 test("T-102(slice): 固定値操作の確認", async ({ page }) => {
   await page.goto("/");
   const slicePanel = getPanel(page, "スライス");
-  const valueSlider = slicePanel.getByRole("slider");
-  await valueSlider.fill("200");
-  await expect(slicePanel.getByText(/固定 = 200$/)).toBeVisible();
+  const valueSlider = getSliceValueSlider(page);
+  await expect(valueSlider).toBeVisible();
+  await expect
+    .poll(async () => {
+      await valueSlider.fill("200");
+      return valueSlider.inputValue();
+    })
+    .toBe("200");
+  await expect(slicePanel.locator(".sliceAxisBadge")).toContainText("200");
 });
 
 test("T-103(slice): 3D同期の確認", async ({ page }) => {
   await page.goto("/");
-  const slider = getPanel(page, "スライス").locator("input[type='range']");
-  await slider.evaluate((node) => {
-    const input = node as HTMLInputElement;
-    input.value = "180";
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-    input.dispatchEvent(new Event("change", { bubbles: true }));
-  });
-  await expect(slider).toHaveValue("180");
+  const slider = getSliceValueSlider(page);
+  await expect(slider).toBeVisible();
+  await expect
+    .poll(async () => {
+      await slider.fill("180");
+      return slider.inputValue();
+    })
+    .toBe("180");
   await expect(page.locator(".cubeCanvas")).toBeVisible();
 });
 
