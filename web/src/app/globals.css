@@ -127,7 +127,7 @@
 }
 
 .workbenchRoot {
-  inline-size: min(100% - 1.5rem, 90rem);
+  inline-size: calc(100% - 1.5rem);
   margin: 0.5rem auto 1.5rem;
   display: grid;
   gap: 0.75rem;
@@ -240,6 +240,11 @@
   display: grid;
   gap: 0.75rem;
   grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "preview"
+    "cube"
+    "slice"
+    "metrics";
   align-items: start;
 }
 
@@ -253,6 +258,31 @@
   display: grid;
   gap: 0.75rem;
   align-content: start;
+}
+
+.workbenchPreviewRegion,
+.workbenchCubeRegion,
+.workbenchSliceRegion,
+.workbenchMetricsRegion {
+  display: grid;
+  gap: 0.75rem;
+  align-content: start;
+}
+
+.workbenchPreviewRegion {
+  grid-area: preview;
+}
+
+.workbenchCubeRegion {
+  grid-area: cube;
+}
+
+.workbenchSliceRegion {
+  grid-area: slice;
+}
+
+.workbenchMetricsRegion {
+  grid-area: metrics;
 }
 
 .visualizationGrid {
@@ -1216,7 +1246,7 @@
 }
 
 .landingRoot {
-  inline-size: min(100% - 1.5rem, 92.5rem);
+  inline-size: calc(100% - 1.5rem);
   margin: 0.75rem auto 1.75rem;
   display: grid;
   gap: 0.875rem;
@@ -1272,6 +1302,10 @@
 }
 
 @media (max-width: 39.9375em) {
+  .landingRoot {
+    inline-size: calc(100% - 1rem);
+  }
+
   .pageHeader p {
     display: none;
   }
@@ -1301,7 +1335,7 @@
   }
 
   .workbenchRoot {
-    inline-size: min(100% - 1rem, 90rem);
+    inline-size: calc(100% - 1rem);
     margin: 0.5rem auto 1rem;
     gap: 0.5rem;
   }
@@ -1324,8 +1358,15 @@
 }
 
 @media (min-width: 48em) {
+  .workbenchRoot {
+    inline-size: calc(100% - 0.75rem);
+  }
+
   .workbenchInteractiveGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      "preview cube"
+      "slice metrics";
   }
 
   .visualizationGrid {
@@ -1340,10 +1381,6 @@
 @media (min-width: 64em) {
   .workbenchMainGrid {
     grid-template-columns: minmax(0, 1.55fr) minmax(22rem, 1fr);
-  }
-
-  .workbenchInteractiveGrid {
-    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 0.95fr);
   }
 
   .photoAnalysisOverviewGrid {
@@ -1386,8 +1423,10 @@
   }
 }
 
-@media (min-width: 90em) {
+@media (min-width: 110em) {
   .workbenchInteractiveGrid {
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 0.95fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-areas: "preview cube slice metrics";
+    align-items: start;
   }
 }

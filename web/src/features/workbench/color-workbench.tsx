@@ -648,7 +648,7 @@ export function ColorWorkbench() {
   return (
     <section className="workbenchRoot">
       <div className="workbenchInteractiveGrid">
-        <div className="workbenchPreviewStack">
+        <div className="workbenchPreviewRegion">
           <WorkbenchPreviewPanel
             target={baselineTarget}
             hoverSample={hoverState.sample}
@@ -666,16 +666,9 @@ export function ColorWorkbench() {
             onPaste={handlePhotoPaste}
             onPasteButtonClick={handlePhotoPasteButtonClick}
           />
-
-          <WorkbenchMetricsPanel
-            copyFormat={copyFormat}
-            metricRows={localizedBaselineMetricRows}
-            onCopyFormatChange={setCopyFormat}
-            onCopyMetricTable={copyMetricTable}
-          />
         </div>
 
-        <div className="workbenchVisualStack">
+        <div className="workbenchCubeRegion">
           <section className="panel">
             <PanelHeader titleKey="panelRgbCube" requirementsKey="panelRgbCubeRequirements" />
 
@@ -818,23 +811,34 @@ export function ColorWorkbench() {
           </section>
         </div>
 
-        <SliceCanvas
-          space={space}
-          axis={sliceAxis}
-          value={sliceValue}
-          displayOptionsStorageKey={storageKeys.sliceOptionsPanel}
-          mappedSamples={sliceMappedSamples}
-          selectedSamples={selectedSamples}
-          ismappedSamplesVisible={isSliceImageMappingVisible}
-          isselectedSamplesVisible={isSliceSelectionMappingVisible}
-          hoverColor={hoverColor}
-          onAxisChange={handleSliceAxisChange}
-          onValueChange={setSliceValue}
-          onHoverColorChange={(color) => handleColorHover(color, "slice")}
-          onColorSelect={handleColorSelect}
-          onMappedSamplesVisibilityChange={setIsSliceImageMappingVisible}
-          onSelectedSamplesVisibilityChange={setIsSliceSelectionMappingVisible}
-        />
+        <div className="workbenchSliceRegion">
+          <SliceCanvas
+            space={space}
+            axis={sliceAxis}
+            value={sliceValue}
+            displayOptionsStorageKey={storageKeys.sliceOptionsPanel}
+            mappedSamples={sliceMappedSamples}
+            selectedSamples={selectedSamples}
+            ismappedSamplesVisible={isSliceImageMappingVisible}
+            isselectedSamplesVisible={isSliceSelectionMappingVisible}
+            hoverColor={hoverColor}
+            onAxisChange={handleSliceAxisChange}
+            onValueChange={setSliceValue}
+            onHoverColorChange={(color) => handleColorHover(color, "slice")}
+            onColorSelect={handleColorSelect}
+            onMappedSamplesVisibilityChange={setIsSliceImageMappingVisible}
+            onSelectedSamplesVisibilityChange={setIsSliceSelectionMappingVisible}
+          />
+        </div>
+
+        <div className="workbenchMetricsRegion">
+          <WorkbenchMetricsPanel
+            copyFormat={copyFormat}
+            metricRows={localizedBaselineMetricRows}
+            onCopyFormatChange={setCopyFormat}
+            onCopyMetricTable={copyMetricTable}
+          />
+        </div>
       </div>
 
       <WorkbenchAnalysisPanel
