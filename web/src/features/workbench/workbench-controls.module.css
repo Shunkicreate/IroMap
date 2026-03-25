@@ -107,6 +107,8 @@
   gap: 0.5rem;
   color: var(--workbench-text);
   font-size: 0.88rem;
+  cursor: pointer;
+  user-select: none;
 }
 
 .toggleLabel input[type="checkbox"] {
