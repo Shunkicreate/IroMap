@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { PanelHeader } from "@/components/workbench/panel-header";
 import { PersistedDisclosure } from "@/components/workbench/persisted-disclosure";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   toHueDegree,
   toPercentage,
@@ -550,7 +551,7 @@ export function SliceCanvas({
     <section className="panel">
       <PanelHeader titleKey="panelSlice" requirementsKey="panelSliceRequirements" />
       <div className="sliceControls">
-        <label>
+        <label className={controlStyles.stackedLabel}>
           {t("sliceAxisLabel")}
           <select value={axis} onChange={(event) => onAxisChange(event.target.value as SliceAxis)}>
             {space === "hsl" ? (
@@ -574,7 +575,7 @@ export function SliceCanvas({
             )}
           </select>
         </label>
-        <label>
+        <label className={controlStyles.stackedLabel}>
           {t("sliceValueLabel", { value })}
           <input
             type="range"
@@ -595,19 +596,17 @@ export function SliceCanvas({
       >
         <div className={controlStyles.toggleRow}>
           <label className={controlStyles.toggleLabel}>
-            <input
-              type="checkbox"
+            <Checkbox
               checked={ismappedSamplesVisible}
-              onChange={(event) => onMappedSamplesVisibilityChange(event.target.checked)}
+              onCheckedChange={(checked) => onMappedSamplesVisibilityChange(checked === true)}
               aria-label={t("workbenchShowWhiteMappingSlice")}
             />
             <span>{t("workbenchShowWhiteMappingSlice")}</span>
           </label>
           <label className={controlStyles.toggleLabel}>
-            <input
-              type="checkbox"
+            <Checkbox
               checked={isselectedSamplesVisible}
-              onChange={(event) => onSelectedSamplesVisibilityChange(event.target.checked)}
+              onCheckedChange={(checked) => onSelectedSamplesVisibilityChange(checked === true)}
               aria-label={t("workbenchShowSelectedMappingSlice")}
             />
             <span>{t("workbenchShowSelectedMappingSlice")}</span>

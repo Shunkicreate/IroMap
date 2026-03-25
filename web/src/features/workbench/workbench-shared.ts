@@ -43,7 +43,7 @@ export type SelectionDraft = {
 
 export const defaultSliceValue = 128;
 export const defaultRotation: Rotation = { x: -0.7, y: 0.6 };
-export const defaultCubeSize = 520;
+export const defaultCubeSize = 760;
 export const clipboardImageFileName = "clipboard-image.png";
 export const histogramHeightPercent = 100;
 export const histogramMinHeightPercent = 3;
@@ -63,6 +63,14 @@ export const storageKeys = {
   cubeOptionsPanel: "iromap.workbench.cube.options.open",
   sliceOptionsPanel: "iromap.workbench.slice.options.open",
   inspectorPanel: "iromap.workbench.inspector.panel.open",
+  cubeSpace: "iromap.workbench.cube.space",
+  cubeSliceAxis: "iromap.workbench.cube.slice-axis",
+  cubeSliceValue: "iromap.workbench.cube.slice-value",
+  cubeAxisGuideVisible: "iromap.workbench.cube.axis-guide.visible",
+  cubeSizeSliderVisible: "iromap.workbench.cube.size-slider.visible",
+  cubeSize: "iromap.workbench.cube.size",
+  cubeRotation: "iromap.workbench.cube.rotation",
+  cubeOverlayMode: "iromap.workbench.cube.overlay-mode",
   cubeImageMapping: "iromap.workbench.cube.image-mapping.visible",
   cubeSelectionMapping: "iromap.workbench.cube.selection-mapping.visible",
   sliceImageMapping: "iromap.workbench.slice.image-mapping.visible",
