@@ -551,7 +551,7 @@ export function SliceCanvas({
     <section className="panel">
       <PanelHeader titleKey="panelSlice" requirementsKey="panelSliceRequirements" />
       <div className="sliceControls">
-        <label>
+        <label className={controlStyles.stackedLabel}>
           {t("sliceAxisLabel")}
           <select value={axis} onChange={(event) => onAxisChange(event.target.value as SliceAxis)}>
             {space === "hsl" ? (
@@ -575,7 +575,7 @@ export function SliceCanvas({
             )}
           </select>
         </label>
-        <label>
+        <label className={controlStyles.stackedLabel}>
           {t("sliceValueLabel", { value })}
           <input
             type="range"

@@ -55,7 +55,7 @@ export function WorkbenchMetricsPanel({
       </div>
 
       <div className={panelStyles.controls}>
-        <label>
+        <label className={controlStyles.stackedLabel}>
           {t("workbenchCopyFormatWorkbenchLabel")}
           <select
             value={copyFormat}

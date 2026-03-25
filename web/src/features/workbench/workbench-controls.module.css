@@ -115,6 +115,13 @@
   white-space: nowrap;
 }
 
+.stackedLabel {
+  display: grid;
+  gap: 0.375rem;
+  color: var(--workbench-muted);
+  font-size: 0.9rem;
+}
+
 .metricLabelWithInfo {
   display: inline-flex;
   align-items: center;

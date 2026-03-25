@@ -775,7 +775,7 @@ export function ColorWorkbench() {
                   </label>
                 </div>
                 {isCubeSizeSliderVisible ? (
-                  <label>
+                  <label className={controlStyles.stackedLabel}>
                     {t("cubeSizeLabel", { size: cubeSize })}
                     <input
                       type="range"
