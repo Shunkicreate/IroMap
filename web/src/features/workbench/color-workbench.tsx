@@ -107,6 +107,58 @@ const parseRotation = (rawValue: string): Rotation | null => {
   return null;
 };
 
+type SharedHoverEvent =
+  | {
+      kind: "sample";
+      targetId: string;
+      source: HoverState["source"];
+      sample: PhotoSample | null;
+    }
+  | {
+      kind: "color";
+      targetId: string;
+      source: HoverState["source"];
+      color: RgbColor | null;
+    };
+
+const areSameHoverState = (left: HoverState, right: HoverState): boolean => {
+  return (
+    left.targetId === right.targetId &&
+    left.source === right.source &&
+    left.sample?.sampleId === right.sample?.sampleId
+  );
+};
+
+const areSameSharedHoverEvent = (
+  left: SharedHoverEvent | null,
+  right: SharedHoverEvent | null
+): boolean => {
+  if (!left && !right) {
+    return true;
+  }
+  if (!left || !right) {
+    return false;
+  }
+  if (
+    left.kind !== right.kind ||
+    left.targetId !== right.targetId ||
+    left.source !== right.source
+  ) {
+    return false;
+  }
+  if (left.kind === "sample" && right.kind === "sample") {
+    return left.sample?.sampleId === right.sample?.sampleId;
+  }
+  if (left.kind === "color" && right.kind === "color") {
+    return (
+      left.color?.r === right.color?.r &&
+      left.color?.g === right.color?.g &&
+      left.color?.b === right.color?.b
+    );
+  }
+  return false;
+};
+
 export function ColorWorkbench() {
   const [baselineTarget, setBaselineTarget] = useState<WorkbenchTarget>(() =>
     emptyTarget("baseline", "Baseline")
@@ -121,7 +173,7 @@ export function ColorWorkbench() {
     sample: null,
     source: "preview",
   });
-  const pendingSharedHoverRef = useRef<HoverState | null>(null);
+  const pendingSharedHoverRef = useRef<SharedHoverEvent | null>(null);
   const sharedHoverFrameRef = useRef<number | null>(null);
   const [selectedColor, setSelectedColor] = useState<RgbColor | null>(null);
   const [copyFormat, setCopyFormat] = useState<ExportFormat>("markdown");
@@ -455,26 +507,56 @@ export function ColorWorkbench() {
     setLiveMessage(t("workbenchSelectionUpdated"));
   };
 
-  const flushSharedHover = (): void => {
-    sharedHoverFrameRef.current = null;
-    const nextHover = pendingSharedHoverRef.current;
+  const clearSharedHoverNow = (source: HoverState["source"]): void => {
     pendingSharedHoverRef.current = null;
-    if (!nextHover) {
-      return;
+    if (sharedHoverFrameRef.current != null) {
+      window.cancelAnimationFrame(sharedHoverFrameRef.current);
+      sharedHoverFrameRef.current = null;
     }
     setSharedHoverState((current) => {
-      if (
-        current.targetId === nextHover.targetId &&
-        current.source === nextHover.source &&
-        current.sample?.sampleId === nextHover.sample?.sampleId
-      ) {
-        return current;
-      }
-      return nextHover;
+      const nextState: HoverState = {
+        targetId: baselineTarget.targetId,
+        sample: null,
+        source,
+      };
+      return areSameHoverState(current, nextState) ? current : nextState;
     });
   };
 
-  const enqueueSharedHover = (nextHover: HoverState): void => {
+  const flushSharedHover = (): void => {
+    sharedHoverFrameRef.current = null;
+    const nextHoverEvent = pendingSharedHoverRef.current;
+    pendingSharedHoverRef.current = null;
+    if (!nextHoverEvent) {
+      return;
+    }
+
+    const nextHover: HoverState =
+      nextHoverEvent.kind === "sample"
+        ? {
+            targetId: nextHoverEvent.targetId,
+            sample: nextHoverEvent.sample,
+            source: nextHoverEvent.source,
+          }
+        : {
+            targetId: nextHoverEvent.targetId,
+            sample: findNearestSampleByColor(
+              baselineTarget.result,
+              baselineBuckets,
+              nextHoverEvent.color
+            ),
+            source: nextHoverEvent.source,
+          };
+
+    setSharedHoverState((current) => {
+      return areSameHoverState(current, nextHover) ? current : nextHover;
+    });
+  };
+
+  const enqueueSharedHover = (nextHover: SharedHoverEvent): void => {
+    if (areSameSharedHoverEvent(pendingSharedHoverRef.current, nextHover)) {
+      return;
+    }
     pendingSharedHoverRef.current = nextHover;
     if (sharedHoverFrameRef.current != null) {
       return;
@@ -485,11 +567,28 @@ export function ColorWorkbench() {
   };
 
   const handleColorHover = (color: RgbColor | null, source: HoverState["source"]): void => {
-    const sample = findNearestSampleByColor(baselineTarget.result, baselineBuckets, color);
+    if (!color) {
+      clearSharedHoverNow(source);
+      return;
+    }
     enqueueSharedHover({
       targetId: baselineTarget.targetId,
-      sample,
+      kind: "color",
+      color,
       source,
+    });
+  };
+
+  const handlePreviewHover = (sample: PhotoSample | null): void => {
+    if (!sample) {
+      clearSharedHoverNow("preview");
+      return;
+    }
+    enqueueSharedHover({
+      targetId: baselineTarget.targetId,
+      kind: "sample",
+      sample,
+      source: "preview",
     });
   };
 
@@ -704,13 +803,7 @@ export function ColorWorkbench() {
             selectionState={baselineSelectionState}
             selectionDraft={selectionDraft}
             uploadDisclosureStorageKey={storageKeys.uploadPanel}
-            onHoverSampleChange={(sample) =>
-              enqueueSharedHover({
-                targetId: baselineTarget.targetId,
-                sample,
-                source: "preview",
-              })
-            }
+            onHoverSampleChange={handlePreviewHover}
             onSelectionDraftChange={setSelectionDraft}
             onSelectionCommit={handlePreviewSelectionCommit}
             onSampleSelect={handlePreviewSampleSelect}
