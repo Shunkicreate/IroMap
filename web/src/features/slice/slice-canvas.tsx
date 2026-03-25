@@ -594,7 +594,7 @@ export function SliceCanvas({
       </div>
       <PersistedDisclosure
         storageKey={displayOptionsStorageKey}
-        isdefaultOpen={false}
+        defaultOpen={false}
         summary={t("workbenchDisplayOptionsDisclosure")}
         className={controlStyles.inlineDisclosure}
         contentClassName={controlStyles.inlineDisclosureContent}

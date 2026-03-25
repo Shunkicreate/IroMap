@@ -188,7 +188,7 @@ export function WorkbenchPreviewPanel({
       <PanelHeader titleKey="photoPreviewTitle" requirementsKey="panelPhotoAnalysisRequirements" />
       <PersistedDisclosure
         storageKey={uploadDisclosureStorageKey}
-        isdefaultOpen={true}
+        defaultOpen={true}
         summary={t("workbenchUploadDisclosure")}
         className={controlStyles.inlineDisclosure}
         contentClassName={controlStyles.inlineDisclosureContent}

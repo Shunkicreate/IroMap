@@ -163,7 +163,7 @@ export function ColorInspector({
       <PanelHeader titleKey="panelInspector" requirementsKey="panelInspectorRequirements" />
       <PersistedDisclosure
         storageKey={contentStorageKey}
-        isdefaultOpen={false}
+        defaultOpen={false}
         summary={t("workbenchInspectorDisclosure")}
       >
         <div className="inspectorCards">

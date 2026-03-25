@@ -4,11 +4,11 @@ import { useEffect, useRef, useState } from "react";
 
 type Options = {
   storageKey: string;
-  isdefaultValue: boolean;
+  defaultValue: boolean;
 };
 
-export const usePersistedBoolean = ({ storageKey, isdefaultValue }: Options) => {
-  const [isValue, setIsValue] = useState<boolean>(isdefaultValue);
+export const usePersistedBoolean = (options: Options) => {
+  const [isValue, setIsValue] = useState<boolean>(options.defaultValue);
   const hasLoadedRef = useRef(false);
 
   useEffect(() => {
@@ -17,18 +17,18 @@ export const usePersistedBoolean = ({ storageKey, isdefaultValue }: Options) => 
     }
 
     try {
-      const storedValue = window.localStorage.getItem(storageKey);
+      const storedValue = window.localStorage.getItem(options.storageKey);
       if (storedValue === "true" || storedValue === "false") {
         setIsValue(storedValue === "true");
       } else {
-        setIsValue(isdefaultValue);
+        setIsValue(options.defaultValue);
       }
     } catch {
-      setIsValue(isdefaultValue);
+      setIsValue(options.defaultValue);
     } finally {
       hasLoadedRef.current = true;
     }
-  }, [isdefaultValue, storageKey]);
+  }, [options.defaultValue, options.storageKey]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !hasLoadedRef.current) {
@@ -36,11 +36,11 @@ export const usePersistedBoolean = ({ storageKey, isdefaultValue }: Options) => 
     }
 
     try {
-      window.localStorage.setItem(storageKey, String(isValue));
+      window.localStorage.setItem(options.storageKey, String(isValue));
     } catch {
       // Ignore storage failures and keep in-memory state.
     }
-  }, [isValue, storageKey]);
+  }, [isValue, options.storageKey]);
 
   return [isValue, setIsValue] as const;
 };
