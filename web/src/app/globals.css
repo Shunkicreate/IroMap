@@ -255,6 +255,16 @@
   align-content: start;
 }
 
+.workbenchPreviewRegion,
+.workbenchCubeRegion,
+.workbenchSliceRegion,
+.workbenchMetricsRegion,
+.workbenchScatterRegion {
+  display: grid;
+  gap: 0.75rem;
+  align-content: start;
+}
+
 .visualizationGrid {
   display: grid;
   gap: 0.75rem;
@@ -1318,6 +1328,31 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .workbenchPreviewRegion {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .workbenchCubeRegion {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .workbenchSliceRegion {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .workbenchMetricsRegion {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  .workbenchScatterRegion {
+    grid-column: 2;
+    grid-row: 3;
+  }
+
   .visualizationGrid {
     grid-template-rows: auto auto;
   }
@@ -1334,6 +1369,31 @@
 
   .workbenchInteractiveGrid {
     grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 0.95fr);
+  }
+
+  .workbenchPreviewRegion {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .workbenchMetricsRegion {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .workbenchCubeRegion {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .workbenchScatterRegion {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .workbenchSliceRegion {
+    grid-column: 3;
+    grid-row: 1 / span 2;
   }
 
   .photoAnalysisOverviewGrid {

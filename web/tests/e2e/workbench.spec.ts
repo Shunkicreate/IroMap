@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { getPanel } from "./helpers";
 
 test("ワークベンチの主要UIが表示される", async ({ page }) => {
   await page.goto("/");
@@ -10,6 +11,38 @@ test("ワークベンチの主要UIが表示される", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "インスペクタ" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "スライス" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "写真分析" })).toBeVisible();
+});
+
+test.describe("モバイルレイアウト", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test("主要UIが意図した順番で並ぶ", async ({ page }) => {
+    await page.goto("/");
+
+    const previewPanel = getPanel(page, "選択画像");
+    const cubePanel = getPanel(page, "3Dキューブ");
+    const slicePanel = getPanel(page, "スライス");
+    const metricsPanel = getPanel(page, "分析表");
+
+    await expect(previewPanel).toBeVisible();
+    await expect(cubePanel).toBeVisible();
+    await expect(slicePanel).toBeVisible();
+    await expect(metricsPanel).toBeVisible();
+
+    const previewBox = await previewPanel.boundingBox();
+    const cubeBox = await cubePanel.boundingBox();
+    const sliceBox = await slicePanel.boundingBox();
+    const metricsBox = await metricsPanel.boundingBox();
+
+    expect(previewBox).not.toBeNull();
+    expect(cubeBox).not.toBeNull();
+    expect(sliceBox).not.toBeNull();
+    expect(metricsBox).not.toBeNull();
+
+    expect(previewBox!.y).toBeLessThan(cubeBox!.y);
+    expect(cubeBox!.y).toBeLessThan(sliceBox!.y);
+    expect(sliceBox!.y).toBeLessThan(metricsBox!.y);
+  });
 });
 
 test("サイズスライダーの表示切り替えができる", async ({ page }) => {
