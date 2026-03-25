@@ -192,12 +192,13 @@ type PhotoSampleBufferStore = {
   labB: Int16Array;
   hue: Uint16Array;
   saturation: Uint16Array;
+  lightness: Uint16Array;
 };
 
 export type PhotoAnalysisHandle = {
   result: PhotoAnalysisResult;
   store: PhotoSampleBufferStore;
-  fullSummary: MetricSummary;
+  fullSummary: MetricSummary | null;
 };
 
 const hueBinCount = 36;
@@ -349,6 +350,8 @@ const scaleHue = (value: number): number => Math.round(value * 10);
 const unscaleHue = (value: number): number => value / 10;
 const scaleSaturation = (value: number): number => Math.round(value * 100);
 const unscaleSaturation = (value: number): number => value / 100;
+const scaleLightness = (value: number): number => Math.round(value * 100);
+const unscaleLightness = (value: number): number => value / 100;
 const shouldUseWideCoordinates = (width: number, height: number): boolean =>
   width > 65_535 || height > 65_535;
 
@@ -373,6 +376,7 @@ const samplePixelsToStore = (
   const labB = new Int16Array(capacity);
   const hue = new Uint16Array(capacity);
   const saturation = new Uint16Array(capacity);
+  const lightness = new Uint16Array(capacity);
   let count = 0;
 
   for (let row = 0; row < height; row += step) {
@@ -399,6 +403,7 @@ const samplePixelsToStore = (
       labB[count] = scaleLabComponent(lab.b);
       hue[count] = scaleHue(hsl.h);
       saturation[count] = scaleSaturation(hsl.s);
+      lightness[count] = scaleLightness(hsl.l);
       count += 1;
     }
     if (count >= maxSamples) {
@@ -408,16 +413,17 @@ const samplePixelsToStore = (
 
   return {
     count,
-    x: x.slice(0, count),
-    y: y.slice(0, count),
-    r: r.slice(0, count),
-    g: g.slice(0, count),
-    b: b.slice(0, count),
-    labL: labL.slice(0, count),
-    labA: labA.slice(0, count),
-    labB: labB.slice(0, count),
-    hue: hue.slice(0, count),
-    saturation: saturation.slice(0, count),
+    x: x.subarray(0, count),
+    y: y.subarray(0, count),
+    r: r.subarray(0, count),
+    g: g.subarray(0, count),
+    b: b.subarray(0, count),
+    labL: labL.subarray(0, count),
+    labA: labA.subarray(0, count),
+    labB: labB.subarray(0, count),
+    hue: hue.subarray(0, count),
+    saturation: saturation.subarray(0, count),
+    lightness: lightness.subarray(0, count),
   };
 };
 
@@ -436,7 +442,7 @@ const materializeSample = (store: PhotoSampleBufferStore, index: number): PhotoS
     hsl: {
       h: toHueDegree(unscaleHue(store.hue[index] ?? 0)),
       s: toPercentage(unscaleSaturation(store.saturation[index] ?? 0)),
-      l: rgbToHsl(color).l,
+      l: toPercentage(unscaleLightness(store.lightness[index] ?? 0)),
     },
     lab,
     chroma: labToChroma(lab),
@@ -689,8 +695,8 @@ const buildCubePointsFromStore = (
   indexes?: readonly number[]
 ): RgbCubePoint[] => {
   const bucketCounts = new Map<string, number>();
-  const targetIndexes = indexes ?? Array.from({ length: store.count }, (_, index) => index);
-  for (const index of targetIndexes) {
+  const total = indexes?.length ?? store.count;
+  const accumulate = (index: number): void => {
     const bucketColor = toRgbColor(
       quantizeComponent(store.r[index] ?? 0),
       quantizeComponent(store.g[index] ?? 0),
@@ -698,18 +704,26 @@ const buildCubePointsFromStore = (
     );
     const key = `${bucketColor.r}-${bucketColor.g}-${bucketColor.b}`;
     bucketCounts.set(key, (bucketCounts.get(key) ?? 0) + 1);
+  };
+  if (indexes) {
+    for (const index of indexes) {
+      accumulate(index);
+    }
+  } else {
+    for (let index = 0; index < store.count; index += 1) {
+      accumulate(index);
+    }
   }
 
   const sorted = [...bucketCounts.entries()]
     .sort((left, right) => right[1] - left[1])
     .slice(0, maxCubePointCount);
-  const total = targetIndexes.length || minimumUnit;
   return sorted.map(([key, count]) => {
     const [rText, gText, bText] = key.split("-");
     return {
       color: toRgbColor(Number(rText), Number(gText), Number(bText)),
       count,
-      ratio: count / total,
+      ratio: count / (total || minimumUnit),
     };
   });
 };
@@ -721,8 +735,8 @@ const buildHistogramBinsFromStore = (
 ): WorkbenchHistogramBin[] => {
   const { binCount, max } = getHistogramDefinition(metric);
   const bins = createBins(binCount, max);
-  const targetIndexes = indexes ?? Array.from({ length: store.count }, (_, index) => index);
-  for (const index of targetIndexes) {
+  const total = indexes?.length ?? store.count;
+  const accumulate = (index: number): void => {
     const value =
       metric === "luminance"
         ? unscaleLabComponent(store.labL[index] ?? 0)
@@ -738,15 +752,23 @@ const buildHistogramBinsFromStore = (
     const rawIndex = Math.floor((Math.min(value, normalizedMax) / normalizedMax) * binCount);
     const binIndex = Math.min(binCount - 1, Math.max(0, rawIndex));
     bins[binIndex].count += 1;
+  };
+  if (indexes) {
+    for (const index of indexes) {
+      accumulate(index);
+    }
+  } else {
+    for (let index = 0; index < store.count; index += 1) {
+      accumulate(index);
+    }
   }
-  const total = targetIndexes.length || 1;
   return bins.map((bin, index) => ({
     metric,
     binIndex: index,
     start: bin.start,
     end: bin.end,
     count: bin.count,
-    ratio: bin.count / total,
+    ratio: bin.count / (total || 1),
   }));
 };
 
@@ -755,17 +777,27 @@ const buildPhotoAnalysisResultFromStore = ({
   width,
   height,
   timings,
+  hueHistogram,
+  saturationHistogram,
+  colorAreas,
+  cubePoints,
+  samples,
 }: {
   store: PhotoSampleBufferStore;
   width: number;
   height: number;
   timings: PhotoAnalysisTimings;
+  hueHistogram: HistogramBin[];
+  saturationHistogram: HistogramBin[];
+  colorAreas: ColorArea[];
+  cubePoints: RgbCubePoint[];
+  samples: PhotoSample[];
 }): PhotoAnalysisResult => ({
-  hueHistogram: buildHistogramBinsFromStore(store, "hue"),
-  saturationHistogram: buildHistogramBinsFromStore(store, "saturation"),
-  colorAreas: calculateColorAreasFromStore(store),
-  cubePoints: buildCubePointsFromStore(store),
-  samples: materializeSamples(store),
+  hueHistogram,
+  saturationHistogram,
+  colorAreas,
+  cubePoints,
+  samples,
   width,
   height,
   elapsedMs: timings.totalMs,
@@ -898,15 +930,24 @@ export const createPhotoAnalysisHandle = ({
   const store = samplePixelsToStore(imageData, step, maxSampleCount);
   const samplingMs = now() - samplingStartAt;
   const histogramStartAt = now();
-  buildHistogramBinsFromStore(store, "hue");
-  buildHistogramBinsFromStore(store, "saturation");
+  const hueHistogram = buildHistogramBinsFromStore(store, "hue").map((bin) => ({
+    start: bin.start,
+    end: bin.end,
+    count: bin.count,
+  }));
+  const saturationHistogram = buildHistogramBinsFromStore(store, "saturation").map((bin) => ({
+    start: bin.start,
+    end: bin.end,
+    count: bin.count,
+  }));
   const histogramMs = now() - histogramStartAt;
   const colorAreasStartAt = now();
-  calculateColorAreasFromStore(store);
+  const colorAreas = calculateColorAreasFromStore(store);
   const colorAreasMs = now() - colorAreasStartAt;
   const cubePointsStartAt = now();
-  buildCubePointsFromStore(store);
+  const cubePoints = buildCubePointsFromStore(store);
   const cubePointsMs = now() - cubePointsStartAt;
+  const samples = materializeSamples(store);
   const timings = {
     totalMs: now() - startAt,
     samplingMs,
@@ -920,9 +961,14 @@ export const createPhotoAnalysisHandle = ({
       width: imageData.width,
       height: imageData.height,
       timings,
+      hueHistogram,
+      saturationHistogram,
+      colorAreas,
+      cubePoints,
+      samples,
     }),
     store,
-    fullSummary: buildMetricSummaryFromStore(store),
+    fullSummary: null,
   };
 };
 
@@ -980,6 +1026,9 @@ export const buildDerivedPhotoAnalysisFromHandle = ({
   selectionState: TargetSelectionState | null | undefined;
 }): DerivedPhotoAnalysis => {
   const startAt = now();
+  if (!handle.fullSummary) {
+    handle.fullSummary = buildMetricSummaryFromStore(handle.store);
+  }
   const selectionStartAt = now();
   const selectedSamples = getSelectedSamples(handle.result, selectionState);
   const selectionMs = now() - selectionStartAt;
