@@ -55,6 +55,11 @@ test.describe("ワイドレイアウト", () => {
   test("主要UIが横並びで表示される", async ({ page }) => {
     await page.goto("/");
 
+    await expect(getPanel(page, "選択画像")).toBeVisible();
+    await expect(getPanel(page, "3Dキューブ")).toBeVisible();
+    await expect(getPanel(page, "スライス")).toBeVisible();
+    await expect(getPanel(page, "分析表")).toBeVisible();
+
     const previewBox = await page.locator(".workbenchPreviewRegion").boundingBox();
     const cubeBox = await page.locator(".workbenchCubeRegion").boundingBox();
     const sliceBox = await page.locator(".workbenchSliceRegion").boundingBox();
