@@ -3,8 +3,11 @@
 import {
   analyzePhoto,
   buildDerivedPhotoAnalysis,
+  normalizeSelectionToRoi,
   type DerivedPhotoAnalysis,
   type PhotoAnalysisResult,
+  type SamplingPolicy,
+  type SelectionRefinementResult,
   type TargetSelectionState,
 } from "@/domain/photo-analysis/photo-analysis";
 import type {
@@ -31,6 +34,11 @@ type PendingTask =
   | {
       kind: "build-derived-analysis";
       resolve: (value: DerivedPhotoAnalysis) => void;
+      reject: (reason?: unknown) => void;
+    }
+  | {
+      kind: "refine-roi";
+      resolve: (value: SelectionRefinementResult) => void;
       reject: (reason?: unknown) => void;
     };
 
@@ -95,6 +103,11 @@ class PhotoAnalysisWorkerClient {
       return;
     }
 
+    if (task.kind === "refine-roi" && "refinement" in message.payload) {
+      task.resolve(message.payload.refinement);
+      return;
+    }
+
     task.reject(new Error("photo-analysis-worker-response-mismatch"));
   }
 
@@ -115,13 +128,16 @@ class PhotoAnalysisWorkerClient {
     return `analysis-${this.analysisId}`;
   }
 
-  async analyzePhoto(imageData: ImageData): Promise<AnalyzePhotoTaskResult> {
+  async analyzePhoto(
+    imageData: ImageData,
+    samplingPolicy: SamplingPolicy = "balanced"
+  ): Promise<AnalyzePhotoTaskResult> {
     const worker = this.ensureWorker();
     const analysisId = this.nextAnalysisId();
     if (!worker) {
       return {
         analysisId,
-        result: analyzePhoto(imageData),
+        result: analyzePhoto(imageData, { samplingPolicy }),
       };
     }
 
@@ -135,10 +151,11 @@ class PhotoAnalysisWorkerClient {
 
       try {
         const message: AnalysisWorkerRequest = {
-          kind: "analyze-photo",
+          kind: "analyze-base",
           requestId,
           analysisId,
           imageData,
+          samplingPolicy,
         };
         worker.postMessage(message);
       } catch (error) {
@@ -148,7 +165,7 @@ class PhotoAnalysisWorkerClient {
     }).catch(() => {
       return {
         analysisId,
-        result: analyzePhoto(imageData),
+        result: analyzePhoto(imageData, { samplingPolicy }),
       };
     });
   }
@@ -157,10 +174,12 @@ class PhotoAnalysisWorkerClient {
     analysisId,
     result,
     selectionState,
+    samplingPolicy = "balanced",
   }: {
     analysisId: string;
     result: PhotoAnalysisResult;
     selectionState: TargetSelectionState | null | undefined;
+    samplingPolicy?: SamplingPolicy;
   }): Promise<DerivedPhotoAnalysis> {
     const worker = this.ensureWorker();
     if (!worker) {
@@ -177,10 +196,11 @@ class PhotoAnalysisWorkerClient {
 
       try {
         const message: AnalysisWorkerRequest = {
-          kind: "build-derived-analysis",
+          kind: "compute-derived",
           requestId,
           analysisId,
           selectionState,
+          samplingPolicy,
         };
         worker.postMessage(message);
       } catch (error) {
@@ -190,6 +210,55 @@ class PhotoAnalysisWorkerClient {
     }).catch(() => {
       return buildDerivedPhotoAnalysis({ result, selectionState });
     });
+  }
+
+  async refineSelectionRegion({
+    analysisId,
+    result,
+    selectionState,
+    samplingPolicy = "detail",
+  }: {
+    analysisId: string;
+    result: PhotoAnalysisResult;
+    selectionState: TargetSelectionState | null | undefined;
+    samplingPolicy?: SamplingPolicy;
+  }): Promise<SelectionRefinementResult | null> {
+    const roiBounds = normalizeSelectionToRoi({
+      width: result.width,
+      height: result.height,
+      selectionState,
+    });
+    if (!roiBounds) {
+      return null;
+    }
+
+    const worker = this.ensureWorker();
+    if (!worker) {
+      return null;
+    }
+
+    const requestId = this.nextRequestId();
+    return new Promise<SelectionRefinementResult>((resolve, reject) => {
+      this.pending.set(requestId, {
+        kind: "refine-roi",
+        resolve,
+        reject,
+      });
+
+      try {
+        const message: AnalysisWorkerRequest = {
+          kind: "refine-roi",
+          requestId,
+          analysisId,
+          roiBounds,
+          samplingPolicy,
+        };
+        worker.postMessage(message);
+      } catch (error) {
+        this.pending.delete(requestId);
+        reject(error);
+      }
+    }).catch(() => null);
   }
 }
 
@@ -250,18 +319,37 @@ export const readFileAsImageData = async (file: File): Promise<ReadFileAsImageDa
   }
 };
 
-export const analyzePhotoInWorker = (imageData: ImageData): Promise<AnalyzePhotoTaskResult> => {
-  return client.analyzePhoto(imageData);
+export const analyzePhotoInWorker = (
+  imageData: ImageData,
+  samplingPolicy: SamplingPolicy = "balanced"
+): Promise<AnalyzePhotoTaskResult> => {
+  return client.analyzePhoto(imageData, samplingPolicy);
 };
 
 export const buildDerivedAnalysisInWorker = ({
   analysisId,
   result,
   selectionState,
+  samplingPolicy,
 }: {
   analysisId: string;
   result: PhotoAnalysisResult;
   selectionState: TargetSelectionState | null | undefined;
+  samplingPolicy?: SamplingPolicy;
 }): Promise<DerivedPhotoAnalysis> => {
-  return client.buildDerivedAnalysis({ analysisId, result, selectionState });
+  return client.buildDerivedAnalysis({ analysisId, result, selectionState, samplingPolicy });
+};
+
+export const refineSelectionRegionInWorker = ({
+  analysisId,
+  result,
+  selectionState,
+  samplingPolicy,
+}: {
+  analysisId: string;
+  result: PhotoAnalysisResult;
+  selectionState: TargetSelectionState | null | undefined;
+  samplingPolicy?: SamplingPolicy;
+}): Promise<SelectionRefinementResult | null> => {
+  return client.refineSelectionRegion({ analysisId, result, selectionState, samplingPolicy });
 };

@@ -1,16 +1,17 @@
 /// <reference lib="webworker" />
 
 import {
-  analyzePhoto,
-  buildDerivedPhotoAnalysis,
-  type PhotoAnalysisResult,
+  buildDerivedPhotoAnalysisFromHandle,
+  createPhotoAnalysisHandle,
+  refineSelectionRegionFromHandle,
+  type PhotoAnalysisHandle,
 } from "@/domain/photo-analysis/photo-analysis";
 import type {
   AnalysisWorkerRequest,
   AnalysisWorkerResponse,
 } from "@/features/photo-analysis/photo-analysis-worker-contract";
 
-const analyses = new Map<string, PhotoAnalysisResult>();
+const analyses = new Map<string, PhotoAnalysisHandle>();
 
 const post = (message: AnalysisWorkerResponse): void => {
   self.postMessage(message);
@@ -19,16 +20,19 @@ const post = (message: AnalysisWorkerResponse): void => {
 self.onmessage = (event: MessageEvent<AnalysisWorkerRequest>) => {
   const message = event.data;
 
-  if (message.kind === "analyze-photo") {
+  if (message.kind === "analyze-base") {
     try {
-      const result = analyzePhoto(message.imageData);
-      analyses.set(message.analysisId, result);
+      const handle = createPhotoAnalysisHandle({
+        imageData: message.imageData,
+        samplingPolicy: message.samplingPolicy,
+      });
+      analyses.set(message.analysisId, handle);
       post({
         kind: "success",
         requestId: message.requestId,
         analysisId: message.analysisId,
         payload: {
-          result,
+          result: handle.result,
         },
       });
     } catch {
@@ -42,8 +46,8 @@ self.onmessage = (event: MessageEvent<AnalysisWorkerRequest>) => {
     return;
   }
 
-  const result = analyses.get(message.analysisId);
-  if (!result) {
+  const handle = analyses.get(message.analysisId);
+  if (!handle) {
     post({
       kind: "error",
       requestId: message.requestId,
@@ -53,17 +57,43 @@ self.onmessage = (event: MessageEvent<AnalysisWorkerRequest>) => {
     return;
   }
 
+  if (message.kind === "compute-derived") {
+    try {
+      const derived = buildDerivedPhotoAnalysisFromHandle({
+        handle,
+        selectionState: message.selectionState,
+      });
+      post({
+        kind: "success",
+        requestId: message.requestId,
+        analysisId: message.analysisId,
+        payload: {
+          derived,
+        },
+      });
+    } catch {
+      post({
+        kind: "error",
+        requestId: message.requestId,
+        analysisId: message.analysisId,
+        error: "derived-analysis-failed",
+      });
+    }
+    return;
+  }
+
   try {
-    const derived = buildDerivedPhotoAnalysis({
-      result,
-      selectionState: message.selectionState,
+    const refinement = refineSelectionRegionFromHandle({
+      handle,
+      roiBounds: message.roiBounds,
+      samplingPolicy: message.samplingPolicy,
     });
     post({
       kind: "success",
       requestId: message.requestId,
       analysisId: message.analysisId,
       payload: {
-        derived,
+        refinement,
       },
     });
   } catch {
@@ -71,7 +101,7 @@ self.onmessage = (event: MessageEvent<AnalysisWorkerRequest>) => {
       kind: "error",
       requestId: message.requestId,
       analysisId: message.analysisId,
-      error: "derived-analysis-failed",
+      error: "roi-refinement-failed",
     });
   }
 };

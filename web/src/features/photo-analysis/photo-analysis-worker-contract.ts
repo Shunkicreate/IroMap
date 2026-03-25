@@ -1,24 +1,40 @@
 import type {
   DerivedPhotoAnalysis,
+  NormalizedRoiBounds,
   PhotoAnalysisResult,
+  SamplingPolicy,
+  SelectionRefinementResult,
   TargetSelectionState,
 } from "@/domain/photo-analysis/photo-analysis";
 
 export type AnalyzePhotoWorkerRequest = {
-  kind: "analyze-photo";
+  kind: "analyze-base";
   requestId: number;
   analysisId: string;
   imageData: ImageData;
+  samplingPolicy?: SamplingPolicy;
 };
 
 export type BuildDerivedAnalysisWorkerRequest = {
-  kind: "build-derived-analysis";
+  kind: "compute-derived";
   requestId: number;
   analysisId: string;
   selectionState: TargetSelectionState | null | undefined;
+  samplingPolicy?: SamplingPolicy;
 };
 
-export type AnalysisWorkerRequest = AnalyzePhotoWorkerRequest | BuildDerivedAnalysisWorkerRequest;
+export type RefineRoiWorkerRequest = {
+  kind: "refine-roi";
+  requestId: number;
+  analysisId: string;
+  roiBounds: NormalizedRoiBounds;
+  samplingPolicy?: SamplingPolicy;
+};
+
+export type AnalysisWorkerRequest =
+  | AnalyzePhotoWorkerRequest
+  | BuildDerivedAnalysisWorkerRequest
+  | RefineRoiWorkerRequest;
 
 export type AnalyzePhotoWorkerSuccessResponse = {
   kind: "success";
@@ -38,14 +54,28 @@ export type BuildDerivedAnalysisWorkerSuccessResponse = {
   };
 };
 
+export type RefineRoiWorkerSuccessResponse = {
+  kind: "success";
+  requestId: number;
+  analysisId: string;
+  payload: {
+    refinement: SelectionRefinementResult;
+  };
+};
+
 export type AnalysisWorkerErrorResponse = {
   kind: "error";
   requestId: number;
   analysisId: string;
-  error: "photo-analysis-failed" | "derived-analysis-failed" | "analysis-not-found";
+  error:
+    | "photo-analysis-failed"
+    | "derived-analysis-failed"
+    | "analysis-not-found"
+    | "roi-refinement-failed";
 };
 
 export type AnalysisWorkerResponse =
   | AnalyzePhotoWorkerSuccessResponse
   | BuildDerivedAnalysisWorkerSuccessResponse
+  | RefineRoiWorkerSuccessResponse
   | AnalysisWorkerErrorResponse;

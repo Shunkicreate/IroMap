@@ -16,11 +16,13 @@ import {
   serializeMetricRows,
   type ExportFormat,
   type PhotoSample,
+  type SelectionRefinementResult,
   type TargetSelectionState,
 } from "@/domain/photo-analysis/photo-analysis";
 import {
   analyzePhotoInWorker,
   buildDerivedAnalysisInWorker,
+  refineSelectionRegionInWorker,
   readFileAsImageData,
 } from "@/features/photo-analysis/photo-analysis-client";
 import { recordPerformanceEntry } from "@/features/photo-analysis/photo-analysis-performance";
@@ -103,6 +105,9 @@ export function ColorWorkbench() {
       selectionState: defaultSelectionState,
     })
   );
+  const [selectionRefinement, setSelectionRefinement] = useState<SelectionRefinementResult | null>(
+    null
+  );
   const [isCubeImageMappingVisible, setIsCubeImageMappingVisible] = usePersistedBoolean({
     storageKey: storageKeys.cubeImageMapping,
     isdefaultValue: true,
@@ -157,6 +162,7 @@ export function ColorWorkbench() {
             selectionState: defaultSelectionState,
           })
         );
+        setSelectionRefinement(null);
         return;
       }
 
@@ -175,7 +181,7 @@ export function ColorWorkbench() {
       try {
         const startedAt = performance.now();
         const { imageData, decodeMs } = await readFileAsImageData(file);
-        const { analysisId, result } = await analyzePhotoInWorker(imageData);
+        const { analysisId, result } = await analyzePhotoInWorker(imageData, "balanced");
         if (isStale) {
           return;
         }
@@ -202,6 +208,7 @@ export function ColorWorkbench() {
           statusMessage: success,
           error: "",
         }));
+        setSelectionRefinement(null);
       } catch {
         if (isStale) {
           return;
@@ -242,6 +249,7 @@ export function ColorWorkbench() {
       analysisId,
       result,
       selectionState: baselineSelectionState,
+      samplingPolicy: "balanced",
     }).then((nextDerived) => {
       if (isStale) {
         return;
@@ -254,6 +262,28 @@ export function ColorWorkbench() {
         totalMs: nextDerived.timings.totalMs,
       });
       setDerivedAnalysis(nextDerived);
+
+      if (!baselineSelectionState.activeSelection?.bounds) {
+        return;
+      }
+
+      const refinementStartedAt = performance.now();
+      void refineSelectionRegionInWorker({
+        analysisId,
+        result,
+        selectionState: baselineSelectionState,
+        samplingPolicy: "detail",
+      }).then((refinement) => {
+        if (isStale || !refinement) {
+          return;
+        }
+        recordPerformanceEntry("workbench.roi-refine.total", refinementStartedAt, {
+          analysisId,
+          selectedSamples: refinement.selectedSamples.length,
+          totalMs: refinement.timings.totalMs,
+        });
+        setSelectionRefinement(refinement);
+      });
     });
 
     return () => {
@@ -271,7 +301,8 @@ export function ColorWorkbench() {
   const baselineHueHistogram = derivedAnalysis.hueHistogram;
   const baselineSaturationHistogram = derivedAnalysis.saturationHistogram;
 
-  const selectionCubePoints = derivedAnalysis.selectionCubePoints;
+  const selectionCubePoints =
+    selectionRefinement?.selectionCubePoints ?? derivedAnalysis.selectionCubePoints;
   const hoverColor = hoverState.sample?.color ?? null;
 
   const selectedSample = useMemo(() => {
@@ -283,6 +314,10 @@ export function ColorWorkbench() {
   const selectedSamples = useMemo(() => {
     if (!baselineTarget.result || !activeBaselineSelection || !selectedSample) {
       return [];
+    }
+
+    if (selectionRefinement) {
+      return selectionRefinement.selectedSamples;
     }
 
     if (activeBaselineSelection.source === "image-rect") {
@@ -299,6 +334,7 @@ export function ColorWorkbench() {
     activeBaselineSelection,
     baselineTarget.result,
     derivedAnalysis.selectedSamples,
+    selectionRefinement,
     selectedSample,
   ]);
 
@@ -340,6 +376,7 @@ export function ColorWorkbench() {
         },
       };
     });
+    setSelectionRefinement(null);
   };
 
   const handlePreviewSelectionCommit = (bounds: {
@@ -411,6 +448,7 @@ export function ColorWorkbench() {
     setBaselineTarget((current) => ({ ...current, file }));
     setSelectedColor(null);
     setHoverState({ targetId: "baseline", sample: null, source: "preview" });
+    setSelectionRefinement(null);
   };
 
   const getClipboardImageFile = (clipboardData: DataTransfer | null | undefined): File | null => {

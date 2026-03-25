@@ -1,11 +1,8 @@
-import {
-  labToChroma,
-  rgbToHsl,
-  rgbToHueAndSaturation,
-  rgbToLab,
-} from "@/domain/color/color-conversion";
+import { labToChroma, rgbToHsl, rgbToLab } from "@/domain/color/color-conversion";
 import { colorChannelMax } from "@/domain/color/color-constants";
 import {
+  toHueDegree,
+  toPercentage,
   toRgbColor,
   type HslColor,
   type LabColor,
@@ -52,6 +49,14 @@ export type RgbCubePoint = {
 };
 
 export type ExportFormat = "markdown" | "csv" | "tsv";
+export type SamplingPolicy = "fast" | "balanced" | "detail";
+
+export type NormalizedRoiBounds = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
 
 export type PhotoSelection = {
   selectionId: string;
@@ -160,6 +165,13 @@ export type DerivedPhotoAnalysis = {
   timings: DerivedAnalysisTimings;
 };
 
+export type SelectionRefinementResult = {
+  roiBounds: NormalizedRoiBounds;
+  selectedSamples: PhotoSample[];
+  selectionCubePoints: RgbCubePoint[];
+  timings: DerivedAnalysisTimings;
+};
+
 export type PhotoAnalysisSummary = {
   avgBrightness: number;
   avgSaturation: number;
@@ -183,13 +195,34 @@ type MetricSummary = {
   meanLab: LabColor | null;
 };
 
+type PhotoSampleBufferStore = {
+  count: number;
+  width: number;
+  height: number;
+  x: Uint16Array | Uint32Array;
+  y: Uint16Array | Uint32Array;
+  r: Uint8Array;
+  g: Uint8Array;
+  b: Uint8Array;
+  labL: Uint16Array;
+  labA: Int16Array;
+  labB: Int16Array;
+  hue: Uint16Array;
+  saturation: Uint16Array;
+};
+
+export type PhotoAnalysisHandle = {
+  imageData: ImageData;
+  result: PhotoAnalysisResult;
+  store: PhotoSampleBufferStore;
+  fullSummary: MetricSummary;
+};
+
 const hueBinCount = 36;
 const hueMax = 360;
 const saturationBinCount = 20;
 const topAreaCount = 5;
 const quantizeBucketSize = 16;
-const performanceSamplingThreshold = 100_000;
-const maxSampleCount = 200_000;
 const maxCubePointCount = 3500;
 const rgbaStride = 4;
 const alphaChannelOffset = 3;
@@ -197,13 +230,18 @@ const noAlpha = 0;
 const ratioPercent = 100;
 const ratioTolerance = 99.9;
 const othersColorValue = 96;
-const hueBucketDegrees = 10;
 const minimumUnit = 1;
 const luminanceBinCount = 20;
 const luminanceMax = 100;
 const chromaBinCount = 20;
 const chromaMax = 150;
 const highlightThreshold = 80;
+const pointSelectionRoiSize = 96;
+const samplingBudgets: Record<SamplingPolicy, number> = {
+  fast: 32_768,
+  balanced: 65_536,
+  detail: 131_072,
+};
 
 const metricDefinitions: Array<{
   group: string;
@@ -328,22 +366,70 @@ const buildAreaLabel = (color: RgbColor): string => {
   return `R${color.r}-G${color.g}-B${color.b}`;
 };
 
-const pickSamplingStep = (pixelCount: number): number => {
-  if (pixelCount <= performanceSamplingThreshold) {
+const pickSamplingStepForBudget = (
+  width: number,
+  height: number,
+  policy: SamplingPolicy = "balanced"
+): number => {
+  const budget = samplingBudgets[policy];
+  const pixelCount = width * height;
+  if (pixelCount <= budget) {
     return minimumUnit;
   }
-  return Math.ceil(Math.sqrt(pixelCount / performanceSamplingThreshold));
+  return Math.max(minimumUnit, Math.ceil(Math.sqrt(pixelCount / budget)));
 };
 
-const samplePixels = (imageData: ImageData, step: number, maxSamples: number): PhotoSample[] => {
+const scaleLabComponent = (value: number): number => Math.round(value * 100);
+const unscaleLabL = (value: number): number => value / 100;
+const unscaleLabComponent = (value: number): number => value / 100;
+const scaleHue = (value: number): number => Math.round(value * 10);
+const unscaleHue = (value: number): number => value / 10;
+const scaleSaturation = (value: number): number => Math.round(value * 100);
+const unscaleSaturation = (value: number): number => value / 100;
+const shouldUseWideCoordinates = (width: number, height: number): boolean =>
+  width > 65_535 || height > 65_535;
+
+const samplePixelsToStore = (
+  imageData: ImageData,
+  step: number,
+  maxSamples: number
+): PhotoSampleBufferStore => {
   const { data, width, height } = imageData;
-  const sampled: PhotoSample[] = [];
-  let sampleId = 0;
+  const capacity = Math.min(maxSamples, Math.ceil(width / step) * Math.ceil(height / step));
+  const xValues = shouldUseWideCoordinates(width, height)
+    ? new Uint32Array(capacity)
+    : new Uint16Array(capacity);
+  const yValues = shouldUseWideCoordinates(width, height)
+    ? new Uint32Array(capacity)
+    : new Uint16Array(capacity);
+  const r = new Uint8Array(capacity);
+  const g = new Uint8Array(capacity);
+  const b = new Uint8Array(capacity);
+  const labL = new Uint16Array(capacity);
+  const labA = new Int16Array(capacity);
+  const labB = new Int16Array(capacity);
+  const hue = new Uint16Array(capacity);
+  const saturation = new Uint16Array(capacity);
+  let count = 0;
 
   for (let y = 0; y < height; y += step) {
     for (let x = 0; x < width; x += step) {
-      if (sampled.length >= maxSamples) {
-        return sampled;
+      if (count >= maxSamples) {
+        return {
+          count,
+          width,
+          height,
+          x: xValues.slice(0, count),
+          y: yValues.slice(0, count),
+          r: r.slice(0, count),
+          g: g.slice(0, count),
+          b: b.slice(0, count),
+          labL: labL.slice(0, count),
+          labA: labA.slice(0, count),
+          labB: labB.slice(0, count),
+          hue: hue.slice(0, count),
+          saturation: saturation.slice(0, count),
+        };
       }
 
       const offset = (y * width + x) * rgbaStride;
@@ -355,78 +441,176 @@ const samplePixels = (imageData: ImageData, step: number, maxSamples: number): P
       const color = toRgbColor(data[offset], data[offset + 1], data[offset + 2]);
       const hsl = rgbToHsl(color);
       const lab = rgbToLab(color);
-
-      sampled.push({
-        sampleId,
-        x,
-        y,
-        color,
-        hsl,
-        lab,
-        chroma: labToChroma(lab),
-      });
-      sampleId += 1;
+      xValues[count] = x;
+      yValues[count] = y;
+      r[count] = color.r;
+      g[count] = color.g;
+      b[count] = color.b;
+      labL[count] = scaleLabComponent(lab.l);
+      labA[count] = scaleLabComponent(lab.a);
+      labB[count] = scaleLabComponent(lab.b);
+      hue[count] = scaleHue(hsl.h);
+      saturation[count] = scaleSaturation(hsl.s);
+      count += 1;
     }
   }
 
-  return sampled;
-};
-
-const fillHistograms = (
-  samples: PhotoSample[]
-): {
-  hue: HistogramBin[];
-  saturation: HistogramBin[];
-} => {
-  const hueBins = createBins(hueBinCount, hueMax);
-  const saturationBins = createBins(saturationBinCount, minimumUnit);
-
-  for (const sample of samples) {
-    const { hue, saturation } = rgbToHueAndSaturation(sample.color);
-    const hueIndex = Math.min(hueBinCount - 1, Math.floor(hue / hueBucketDegrees));
-    const saturationIndex = Math.min(
-      saturationBinCount - 1,
-      Math.floor(saturation * saturationBinCount)
-    );
-
-    hueBins[hueIndex].count += minimumUnit;
-    saturationBins[saturationIndex].count += minimumUnit;
-  }
-
   return {
-    hue: hueBins,
-    saturation: saturationBins,
+    count,
+    width,
+    height,
+    x: xValues.slice(0, count),
+    y: yValues.slice(0, count),
+    r: r.slice(0, count),
+    g: g.slice(0, count),
+    b: b.slice(0, count),
+    labL: labL.slice(0, count),
+    labA: labA.slice(0, count),
+    labB: labB.slice(0, count),
+    hue: hue.slice(0, count),
+    saturation: saturation.slice(0, count),
   };
 };
 
-const calculateColorAreas = (samples: PhotoSample[]): ColorArea[] => {
-  const bucketCounts = new Map<string, number>();
+const materializeSample = (store: PhotoSampleBufferStore, index: number): PhotoSample => {
+  const color = toRgbColor(store.r[index] ?? 0, store.g[index] ?? 0, store.b[index] ?? 0);
+  const lab = {
+    l: unscaleLabL(store.labL[index] ?? 0),
+    a: unscaleLabComponent(store.labA[index] ?? 0),
+    b: unscaleLabComponent(store.labB[index] ?? 0),
+  };
+  const hsl = {
+    h: toHueDegree(unscaleHue(store.hue[index] ?? 0)),
+    s: toPercentage(unscaleSaturation(store.saturation[index] ?? 0)),
+    l: rgbToHsl(color).l,
+  };
 
-  for (const sample of samples) {
+  return {
+    sampleId: index,
+    x: Number(store.x[index] ?? 0),
+    y: Number(store.y[index] ?? 0),
+    color,
+    hsl,
+    lab,
+    chroma: labToChroma(lab),
+  };
+};
+
+const materializeSamples = (
+  store: PhotoSampleBufferStore,
+  indexes?: readonly number[]
+): PhotoSample[] => {
+  const nextIndexes = indexes ?? Array.from({ length: store.count }, (_, index) => index);
+  return nextIndexes.map((index) => materializeSample(store, index));
+};
+
+const buildMetricSummaryFromStore = (
+  store: PhotoSampleBufferStore,
+  indexes?: readonly number[]
+): MetricSummary => {
+  const nextIndexes = indexes ?? Array.from({ length: store.count }, (_, index) => index);
+  const lValues: number[] = [];
+  const aValues: number[] = [];
+  const bValues: number[] = [];
+  const cValues: number[] = [];
+  const highlightAValues: number[] = [];
+  const highlightBValues: number[] = [];
+  const highlightChromaValues: number[] = [];
+
+  for (const index of nextIndexes) {
+    const l = unscaleLabL(store.labL[index] ?? 0);
+    const a = unscaleLabComponent(store.labA[index] ?? 0);
+    const b = unscaleLabComponent(store.labB[index] ?? 0);
+    const chroma = Math.sqrt(a * a + b * b);
+    lValues.push(l);
+    aValues.push(a);
+    bValues.push(b);
+    cValues.push(chroma);
+    if (l > highlightThreshold) {
+      highlightAValues.push(a);
+      highlightBValues.push(b);
+      highlightChromaValues.push(chroma);
+    }
+  }
+
+  const lMean = mean(lValues);
+  const aMean = mean(aValues);
+  const bMean = mean(bValues);
+  return {
+    lMean,
+    lStddev: standardDeviation(lValues),
+    lP95: percentile(lValues, 0.95),
+    aMean,
+    bMean,
+    cMean: mean(cValues),
+    cP95: percentile(cValues, 0.95),
+    highlightAMean: mean(highlightAValues),
+    highlightBMean: mean(highlightBValues),
+    highlightNeutralDistanceMean: mean(highlightChromaValues),
+    meanLab:
+      lMean == null || aMean == null || bMean == null ? null : { l: lMean, a: aMean, b: bMean },
+  };
+};
+
+const buildHistogramBinsFromStore = (
+  store: PhotoSampleBufferStore,
+  metric: WorkbenchHistogramMetric,
+  indexes?: readonly number[]
+): WorkbenchHistogramBin[] => {
+  const { binCount, max } = getHistogramDefinition(metric);
+  const bins = createBins(binCount, max);
+  const nextIndexes = indexes ?? Array.from({ length: store.count }, (_, index) => index);
+  for (const index of nextIndexes) {
+    const value =
+      metric === "luminance"
+        ? unscaleLabL(store.labL[index] ?? 0)
+        : metric === "hue"
+          ? unscaleHue(store.hue[index] ?? 0)
+          : metric === "saturation"
+            ? unscaleSaturation(store.saturation[index] ?? 0) / ratioPercent
+            : Math.sqrt(
+                unscaleLabComponent(store.labA[index] ?? 0) ** 2 +
+                  unscaleLabComponent(store.labB[index] ?? 0) ** 2
+              );
+    const normalizedMax = metric === "saturation" ? minimumUnit : max;
+    const rawIndex = Math.floor((Math.min(value, normalizedMax) / normalizedMax) * binCount);
+    const binIndex = Math.min(binCount - 1, Math.max(0, rawIndex));
+    bins[binIndex].count += 1;
+  }
+  const total = nextIndexes.length || 1;
+  return bins.map((bin, index) => ({
+    metric,
+    binIndex: index,
+    start: bin.start,
+    end: bin.end,
+    count: bin.count,
+    ratio: bin.count / total,
+  }));
+};
+
+const calculateColorAreasFromStore = (store: PhotoSampleBufferStore): ColorArea[] => {
+  const bucketCounts = new Map<string, number>();
+  for (let index = 0; index < store.count; index += 1) {
     const bucketColor = toRgbColor(
-      quantizeComponent(sample.color.r),
-      quantizeComponent(sample.color.g),
-      quantizeComponent(sample.color.b)
+      quantizeComponent(store.r[index] ?? 0),
+      quantizeComponent(store.g[index] ?? 0),
+      quantizeComponent(store.b[index] ?? 0)
     );
     const key = `${bucketColor.r}-${bucketColor.g}-${bucketColor.b}`;
-    const count = bucketCounts.get(key) ?? 0;
-    bucketCounts.set(key, count + 1);
+    bucketCounts.set(key, (bucketCounts.get(key) ?? 0) + 1);
   }
 
   const sorted = [...bucketCounts.entries()].sort((left, right) => right[1] - left[1]);
-  const total = samples.length || minimumUnit;
-
+  const total = store.count || minimumUnit;
   const top = sorted.slice(0, topAreaCount).map(([key, count]) => {
     const [rText, gText, bText] = key.split("-");
     const rgb = toRgbColor(Number(rText), Number(gText), Number(bText));
-
     return {
       label: buildAreaLabel(rgb),
       ratio: (count / total) * ratioPercent,
       rgb,
     };
   });
-
   const summed = top.reduce((current, area) => current + area.ratio, 0);
   if (summed < ratioTolerance && sorted.length > topAreaCount) {
     top.push({
@@ -435,8 +619,37 @@ const calculateColorAreas = (samples: PhotoSample[]): ColorArea[] => {
       rgb: toRgbColor(othersColorValue, othersColorValue, othersColorValue),
     });
   }
-
   return top;
+};
+
+const buildCubePointsFromStore = (
+  store: PhotoSampleBufferStore,
+  indexes?: readonly number[]
+): RgbCubePoint[] => {
+  const bucketCounts = new Map<string, number>();
+  const nextIndexes = indexes ?? Array.from({ length: store.count }, (_, index) => index);
+  for (const index of nextIndexes) {
+    const bucketColor = toRgbColor(
+      quantizeComponent(store.r[index] ?? 0),
+      quantizeComponent(store.g[index] ?? 0),
+      quantizeComponent(store.b[index] ?? 0)
+    );
+    const key = `${bucketColor.r}-${bucketColor.g}-${bucketColor.b}`;
+    bucketCounts.set(key, (bucketCounts.get(key) ?? 0) + 1);
+  }
+
+  const sorted = [...bucketCounts.entries()]
+    .sort((left, right) => right[1] - left[1])
+    .slice(0, maxCubePointCount);
+  const total = nextIndexes.length || minimumUnit;
+  return sorted.map(([key, count]) => {
+    const [rText, gText, bText] = key.split("-");
+    return {
+      color: toRgbColor(Number(rText), Number(gText), Number(bText)),
+      count,
+      ratio: count / total,
+    };
+  });
 };
 
 const buildRgbCubePointsCore = (samples: PhotoSample[], maxPoints: number): RgbCubePoint[] => {
@@ -768,6 +981,276 @@ export const buildDerivedPhotoAnalysis = ({
   };
 };
 
+const buildMetricRowsFromSummary = ({
+  summary,
+  sampleCount,
+  selectionCount,
+}: {
+  summary: MetricSummary;
+  sampleCount: number;
+  selectionCount: number;
+}): WorkbenchMetricRow[] => {
+  return metricDefinitions.map((definition) => {
+    const value =
+      definition.key === "l_mean"
+        ? summary.lMean
+        : definition.key === "l_stddev"
+          ? summary.lStddev
+          : definition.key === "l_p95"
+            ? summary.lP95
+            : definition.key === "a_mean"
+              ? summary.aMean
+              : definition.key === "b_mean"
+                ? summary.bMean
+                : definition.key === "c_mean" || definition.key === "neutral_distance_mean"
+                  ? summary.cMean
+                  : definition.key === "c_p95"
+                    ? summary.cP95
+                    : definition.key === "highlight_a_mean"
+                      ? summary.highlightAMean
+                      : definition.key === "highlight_b_mean"
+                        ? summary.highlightBMean
+                        : definition.key === "highlight_neutral_distance_mean"
+                          ? summary.highlightNeutralDistanceMean
+                          : selectionCount > 0 && sampleCount > 0
+                            ? (selectionCount / sampleCount) * ratioPercent
+                            : null;
+
+    return {
+      ...definition,
+      value,
+    };
+  });
+};
+
+const buildPhotoAnalysisResultFromStore = ({
+  store,
+  width,
+  height,
+  timings,
+}: {
+  store: PhotoSampleBufferStore;
+  width: number;
+  height: number;
+  timings: PhotoAnalysisTimings;
+}): PhotoAnalysisResult => {
+  const samples = materializeSamples(store);
+  return {
+    hueHistogram: buildHistogramBinsFromStore(store, "hue"),
+    saturationHistogram: buildHistogramBinsFromStore(store, "saturation"),
+    colorAreas: calculateColorAreasFromStore(store),
+    cubePoints: buildCubePointsFromStore(store),
+    samples,
+    width,
+    height,
+    elapsedMs: timings.totalMs,
+    sampledPixels: store.count,
+    timings,
+  };
+};
+
+const normalizeRoiBounds = (
+  width: number,
+  height: number,
+  bounds: NormalizedRoiBounds
+): NormalizedRoiBounds => {
+  const nextX = Math.max(0, Math.min(width - 1, Math.floor(bounds.x)));
+  const nextY = Math.max(0, Math.min(height - 1, Math.floor(bounds.y)));
+  const nextWidth = Math.max(1, Math.min(width - nextX, Math.ceil(bounds.width)));
+  const nextHeight = Math.max(1, Math.min(height - nextY, Math.ceil(bounds.height)));
+  return {
+    x: nextX,
+    y: nextY,
+    width: nextWidth,
+    height: nextHeight,
+  };
+};
+
+export const normalizeSelectionToRoi = ({
+  width,
+  height,
+  selectionState,
+}: {
+  width: number;
+  height: number;
+  selectionState: TargetSelectionState | null | undefined;
+}): NormalizedRoiBounds | null => {
+  const bounds = selectionState?.activeSelection?.bounds;
+  if (!bounds) {
+    return null;
+  }
+
+  if (bounds.width <= 1 && bounds.height <= 1) {
+    return normalizeRoiBounds(width, height, {
+      x: bounds.x - pointSelectionRoiSize / 2,
+      y: bounds.y - pointSelectionRoiSize / 2,
+      width: pointSelectionRoiSize,
+      height: pointSelectionRoiSize,
+    });
+  }
+
+  return normalizeRoiBounds(width, height, bounds);
+};
+
+export const createPhotoAnalysisHandle = ({
+  imageData,
+  samplingPolicy = "balanced",
+}: {
+  imageData: ImageData;
+  samplingPolicy?: SamplingPolicy;
+}): PhotoAnalysisHandle => {
+  const startAt = now();
+  const step = pickSamplingStepForBudget(imageData.width, imageData.height, samplingPolicy);
+  const samplingStartAt = now();
+  const store = samplePixelsToStore(imageData, step, samplingBudgets[samplingPolicy]);
+  const samplingMs = now() - samplingStartAt;
+  const histogramStartAt = now();
+  buildHistogramBinsFromStore(store, "hue");
+  buildHistogramBinsFromStore(store, "saturation");
+  const histogramMs = now() - histogramStartAt;
+  const colorAreasStartAt = now();
+  calculateColorAreasFromStore(store);
+  const colorAreasMs = now() - colorAreasStartAt;
+  const cubePointsStartAt = now();
+  buildCubePointsFromStore(store);
+  const cubePointsMs = now() - cubePointsStartAt;
+  const timings = {
+    totalMs: now() - startAt,
+    samplingMs,
+    histogramMs,
+    colorAreasMs,
+    cubePointsMs,
+  };
+  const result = buildPhotoAnalysisResultFromStore({
+    store,
+    width: imageData.width,
+    height: imageData.height,
+    timings,
+  });
+  return {
+    imageData,
+    result,
+    store,
+    fullSummary: buildMetricSummaryFromStore(store),
+  };
+};
+
+export const buildDerivedPhotoAnalysisFromHandle = ({
+  handle,
+  selectionState,
+}: {
+  handle: PhotoAnalysisHandle;
+  selectionState: TargetSelectionState | null | undefined;
+}): DerivedPhotoAnalysis => {
+  const startAt = now();
+  const selectionStartAt = now();
+  const selectedSamples = getSelectedSamples(handle.result, selectionState);
+  const selectionMs = now() - selectionStartAt;
+  const selectedIndexes = selectedSamples.map((sample) => sample.sampleId);
+  const metricsStartAt = now();
+  const metricRows = buildMetricRowsFromSummary({
+    summary: handle.fullSummary,
+    sampleCount: handle.store.count,
+    selectionCount: selectedIndexes.length,
+  });
+  const metricsMs = now() - metricsStartAt;
+  const luminanceHistogramStartAt = now();
+  const luminanceHistogram = buildHistogramBinsFromStore(handle.store, "luminance");
+  const luminanceHistogramMs = now() - luminanceHistogramStartAt;
+  const hueHistogramStartAt = now();
+  const hueHistogram = buildHistogramBinsFromStore(handle.store, "hue");
+  const hueHistogramMs = now() - hueHistogramStartAt;
+  const saturationHistogramStartAt = now();
+  const saturationHistogram = buildHistogramBinsFromStore(handle.store, "saturation");
+  const saturationHistogramMs = now() - saturationHistogramStartAt;
+  const cubePointsStartAt = now();
+  const selectionCubePoints = buildCubePointsFromStore(handle.store, selectedIndexes);
+  const cubePointsMs = now() - cubePointsStartAt;
+
+  return {
+    selectedSamples,
+    metricRows,
+    luminanceHistogram,
+    hueHistogram,
+    saturationHistogram,
+    selectionCubePoints,
+    timings: {
+      totalMs: now() - startAt,
+      selectionMs,
+      metricsMs,
+      luminanceHistogramMs,
+      hueHistogramMs,
+      saturationHistogramMs,
+      cubePointsMs,
+    },
+  };
+};
+
+export const refineSelectionRegionFromHandle = ({
+  handle,
+  roiBounds,
+  samplingPolicy = "detail",
+}: {
+  handle: PhotoAnalysisHandle;
+  roiBounds: NormalizedRoiBounds;
+  samplingPolicy?: SamplingPolicy;
+}): SelectionRefinementResult => {
+  const startAt = now();
+  const normalizedBounds = normalizeRoiBounds(handle.result.width, handle.result.height, roiBounds);
+  const imageData = handle.imageData;
+  const regionData = {
+    data: new Uint8ClampedArray(normalizedBounds.width * normalizedBounds.height * rgbaStride),
+    width: normalizedBounds.width,
+    height: normalizedBounds.height,
+    colorSpace: imageData.colorSpace,
+  } as ImageData;
+
+  for (let row = 0; row < normalizedBounds.height; row += 1) {
+    const sourceOffset =
+      ((normalizedBounds.y + row) * imageData.width + normalizedBounds.x) * rgbaStride;
+    const targetOffset = row * normalizedBounds.width * rgbaStride;
+    regionData.data.set(
+      imageData.data.subarray(sourceOffset, sourceOffset + normalizedBounds.width * rgbaStride),
+      targetOffset
+    );
+  }
+
+  const step = pickSamplingStepForBudget(regionData.width, regionData.height, samplingPolicy);
+  const selectionStartAt = now();
+  const regionStore = samplePixelsToStore(regionData, step, samplingBudgets[samplingPolicy]);
+  const selectionMs = now() - selectionStartAt;
+  for (let index = 0; index < regionStore.count; index += 1) {
+    regionStore.x[index] = Number(regionStore.x[index] ?? 0) + normalizedBounds.x;
+    regionStore.y[index] = Number(regionStore.y[index] ?? 0) + normalizedBounds.y;
+  }
+
+  const metricsStartAt = now();
+  buildMetricRowsFromSummary({
+    summary: handle.fullSummary,
+    sampleCount: handle.store.count,
+    selectionCount: regionStore.count,
+  });
+  const metricsMs = now() - metricsStartAt;
+  const cubePointsStartAt = now();
+  const selectionCubePoints = buildCubePointsFromStore(regionStore);
+  const cubePointsMs = now() - cubePointsStartAt;
+
+  return {
+    roiBounds: normalizedBounds,
+    selectedSamples: materializeSamples(regionStore),
+    selectionCubePoints,
+    timings: {
+      totalMs: now() - startAt,
+      selectionMs,
+      metricsMs,
+      luminanceHistogramMs: 0,
+      hueHistogramMs: 0,
+      saturationHistogramMs: 0,
+      cubePointsMs,
+    },
+  };
+};
+
 export const serializeMetricRows = (
   rows: WorkbenchMetricRow[],
   format: ExportFormat,
@@ -888,39 +1371,12 @@ export const serializeHistogramBins = (
     .join("\n");
 };
 
-export const analyzePhoto = (imageData: ImageData): PhotoAnalysisResult => {
-  const startAt = now();
-  const step = pickSamplingStep(imageData.width * imageData.height);
-  const samplingStartAt = now();
-  const samples = samplePixels(imageData, step, maxSampleCount);
-  const samplingMs = now() - samplingStartAt;
-  const histogramStartAt = now();
-  const { hue, saturation } = fillHistograms(samples);
-  const histogramMs = now() - histogramStartAt;
-  const colorAreasStartAt = now();
-  const colorAreas = calculateColorAreas(samples);
-  const colorAreasMs = now() - colorAreasStartAt;
-  const cubePointsStartAt = now();
-  const cubePoints = buildRgbCubePointsCore(samples, maxCubePointCount);
-  const cubePointsMs = now() - cubePointsStartAt;
-  const totalMs = now() - startAt;
-
-  return {
-    hueHistogram: hue,
-    saturationHistogram: saturation,
-    colorAreas,
-    cubePoints,
-    samples,
-    width: imageData.width,
-    height: imageData.height,
-    elapsedMs: totalMs,
-    sampledPixels: samples.length,
-    timings: {
-      totalMs,
-      samplingMs,
-      histogramMs,
-      colorAreasMs,
-      cubePointsMs,
-    },
-  };
+export const analyzePhoto = (
+  imageData: ImageData,
+  options?: { samplingPolicy?: SamplingPolicy }
+): PhotoAnalysisResult => {
+  return createPhotoAnalysisHandle({
+    imageData,
+    samplingPolicy: options?.samplingPolicy,
+  }).result;
 };
