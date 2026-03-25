@@ -22,6 +22,8 @@ import { t } from "@/i18n/translate";
 import { GraphFrame } from "@/components/graph/graph-frame";
 import type { PhotoSample } from "@/domain/photo-analysis/photo-analysis";
 import controlStyles from "@/features/workbench/workbench-controls.module.css";
+import { findNearestMappedHoverColor } from "@/features/workbench/hover-search";
+import { useLatestHoverPipeline } from "@/features/workbench/use-latest-hover-pipeline";
 
 type Props = {
   space: ColorSpace3d;
@@ -381,10 +383,6 @@ export function SliceCanvas({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const mappingCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const cursorCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const localHoverFrameRef = useRef<number | null>(null);
-  const pendingLocalHoverColorRef = useRef<RgbColor | null>(null);
-  const localHoverColorRef = useRef<RgbColor | null>(null);
-  const isPointerInsideRef = useRef(false);
   const [localHoverColor, setLocalHoverColor] = useState<RgbColor | null>(null);
   const [isPointerInside, setIsPointerInside] = useState(false);
   const labels = getPlaneLabels(axis);
@@ -398,14 +396,24 @@ export function SliceCanvas({
     [axis, mappedSamples, value]
   );
   const displayHoverColor = isPointerInside ? localHoverColor : hoverColor;
-
-  useEffect(() => {
-    return () => {
-      if (localHoverFrameRef.current != null) {
-        window.cancelAnimationFrame(localHoverFrameRef.current);
+  const hoverPipeline = useLatestHoverPipeline<{ x: number; y: number } | null, RgbColor | null>({
+    isEqual: areSameColor,
+    onResolved: (nextHoverColor) => {
+      setLocalHoverColor(nextHoverColor);
+      onHoverColorChange(nextHoverColor);
+    },
+    resolve: (point) => {
+      if (!point) {
+        return null;
       }
-    };
-  }, []);
+      return findNearestMappedHoverColor(
+        projectedMappedSamples,
+        point.x,
+        point.y,
+        mappedSampleHitRadius ** 2
+      );
+    },
+  });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -546,9 +554,9 @@ export function SliceCanvas({
     drawMarker(displayHoverColor, "#ffffff", 7);
   }, [axis, displayHoverColor]);
 
-  const mapPointerToColor = (
+  const mapPointerToCanvasPoint = (
     event: React.PointerEvent<HTMLCanvasElement> | React.MouseEvent<HTMLCanvasElement>
-  ): RgbColor | null => {
+  ): { x: number; y: number } | null => {
     const bounds = event.currentTarget.getBoundingClientRect();
     const x = Math.floor((event.clientX - bounds.left) * (colorChannelLevels / bounds.width));
     const y = Math.floor((event.clientY - bounds.top) * (colorChannelLevels / bounds.height));
@@ -557,44 +565,24 @@ export function SliceCanvas({
       return null;
     }
 
-    let nearestColor: RgbColor | null = null;
-    let nearestDistanceSquared = mappedSampleHitRadius ** 2;
-    for (const projected of projectedMappedSamples) {
-      const dx = projected.point.x - x;
-      const dy = projected.point.y - y;
-      const distanceSquared = dx * dx + dy * dy;
-      if (distanceSquared <= nearestDistanceSquared) {
-        nearestDistanceSquared = distanceSquared;
-        nearestColor = projected.sample.color;
-      }
-    }
-
-    return nearestColor;
+    return { x, y };
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>): void => {
-    const color = mapPointerToColor(event);
-    pendingLocalHoverColorRef.current = color;
-    if (localHoverFrameRef.current == null) {
-      localHoverFrameRef.current = window.requestAnimationFrame(() => {
-        localHoverFrameRef.current = null;
-        const nextHoverColor = pendingLocalHoverColorRef.current;
-        pendingLocalHoverColorRef.current = null;
-        if (!isPointerInsideRef.current) {
-          isPointerInsideRef.current = true;
-          setIsPointerInside(true);
-        }
-        if (!areSameColor(localHoverColorRef.current, nextHoverColor)) {
-          localHoverColorRef.current = nextHoverColor;
-          setLocalHoverColor(nextHoverColor);
-        }
-      });
-    }
-    onHoverColorChange(color);
+    setIsPointerInside(true);
+    hoverPipeline.schedule(mapPointerToCanvasPoint(event));
   };
 
   const handleClick = (event: React.MouseEvent<HTMLCanvasElement>): void => {
-    const color = mapPointerToColor(event);
+    const point = mapPointerToCanvasPoint(event);
+    const color = point
+      ? findNearestMappedHoverColor(
+          projectedMappedSamples,
+          point.x,
+          point.y,
+          mappedSampleHitRadius ** 2
+        )
+      : null;
     if (color) {
       onColorSelect(color);
     }
@@ -690,16 +678,8 @@ export function SliceCanvas({
               aria-label={t("sliceCanvasAriaLabel")}
               onPointerMove={handlePointerMove}
               onPointerLeave={() => {
-                if (localHoverFrameRef.current != null) {
-                  window.cancelAnimationFrame(localHoverFrameRef.current);
-                  localHoverFrameRef.current = null;
-                }
-                pendingLocalHoverColorRef.current = null;
-                isPointerInsideRef.current = false;
-                localHoverColorRef.current = null;
                 setIsPointerInside(false);
-                setLocalHoverColor(null);
-                onHoverColorChange(null);
+                hoverPipeline.clearNow(null);
               }}
               onClick={handleClick}
             />

@@ -1,7 +1,7 @@
 "use client";
 
 import NextImage from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { PersistedDisclosure } from "@/components/workbench/persisted-disclosure";
 import { PanelHeader } from "@/components/workbench/panel-header";
 import type { PhotoSample, TargetSelectionState } from "@/domain/photo-analysis/photo-analysis";
@@ -10,10 +10,11 @@ import controlStyles from "@/features/workbench/workbench-controls.module.css";
 import previewStyles from "@/features/workbench/photo-preview-shared.module.css";
 import {
   clamp,
-  findNearestSampleByCoordinate,
   type SelectionDraft,
   type WorkbenchTarget,
 } from "@/features/workbench/workbench-shared";
+import { findNearestPreviewHoverSample } from "@/features/workbench/hover-search";
+import { useLatestHoverPipeline } from "@/features/workbench/use-latest-hover-pipeline";
 
 type Props = {
   target: WorkbenchTarget;
@@ -53,20 +54,8 @@ export function WorkbenchPreviewPanel({
 }: Props) {
   const imageWrapRef = useRef<HTMLDivElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
-  const localHoverFrameRef = useRef<number | null>(null);
-  const pendingLocalHoverSampleRef = useRef<PhotoSample | null>(null);
-  const localHoverSampleRef = useRef<PhotoSample | null>(null);
-  const isPointerInsideRef = useRef(false);
   const [localHoverSample, setLocalHoverSample] = useState<PhotoSample | null>(null);
   const [isPointerInside, setIsPointerInside] = useState(false);
-
-  useEffect(() => {
-    return () => {
-      if (localHoverFrameRef.current != null) {
-        window.cancelAnimationFrame(localHoverFrameRef.current);
-      }
-    };
-  }, []);
 
   const getPreviewBounds = (): DOMRect | null => {
     if (imageRef.current) {
@@ -75,9 +64,25 @@ export function WorkbenchPreviewPanel({
     return imageWrapRef.current?.getBoundingClientRect() ?? null;
   };
 
-  const mapPointerToSample = (
+  const hoverPipeline = useLatestHoverPipeline<{ x: number; y: number } | null, PhotoSample | null>(
+    {
+      isEqual: areSameSample,
+      onResolved: (nextHoverSample) => {
+        setLocalHoverSample(nextHoverSample);
+        onHoverSampleChange(nextHoverSample);
+      },
+      resolve: (point) => {
+        if (!point) {
+          return null;
+        }
+        return findNearestPreviewHoverSample(target, point.x, point.y);
+      },
+    }
+  );
+
+  const mapPointerToCoordinate = (
     event: React.PointerEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement>
-  ): PhotoSample | null => {
+  ): { x: number; y: number } | null => {
     if (!target.result) {
       return null;
     }
@@ -85,9 +90,10 @@ export function WorkbenchPreviewPanel({
     if (!bounds) {
       return null;
     }
-    const x = ((event.clientX - bounds.left) / bounds.width) * target.result.width;
-    const y = ((event.clientY - bounds.top) / bounds.height) * target.result.height;
-    return findNearestSampleByCoordinate(target.result, x, y);
+    return {
+      x: ((event.clientX - bounds.left) / bounds.width) * target.result.width,
+      y: ((event.clientY - bounds.top) / bounds.height) * target.result.height,
+    };
   };
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>): void => {
@@ -107,24 +113,8 @@ export function WorkbenchPreviewPanel({
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>): void => {
-    const sample = mapPointerToSample(event);
-    pendingLocalHoverSampleRef.current = sample;
-    if (localHoverFrameRef.current == null) {
-      localHoverFrameRef.current = window.requestAnimationFrame(() => {
-        localHoverFrameRef.current = null;
-        const nextHoverSample = pendingLocalHoverSampleRef.current;
-        pendingLocalHoverSampleRef.current = null;
-        if (!isPointerInsideRef.current) {
-          isPointerInsideRef.current = true;
-          setIsPointerInside(true);
-        }
-        if (!areSameSample(localHoverSampleRef.current, nextHoverSample)) {
-          localHoverSampleRef.current = nextHoverSample;
-          setLocalHoverSample(nextHoverSample);
-        }
-      });
-    }
-    onHoverSampleChange(sample);
+    setIsPointerInside(true);
+    hoverPipeline.schedule(mapPointerToCoordinate(event));
 
     if (!selectionDraft) {
       return;
@@ -155,7 +145,10 @@ export function WorkbenchPreviewPanel({
 
     onSelectionDraftChange(null);
     if (widthRatio * target.result.width < 4 || heightRatio * target.result.height < 4) {
-      const sample = mapPointerToSample(event);
+      const coordinate = mapPointerToCoordinate(event);
+      const sample = coordinate
+        ? findNearestPreviewHoverSample(target, coordinate.x, coordinate.y)
+        : null;
       if (sample) {
         onSampleSelect(sample);
       }
@@ -276,16 +269,8 @@ export function WorkbenchPreviewPanel({
         onPointerMove={handlePointerMove}
         onPointerUp={commitDraft}
         onPointerLeave={() => {
-          if (localHoverFrameRef.current != null) {
-            window.cancelAnimationFrame(localHoverFrameRef.current);
-            localHoverFrameRef.current = null;
-          }
-          pendingLocalHoverSampleRef.current = null;
-          localHoverSampleRef.current = null;
-          isPointerInsideRef.current = false;
           setIsPointerInside(false);
-          setLocalHoverSample(null);
-          onHoverSampleChange(null);
+          hoverPipeline.clearNow(null);
           onSelectionDraftChange(null);
         }}
       >

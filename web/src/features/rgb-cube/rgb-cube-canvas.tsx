@@ -15,7 +15,6 @@ import {
   drawGuide,
   drawSlicePlane,
   fullCircleRadians,
-  getNearestProjectedColor,
   markerRadius,
   projectColor,
   rgbCubeColorCount,
@@ -23,6 +22,8 @@ import {
   type ProjectedPoint,
   type Rotation,
 } from "@/features/rgb-cube/rgb-cube-core";
+import { findNearestProjectedHoverColor } from "@/features/workbench/hover-search";
+import { useLatestHoverPipeline } from "@/features/workbench/use-latest-hover-pipeline";
 
 type Props = {
   space: ColorSpace3d;
@@ -125,11 +126,9 @@ export function RgbCubeCanvas({
     y: 0,
   });
   const projectedPointsRef = useRef<ProjectedPoint[]>([]);
-  const interactionFrameRef = useRef<number | null>(null);
-  const pendingHoverPointerRef = useRef<{ x: number; y: number } | null>(null);
+  const rotationFrameRef = useRef<number | null>(null);
   const pendingDisplayRotationRef = useRef<Rotation | null>(null);
   const displayRotationRef = useRef(rotation);
-  const lastPublishedHoverColorRef = useRef<RgbColor | null>(null);
   const [localHoverColor, setLocalHoverColor] = useState<RgbColor | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isPointerInside, setIsPointerInside] = useState(false);
@@ -161,6 +160,22 @@ export function RgbCubeCanvas({
   const hasImageOverlay = overlayMode === "image" || overlayMode === "both";
   const displayHoverColor = isPointerInside || isDragging ? localHoverColor : hoverColor;
   const activeRotation = isDragging ? displayRotation : rotation;
+  const hoverPipeline = useLatestHoverPipeline<{ x: number; y: number }, RgbColor | null>({
+    isEqual: areSameColor,
+    onResolved: (nextHoverColor) => {
+      setLocalHoverColor(nextHoverColor);
+      onHoverColorChange(nextHoverColor);
+    },
+    resolve: ({ x, y }) => {
+      const nearest = findNearestProjectedHoverColor(
+        projectedPointsRef.current,
+        x,
+        y,
+        nearestDistanceThresholdSquared
+      );
+      return nearest ? clampRgb(nearest) : null;
+    },
+  });
 
   const configureCanvas = (
     canvas: HTMLCanvasElement
@@ -392,42 +407,27 @@ export function RgbCubeCanvas({
     space,
   ]);
 
-  const flushInteractionFrame = (): void => {
-    interactionFrameRef.current = null;
+  const flushRotationFrame = (): void => {
+    rotationFrameRef.current = null;
 
     const nextRotation = pendingDisplayRotationRef.current;
     if (nextRotation) {
       pendingDisplayRotationRef.current = null;
       setDisplayRotation(nextRotation);
     }
-
-    const pointer = pendingHoverPointerRef.current;
-    if (!pointer) {
-      return;
-    }
-    pendingHoverPointerRef.current = null;
-    const nearest = findNearestColor(pointer.x, pointer.y);
-    const nextHoverColor = nearest ? clampRgb(nearest) : null;
-    setLocalHoverColor((current) =>
-      areSameColor(current, nextHoverColor) ? current : nextHoverColor
-    );
-    if (!areSameColor(lastPublishedHoverColorRef.current, nextHoverColor)) {
-      lastPublishedHoverColorRef.current = nextHoverColor;
-      onHoverColorChange(nextHoverColor);
-    }
   };
 
-  const scheduleInteractionFrame = (): void => {
-    if (interactionFrameRef.current != null) {
+  const scheduleRotationFrame = (): void => {
+    if (rotationFrameRef.current != null) {
       return;
     }
-    interactionFrameRef.current = window.requestAnimationFrame(() => {
-      flushInteractionFrame();
+    rotationFrameRef.current = window.requestAnimationFrame(() => {
+      flushRotationFrame();
     });
   };
 
   const findNearestColor = (offsetX: number, offsetY: number): RgbColor | null => {
-    return getNearestProjectedColor(
+    return findNearestProjectedHoverColor(
       projectedPointsRef.current,
       offsetX,
       offsetY,
@@ -448,10 +448,9 @@ export function RgbCubeCanvas({
   const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>): void => {
     const pointer = mapPointer(event);
     setIsPointerInside(true);
-    pendingHoverPointerRef.current = pointer;
+    hoverPipeline.schedule(pointer);
 
     if (!dragRef.current.isDragging) {
-      scheduleInteractionFrame();
       return;
     }
 
@@ -466,16 +465,17 @@ export function RgbCubeCanvas({
     };
     displayRotationRef.current = nextRotation;
     pendingDisplayRotationRef.current = nextRotation;
-    scheduleInteractionFrame();
+    scheduleRotationFrame();
   };
 
   const handlePointerUp = (event: React.PointerEvent<HTMLCanvasElement>): void => {
     const pointer = mapPointer(event);
-    pendingHoverPointerRef.current = pointer;
-    if (interactionFrameRef.current != null) {
-      window.cancelAnimationFrame(interactionFrameRef.current);
+    hoverPipeline.flush();
+    if (rotationFrameRef.current != null) {
+      window.cancelAnimationFrame(rotationFrameRef.current);
+      rotationFrameRef.current = null;
     }
-    flushInteractionFrame();
+    flushRotationFrame();
 
     const nearest = findNearestColor(pointer.x, pointer.y);
     if (nearest) {
@@ -494,23 +494,18 @@ export function RgbCubeCanvas({
     dragRef.current.isDragging = false;
     setIsDragging(false);
     setIsPointerInside(false);
-    if (interactionFrameRef.current != null) {
-      window.cancelAnimationFrame(interactionFrameRef.current);
-      interactionFrameRef.current = null;
+    if (rotationFrameRef.current != null) {
+      window.cancelAnimationFrame(rotationFrameRef.current);
+      rotationFrameRef.current = null;
     }
-    pendingHoverPointerRef.current = null;
     pendingDisplayRotationRef.current = null;
-    setLocalHoverColor(null);
-    if (!areSameColor(lastPublishedHoverColorRef.current, null)) {
-      lastPublishedHoverColorRef.current = null;
-      onHoverColorChange(null);
-    }
+    hoverPipeline.clearNow(null);
   };
 
   useEffect(() => {
     return () => {
-      if (interactionFrameRef.current != null) {
-        window.cancelAnimationFrame(interactionFrameRef.current);
+      if (rotationFrameRef.current != null) {
+        window.cancelAnimationFrame(rotationFrameRef.current);
       }
     };
   }, []);
