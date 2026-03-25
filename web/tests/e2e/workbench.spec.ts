@@ -23,16 +23,20 @@ test.describe("モバイルレイアウト", () => {
     const cubePanel = getPanel(page, "3Dキューブ");
     const slicePanel = getPanel(page, "スライス");
     const metricsPanel = getPanel(page, "分析表");
+    const previewRegion = page.locator(".workbenchPreviewRegion");
+    const cubeRegion = page.locator(".workbenchCubeRegion");
+    const sliceRegion = page.locator(".workbenchSliceRegion");
+    const metricsRegion = page.locator(".workbenchMetricsRegion");
 
     await expect(previewPanel).toBeVisible();
     await expect(cubePanel).toBeVisible();
     await expect(slicePanel).toBeVisible();
     await expect(metricsPanel).toBeVisible();
 
-    const previewBox = await previewPanel.boundingBox();
-    const cubeBox = await cubePanel.boundingBox();
-    const sliceBox = await slicePanel.boundingBox();
-    const metricsBox = await metricsPanel.boundingBox();
+    const previewBox = await previewRegion.boundingBox();
+    const cubeBox = await cubeRegion.boundingBox();
+    const sliceBox = await sliceRegion.boundingBox();
+    const metricsBox = await metricsRegion.boundingBox();
 
     expect(previewBox).not.toBeNull();
     expect(cubeBox).not.toBeNull();
@@ -42,6 +46,32 @@ test.describe("モバイルレイアウト", () => {
     expect(previewBox!.y).toBeLessThan(cubeBox!.y);
     expect(cubeBox!.y).toBeLessThan(sliceBox!.y);
     expect(sliceBox!.y).toBeLessThan(metricsBox!.y);
+  });
+});
+
+test.describe("ワイドレイアウト", () => {
+  test.use({ viewport: { width: 1600, height: 900 } });
+
+  test("主要UIが横並びで表示される", async ({ page }) => {
+    await page.goto("/");
+
+    const previewBox = await page.locator(".workbenchPreviewRegion").boundingBox();
+    const cubeBox = await page.locator(".workbenchCubeRegion").boundingBox();
+    const sliceBox = await page.locator(".workbenchSliceRegion").boundingBox();
+    const metricsBox = await page.locator(".workbenchMetricsRegion").boundingBox();
+
+    expect(previewBox).not.toBeNull();
+    expect(cubeBox).not.toBeNull();
+    expect(sliceBox).not.toBeNull();
+    expect(metricsBox).not.toBeNull();
+
+    expect(Math.abs(previewBox!.y - cubeBox!.y)).toBeLessThan(40);
+    expect(Math.abs(cubeBox!.y - sliceBox!.y)).toBeLessThan(40);
+    expect(Math.abs(sliceBox!.y - metricsBox!.y)).toBeLessThan(40);
+
+    expect(previewBox!.x).toBeLessThan(cubeBox!.x);
+    expect(cubeBox!.x).toBeLessThan(sliceBox!.x);
+    expect(sliceBox!.x).toBeLessThan(metricsBox!.x);
   });
 });
 
