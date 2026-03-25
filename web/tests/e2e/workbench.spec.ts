@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import sharp from "sharp";
 import { getPanel, uploadRedPng } from "./helpers";
 
 test("ワークベンチの主要UIが表示される", async ({ page }) => {
@@ -180,9 +181,72 @@ test("アップロードと選択操作の計測ログを取得できる", async
     );
 
   const entries = await page.evaluate(() => window.__IROMAP_PERF__?.entries ?? []);
+  const photoAnalysisEntry = entries.find(
+    (entry: { name: string; detail?: Record<string, unknown> }) =>
+      entry.name === "workbench.photo-analysis.total"
+  );
+  expect(photoAnalysisEntry?.detail?.decodeMs).toBeDefined();
+  expect(photoAnalysisEntry?.detail?.downscaleMs).toBeDefined();
+  expect(photoAnalysisEntry?.detail?.analysisWidth).toBeDefined();
+  expect(photoAnalysisEntry?.detail?.analysisHeight).toBeDefined();
   for (const entry of entries) {
     expect(entry.durationMs).toBeGreaterThanOrEqual(0);
   }
+});
+
+test("4K画像をアップロードすると分析用サイズを長辺2048に抑える", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    window.__IROMAP_PERF__ = { entries: [] };
+  });
+
+  const width = 3840;
+  const height = 2160;
+  const pixels = Buffer.alloc(width * height * 3);
+  for (let index = 0; index < pixels.length; index += 3) {
+    const pixelIndex = index / 3;
+    const x = pixelIndex % width;
+    const y = Math.floor(pixelIndex / width);
+    pixels[index] = (x * 13 + y * 7) % 256;
+    pixels[index + 1] = (x * 5 + y * 11) % 256;
+    pixels[index + 2] = (x * 17 + y * 3) % 256;
+  }
+  const buffer = await sharp(pixels, {
+    raw: {
+      width,
+      height,
+      channels: 3,
+    },
+  })
+    .png()
+    .toBuffer();
+
+  await page.getByLabel("画像をアップロード").setInputFiles({
+    name: "4k-gradient.png",
+    mimeType: "image/png",
+    buffer,
+  });
+
+  await expect
+    .poll(async () => {
+      return page.evaluate(() =>
+        window.__IROMAP_PERF__?.entries.find(
+          (entry) => entry.name === "workbench.photo-analysis.total"
+        )
+      );
+    })
+    .toBeTruthy();
+
+  const detail = await page.evaluate(() => {
+    return window.__IROMAP_PERF__?.entries.find(
+      (entry) => entry.name === "workbench.photo-analysis.total"
+    )?.detail;
+  });
+  expect(detail?.width).toBe(width);
+  expect(detail?.height).toBe(height);
+  expect(detail?.analysisWidth).toBe(2048);
+  expect(detail?.analysisHeight).toBe(1152);
+  expect(Number(detail?.downscaleMs ?? 0)).toBeGreaterThanOrEqual(0);
 });
 
 test("3Dキューブの設定がリロード後も保持される", async ({ page }) => {
