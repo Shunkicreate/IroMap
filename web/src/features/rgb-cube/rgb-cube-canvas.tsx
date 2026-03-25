@@ -112,9 +112,14 @@ export function RgbCubeCanvas({
     y: 0,
   });
   const projectedPointsRef = useRef<ProjectedPoint[]>([]);
+  const interactionFrameRef = useRef<number | null>(null);
+  const pendingHoverPointerRef = useRef<{ x: number; y: number } | null>(null);
+  const pendingDisplayRotationRef = useRef<Rotation | null>(null);
+  const displayRotationRef = useRef(rotation);
   const [localHoverColor, setLocalHoverColor] = useState<RgbColor | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isPointerInside, setIsPointerInside] = useState(false);
+  const [displayRotation, setDisplayRotation] = useState(rotation);
   const normalizedCubeSize =
     Math.round(Math.min(maxCubeSize, Math.max(minCubeSize, cubeSize)) / cubeSizeStep) *
     cubeSizeStep;
@@ -141,6 +146,7 @@ export function RgbCubeCanvas({
   const hasGridOverlay = overlayMode === "grid" || overlayMode === "both";
   const hasImageOverlay = overlayMode === "image" || overlayMode === "both";
   const displayHoverColor = isPointerInside || isDragging ? localHoverColor : hoverColor;
+  const activeRotation = isDragging ? displayRotation : rotation;
 
   const configureCanvas = (
     canvas: HTMLCanvasElement
@@ -153,8 +159,12 @@ export function RgbCubeCanvas({
     const devicePixelRatio = window.devicePixelRatio || 1;
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
-    canvas.width = Math.floor(width * devicePixelRatio);
-    canvas.height = Math.floor(height * devicePixelRatio);
+    const pixelWidth = Math.floor(width * devicePixelRatio);
+    const pixelHeight = Math.floor(height * devicePixelRatio);
+    if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+      canvas.width = pixelWidth;
+      canvas.height = pixelHeight;
+    }
     context.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
 
     return { context, width, height };
@@ -178,15 +188,24 @@ export function RgbCubeCanvas({
 
     const objectScale = cubeSize / defaultCubeSize;
 
-    drawGuide(context, space, rotation, width, height, objectScale);
+    drawGuide(context, space, activeRotation, width, height, objectScale);
     if (axisGuideMode === "visible") {
-      drawAxisGuide(context, space, rotation, width, height, objectScale);
+      drawAxisGuide(context, space, activeRotation, width, height, objectScale);
     }
-    drawSlicePlane(context, space, rotation, width, height, sliceAxis, sliceValue, objectScale);
+    drawSlicePlane(
+      context,
+      space,
+      activeRotation,
+      width,
+      height,
+      sliceAxis,
+      sliceValue,
+      objectScale
+    );
 
     const projectedGrid = hasGridOverlay
       ? sampledColors
-          .map((color) => projectColor(color, space, rotation, width, height, objectScale))
+          .map((color) => projectColor(color, space, activeRotation, width, height, objectScale))
           .sort((left, right) => left.depth - right.depth)
       : [];
 
@@ -195,7 +214,7 @@ export function RgbCubeCanvas({
       hasImageOverlay && isimageMappingVisible
         ? imageCubePoints
             .map((point) => ({
-              ...projectColor(point.color, space, rotation, width, height, objectScale),
+              ...projectColor(point.color, space, activeRotation, width, height, objectScale),
               count: point.count,
               ratio: point.ratio,
             }))
@@ -205,7 +224,7 @@ export function RgbCubeCanvas({
     const projectedSelection = isselectionMappingVisible
       ? selectionCubePoints
           .map((point) => ({
-            ...projectColor(point.color, space, rotation, width, height, objectScale),
+            ...projectColor(point.color, space, activeRotation, width, height, objectScale),
             count: point.count,
           }))
           .sort((left, right) => left.depth - right.depth)
@@ -308,7 +327,7 @@ export function RgbCubeCanvas({
     hasImageOverlay,
     imageCubePoints,
     overlayMode,
-    rotation,
+    activeRotation,
     sampledColors,
     selectionCubePoints,
     isimageMappingVisible,
@@ -337,7 +356,7 @@ export function RgbCubeCanvas({
       if (!color) {
         return;
       }
-      const point = projectColor(color, space, rotation, width, height, objectScale);
+      const point = projectColor(color, space, activeRotation, width, height, objectScale);
       context.strokeStyle = strokeStyle;
       context.lineWidth = 1.5;
       context.beginPath();
@@ -352,12 +371,41 @@ export function RgbCubeCanvas({
   }, [
     cubeSize,
     displayHoverColor,
-    rotation,
+    activeRotation,
     selectedColor,
     selectionCubePoints.length,
     isselectionMappingVisible,
     space,
   ]);
+
+  const flushInteractionFrame = (): void => {
+    interactionFrameRef.current = null;
+
+    const nextRotation = pendingDisplayRotationRef.current;
+    if (nextRotation) {
+      pendingDisplayRotationRef.current = null;
+      setDisplayRotation(nextRotation);
+    }
+
+    const pointer = pendingHoverPointerRef.current;
+    if (!pointer) {
+      return;
+    }
+    pendingHoverPointerRef.current = null;
+    const nearest = findNearestColor(pointer.x, pointer.y);
+    const nextHoverColor = nearest ? clampRgb(nearest) : null;
+    setLocalHoverColor(nextHoverColor);
+    onHoverColorChange(nextHoverColor);
+  };
+
+  const scheduleInteractionFrame = (): void => {
+    if (interactionFrameRef.current != null) {
+      return;
+    }
+    interactionFrameRef.current = window.requestAnimationFrame(() => {
+      flushInteractionFrame();
+    });
+  };
 
   const findNearestColor = (offsetX: number, offsetY: number): RgbColor | null => {
     return getNearestProjectedColor(
@@ -371,6 +419,8 @@ export function RgbCubeCanvas({
   const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>): void => {
     const pointer = mapPointer(event);
     dragRef.current = { isDragging: true, x: pointer.x, y: pointer.y };
+    displayRotationRef.current = rotation;
+    setDisplayRotation(rotation);
     setIsDragging(true);
     setIsPointerInside(true);
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -378,13 +428,11 @@ export function RgbCubeCanvas({
 
   const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>): void => {
     const pointer = mapPointer(event);
-
-    const nearest = findNearestColor(pointer.x, pointer.y);
-    const nextHoverColor = nearest ? clampRgb(nearest) : null;
-    setLocalHoverColor(nextHoverColor);
-    onHoverColorChange(nextHoverColor);
+    setIsPointerInside(true);
+    pendingHoverPointerRef.current = pointer;
 
     if (!dragRef.current.isDragging) {
+      scheduleInteractionFrame();
       return;
     }
 
@@ -393,20 +441,29 @@ export function RgbCubeCanvas({
     dragRef.current.x = pointer.x;
     dragRef.current.y = pointer.y;
 
-    onRotationChange({
-      x: rotation.x - deltaY * rotationSensitivity,
-      y: rotation.y + deltaX * rotationSensitivity,
-    });
+    const nextRotation = {
+      x: displayRotationRef.current.x - deltaY * rotationSensitivity,
+      y: displayRotationRef.current.y + deltaX * rotationSensitivity,
+    };
+    displayRotationRef.current = nextRotation;
+    pendingDisplayRotationRef.current = nextRotation;
+    scheduleInteractionFrame();
   };
 
   const handlePointerUp = (event: React.PointerEvent<HTMLCanvasElement>): void => {
     const pointer = mapPointer(event);
+    pendingHoverPointerRef.current = pointer;
+    if (interactionFrameRef.current != null) {
+      window.cancelAnimationFrame(interactionFrameRef.current);
+    }
+    flushInteractionFrame();
+
     const nearest = findNearestColor(pointer.x, pointer.y);
-    const nextHoverColor = nearest ? clampRgb(nearest) : null;
-    setLocalHoverColor(nextHoverColor);
-    onHoverColorChange(nextHoverColor);
     if (nearest) {
-      onColorSelect(nextHoverColor ?? clampRgb(nearest));
+      onColorSelect(clampRgb(nearest));
+    }
+    if (dragRef.current.isDragging) {
+      onRotationChange(displayRotationRef.current);
     }
 
     dragRef.current.isDragging = false;
@@ -418,9 +475,23 @@ export function RgbCubeCanvas({
     dragRef.current.isDragging = false;
     setIsDragging(false);
     setIsPointerInside(false);
+    if (interactionFrameRef.current != null) {
+      window.cancelAnimationFrame(interactionFrameRef.current);
+      interactionFrameRef.current = null;
+    }
+    pendingHoverPointerRef.current = null;
+    pendingDisplayRotationRef.current = null;
     setLocalHoverColor(null);
     onHoverColorChange(null);
   };
+
+  useEffect(() => {
+    return () => {
+      if (interactionFrameRef.current != null) {
+        window.cancelAnimationFrame(interactionFrameRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div ref={canvasWrapRef} className="cubeCanvasWrap">
