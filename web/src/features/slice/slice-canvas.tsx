@@ -48,6 +48,19 @@ const blueOffset = 2;
 const alphaOffset = 3;
 const mappedSampleHitRadius = 8;
 
+const areSameColor = (
+  left: RgbColor | null | undefined,
+  right: RgbColor | null | undefined
+): boolean => {
+  if (!left && !right) {
+    return true;
+  }
+  if (!left || !right) {
+    return false;
+  }
+  return left.r === right.r && left.g === right.g && left.b === right.b;
+};
+
 const toScaledValue = (value: number, max: number): number => {
   return Math.round((value / colorChannelMax) * max);
 };
@@ -368,6 +381,10 @@ export function SliceCanvas({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const mappingCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const cursorCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const localHoverFrameRef = useRef<number | null>(null);
+  const pendingLocalHoverColorRef = useRef<RgbColor | null>(null);
+  const localHoverColorRef = useRef<RgbColor | null>(null);
+  const isPointerInsideRef = useRef(false);
   const [localHoverColor, setLocalHoverColor] = useState<RgbColor | null>(null);
   const [isPointerInside, setIsPointerInside] = useState(false);
   const labels = getPlaneLabels(axis);
@@ -381,6 +398,14 @@ export function SliceCanvas({
     [axis, mappedSamples, value]
   );
   const displayHoverColor = isPointerInside ? localHoverColor : hoverColor;
+
+  useEffect(() => {
+    return () => {
+      if (localHoverFrameRef.current != null) {
+        window.cancelAnimationFrame(localHoverFrameRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -549,8 +574,22 @@ export function SliceCanvas({
 
   const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>): void => {
     const color = mapPointerToColor(event);
-    setIsPointerInside(true);
-    setLocalHoverColor(color);
+    pendingLocalHoverColorRef.current = color;
+    if (localHoverFrameRef.current == null) {
+      localHoverFrameRef.current = window.requestAnimationFrame(() => {
+        localHoverFrameRef.current = null;
+        const nextHoverColor = pendingLocalHoverColorRef.current;
+        pendingLocalHoverColorRef.current = null;
+        if (!isPointerInsideRef.current) {
+          isPointerInsideRef.current = true;
+          setIsPointerInside(true);
+        }
+        if (!areSameColor(localHoverColorRef.current, nextHoverColor)) {
+          localHoverColorRef.current = nextHoverColor;
+          setLocalHoverColor(nextHoverColor);
+        }
+      });
+    }
     onHoverColorChange(color);
   };
 
@@ -651,6 +690,13 @@ export function SliceCanvas({
               aria-label={t("sliceCanvasAriaLabel")}
               onPointerMove={handlePointerMove}
               onPointerLeave={() => {
+                if (localHoverFrameRef.current != null) {
+                  window.cancelAnimationFrame(localHoverFrameRef.current);
+                  localHoverFrameRef.current = null;
+                }
+                pendingLocalHoverColorRef.current = null;
+                isPointerInsideRef.current = false;
+                localHoverColorRef.current = null;
                 setIsPointerInside(false);
                 setLocalHoverColor(null);
                 onHoverColorChange(null);
