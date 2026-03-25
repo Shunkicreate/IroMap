@@ -92,3 +92,32 @@ test("アップロードと選択操作の計測ログを取得できる", async
     expect(entry.durationMs).toBeGreaterThanOrEqual(0);
   }
 });
+
+test("3Dキューブの設定がリロード後も保持される", async ({ page }) => {
+  await page.goto("/");
+
+  const cubePanel = page.locator("section.panel", {
+    has: page.getByRole("heading", { name: "3Dキューブ" }),
+  });
+
+  await cubePanel.getByRole("tab", { name: "HSL" }).click();
+  await cubePanel.getByRole("button", { name: "表示オプション" }).click();
+  await cubePanel.getByLabel("サイズスライダーを表示").uncheck();
+  await cubePanel.getByRole("tab", { name: "画像のみ", exact: true }).click();
+
+  await page.reload();
+
+  const reloadedCubePanel = page.locator("section.panel", {
+    has: page.getByRole("heading", { name: "3Dキューブ" }),
+  });
+
+  await expect(reloadedCubePanel.getByRole("tab", { name: "HSL" })).toHaveAttribute(
+    "aria-selected",
+    "true"
+  );
+  await expect(reloadedCubePanel.getByLabel("サイズスライダーを表示")).not.toBeChecked();
+  await expect(reloadedCubePanel.getByRole("slider", { name: /キューブサイズ:/ })).toHaveCount(0);
+  await expect(
+    reloadedCubePanel.getByRole("tab", { name: "画像のみ", exact: true })
+  ).toHaveAttribute("aria-selected", "true");
+});
