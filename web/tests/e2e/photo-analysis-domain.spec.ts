@@ -5,6 +5,8 @@ import {
   buildHistogramBins,
   buildMetricRows,
   buildPointSelection,
+  buildDerivedPhotoAnalysisFromHandle,
+  createPhotoAnalysisHandle,
   getSelectedSamples,
   serializeHistogramBins,
   serializeMetricRows,
@@ -178,4 +180,38 @@ test("T-206(photo-analysis): derived analysis が同期計算と同じ内容を�
   expect(derived.saturationHistogram).toEqual(buildHistogramBins(result.samples, "saturation"));
   expect(derived.selectedSamples).toEqual(getSelectedSamples(result, selectionState));
   expect(derived.timings.totalMs).toBeGreaterThanOrEqual(0);
+});
+
+test("T-207(photo-analysis): handle ベースの derived analysis が同期計算と一致する", async () => {
+  const imageData = createImageDataLike(16, 16, (x, y) => ({
+    r: (x * 19) % 256,
+    g: (y * 23) % 256,
+    b: ((x + y) * 29) % 256,
+  }));
+  const handle = createPhotoAnalysisHandle({ imageData });
+  const selection = buildPointSelection({
+    result: handle.result,
+    targetId: "baseline",
+    sampleId: handle.result.samples[0]!.sampleId,
+    source: "image-point",
+  });
+  const selectionState: TargetSelectionState = {
+    activeSelection: selection,
+  };
+
+  const derivedFromHandle = buildDerivedPhotoAnalysisFromHandle({
+    handle,
+    selectionState,
+  });
+  const derivedSync = buildDerivedPhotoAnalysis({
+    result: handle.result,
+    selectionState,
+  });
+
+  expect(derivedFromHandle.metricRows).toEqual(derivedSync.metricRows);
+  expect(derivedFromHandle.luminanceHistogram).toEqual(derivedSync.luminanceHistogram);
+  expect(derivedFromHandle.hueHistogram).toEqual(derivedSync.hueHistogram);
+  expect(derivedFromHandle.saturationHistogram).toEqual(derivedSync.saturationHistogram);
+  expect(derivedFromHandle.selectedSamples).toEqual(derivedSync.selectedSamples);
+  expect(derivedFromHandle.selectionCubePoints).toEqual(derivedSync.selectionCubePoints);
 });

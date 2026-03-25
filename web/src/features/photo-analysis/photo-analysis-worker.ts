@@ -1,16 +1,16 @@
 /// <reference lib="webworker" />
 
 import {
-  analyzePhoto,
-  buildDerivedPhotoAnalysis,
-  type PhotoAnalysisResult,
+  buildDerivedPhotoAnalysisFromHandle,
+  createPhotoAnalysisHandle,
+  type PhotoAnalysisHandle,
 } from "@/domain/photo-analysis/photo-analysis";
 import type {
   AnalysisWorkerRequest,
   AnalysisWorkerResponse,
 } from "@/features/photo-analysis/photo-analysis-worker-contract";
 
-const analyses = new Map<string, PhotoAnalysisResult>();
+const analyses = new Map<string, PhotoAnalysisHandle>();
 
 const post = (message: AnalysisWorkerResponse): void => {
   self.postMessage(message);
@@ -21,14 +21,14 @@ self.onmessage = (event: MessageEvent<AnalysisWorkerRequest>) => {
 
   if (message.kind === "analyze-photo") {
     try {
-      const result = analyzePhoto(message.imageData);
-      analyses.set(message.analysisId, result);
+      const handle = createPhotoAnalysisHandle({ imageData: message.imageData });
+      analyses.set(message.analysisId, handle);
       post({
         kind: "success",
         requestId: message.requestId,
         analysisId: message.analysisId,
         payload: {
-          result,
+          result: handle.result,
         },
       });
     } catch {
@@ -42,8 +42,8 @@ self.onmessage = (event: MessageEvent<AnalysisWorkerRequest>) => {
     return;
   }
 
-  const result = analyses.get(message.analysisId);
-  if (!result) {
+  const handle = analyses.get(message.analysisId);
+  if (!handle) {
     post({
       kind: "error",
       requestId: message.requestId,
@@ -54,8 +54,8 @@ self.onmessage = (event: MessageEvent<AnalysisWorkerRequest>) => {
   }
 
   try {
-    const derived = buildDerivedPhotoAnalysis({
-      result,
+    const derived = buildDerivedPhotoAnalysisFromHandle({
+      handle,
       selectionState: message.selectionState,
     });
     post({

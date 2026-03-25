@@ -234,7 +234,8 @@ export function PhotoAnalysisPanel({
     void (async () => {
       const startedAt = performance.now();
       try {
-        const { imageData, decodeMs } = await readFileAsImageData(sourceFile);
+        const { imageData, decodeMs, downscaleMs, width, height, analysisWidth, analysisHeight } =
+          await readFileAsImageData(sourceFile);
         const { result } = await analyzePhotoInWorker(imageData);
         if (isCancelled) {
           return;
@@ -254,10 +255,13 @@ export function PhotoAnalysisPanel({
         recordPerformanceEntry("photo-analysis.total", startedAt, {
           fileName: sourceFile.name,
           decodeMs,
+          downscaleMs,
           analyzeMs: result.timings.totalMs,
           sampledPixels: result.sampledPixels,
-          width: result.width,
-          height: result.height,
+          width,
+          height,
+          analysisWidth,
+          analysisHeight,
         });
         setStatusMessage(success);
         onStatusChangeRef.current?.(success);
