@@ -43,9 +43,10 @@ test("T-201(photo-analysis): 上部CTAからアップロードして結果表示
   await uploadRedPng(page);
 
   const previewPanel = getPanel(page, "選択画像");
+  const analysisPanel = getPanel(page, "写真分析");
   await previewPanel.getByText("画像情報").click();
   await expect(previewPanel.getByText("選択中: red.png")).toBeVisible();
-  await expect(getPanel(page, "Lab a-b 散布図")).toBeVisible();
+  await expect(analysisPanel.getByRole("heading", { name: "Lab a-b 散布図" })).toBeVisible();
 });
 
 test("T-202(photo-analysis): クリップボード画像貼り付けで結果表示できる", async ({ page }) => {
@@ -54,9 +55,10 @@ test("T-202(photo-analysis): クリップボード画像貼り付けで結果表
   await pasteRedPngToPhotoAnalysis(page);
 
   const previewPanel = getPanel(page, "選択画像");
+  const analysisPanel = getPanel(page, "写真分析");
   await previewPanel.getByText("画像情報").click();
   await expect(previewPanel.getByText("選択中: clipboard-image.png")).toBeVisible();
-  await expect(getPanel(page, "Lab a-b 散布図")).toBeVisible();
+  await expect(analysisPanel.getByRole("heading", { name: "Lab a-b 散布図" })).toBeVisible();
 });
 
 test("T-203(photo-analysis): クリップボードJPEG貼り付けで結果表示できる", async ({ page }) => {
@@ -65,9 +67,10 @@ test("T-203(photo-analysis): クリップボードJPEG貼り付けで結果表�
   await pasteRedJpegToPhotoAnalysis(page);
 
   const previewPanel = getPanel(page, "選択画像");
+  const analysisPanel = getPanel(page, "写真分析");
   await previewPanel.getByText("画像情報").click();
   await expect(previewPanel.getByText("選択中: clipboard-image.jpg")).toBeVisible();
-  await expect(getPanel(page, "Lab a-b 散布図")).toBeVisible();
+  await expect(analysisPanel.getByRole("heading", { name: "Lab a-b 散布図" })).toBeVisible();
 });
 
 test("T-204(photo-analysis): 選択画像を表示できる", async ({ page }) => {
@@ -95,6 +98,7 @@ test("T-205(photo-analysis): 画像入力を閉じても画面全体ペースト
   await pasteRedPngGlobally(page);
 
   await previewPanel.getByText("画像情報").click();
+  const analysisPanel = getPanel(page, "写真分析");
   await expect(previewPanel.getByText("選択中: clipboard-image.png")).toBeVisible();
-  await expect(getPanel(page, "Lab a-b 散布図")).toBeVisible();
+  await expect(analysisPanel.getByRole("heading", { name: "Lab a-b 散布図" })).toBeVisible();
 });
