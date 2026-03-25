@@ -9,12 +9,9 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { rgbToHex } from "@/domain/color/color-format";
 import { type ColorSpace3d, type RgbColor, type SliceAxis } from "@/domain/color/color-types";
 import {
-  buildCubePointsFromSamples,
-  buildHistogramBins,
-  buildMetricRows,
+  buildDerivedPhotoAnalysis,
   buildPointSelection,
   buildRectangleSelection,
-  getSelectedSamples,
   serializeHistogramBins,
   serializeMetricRows,
   type ExportFormat,
@@ -23,8 +20,10 @@ import {
 } from "@/domain/photo-analysis/photo-analysis";
 import {
   analyzePhotoInWorker,
+  buildDerivedAnalysisInWorker,
   readFileAsImageData,
 } from "@/features/photo-analysis/photo-analysis-client";
+import { recordPerformanceEntry } from "@/features/photo-analysis/photo-analysis-performance";
 import { ColorInspector } from "@/features/inspector/color-inspector";
 import { RgbCubeCanvas } from "@/features/rgb-cube/rgb-cube-canvas";
 import { SliceCanvas } from "@/features/slice/slice-canvas";
@@ -81,6 +80,29 @@ export function ColorWorkbench() {
   const [cubeOverlayMode, setCubeOverlayMode] = useState<RgbCubeOverlayMode>("both");
   const [liveMessage, setLiveMessage] = useState<string>("");
   const [selectionDraft, setSelectionDraft] = useState<SelectionDraft>(null);
+  const [derivedAnalysis, setDerivedAnalysis] = useState(() =>
+    buildDerivedPhotoAnalysis({
+      result: {
+        hueHistogram: [],
+        saturationHistogram: [],
+        colorAreas: [],
+        cubePoints: [],
+        samples: [],
+        width: 0,
+        height: 0,
+        elapsedMs: 0,
+        sampledPixels: 0,
+        timings: {
+          totalMs: 0,
+          samplingMs: 0,
+          histogramMs: 0,
+          colorAreasMs: 0,
+          cubePointsMs: 0,
+        },
+      },
+      selectionState: defaultSelectionState,
+    })
+  );
   const [isCubeImageMappingVisible, setIsCubeImageMappingVisible] = usePersistedBoolean({
     storageKey: storageKeys.cubeImageMapping,
     isdefaultValue: true,
@@ -97,6 +119,8 @@ export function ColorWorkbench() {
     storageKey: storageKeys.sliceSelectionMapping,
     isdefaultValue: true,
   });
+  const baselineSelectionState = selectionStateByTarget.baseline ?? defaultSelectionState;
+  const activeBaselineSelection = baselineSelectionState.activeSelection;
 
   const baselineBuckets = useMemo(
     () => buildSampleBuckets(baselineTarget.result),
@@ -110,6 +134,29 @@ export function ColorWorkbench() {
     const loadTarget = async (): Promise<void> => {
       if (!file) {
         setBaselineTarget((current) => ({ ...emptyTarget("baseline", current.label), file: null }));
+        setDerivedAnalysis(
+          buildDerivedPhotoAnalysis({
+            result: {
+              hueHistogram: [],
+              saturationHistogram: [],
+              colorAreas: [],
+              cubePoints: [],
+              samples: [],
+              width: 0,
+              height: 0,
+              elapsedMs: 0,
+              sampledPixels: 0,
+              timings: {
+                totalMs: 0,
+                samplingMs: 0,
+                histogramMs: 0,
+                colorAreasMs: 0,
+                cubePointsMs: 0,
+              },
+            },
+            selectionState: defaultSelectionState,
+          })
+        );
         return;
       }
 
@@ -121,15 +168,25 @@ export function ColorWorkbench() {
         isAnalyzing: true,
         statusMessage: t("photoAnalyzing"),
         error: "",
+        analysisId: null,
         result: null,
       }));
 
       try {
-        const imageData = await readFileAsImageData(file);
-        const result = await analyzePhotoInWorker(imageData);
+        const startedAt = performance.now();
+        const { imageData, decodeMs } = await readFileAsImageData(file);
+        const { analysisId, result } = await analyzePhotoInWorker(imageData);
         if (isStale) {
           return;
         }
+        recordPerformanceEntry("workbench.photo-analysis.total", startedAt, {
+          fileName: file.name,
+          decodeMs,
+          analyzeMs: result.timings.totalMs,
+          sampledPixels: result.sampledPixels,
+          width: result.width,
+          height: result.height,
+        });
         const success = t("photoSummary", {
           fileName: file.name,
           sampledPixels: result.sampledPixels,
@@ -138,6 +195,7 @@ export function ColorWorkbench() {
         setBaselineTarget((current) => ({
           ...current,
           file,
+          analysisId,
           previewUrl: objectUrl,
           result,
           isAnalyzing: false,
@@ -169,45 +227,51 @@ export function ColorWorkbench() {
     };
   }, [baselineTarget.file]);
 
-  const baselineSelectionState = selectionStateByTarget.baseline ?? defaultSelectionState;
-  const activeBaselineSelection = baselineSelectionState.activeSelection;
+  useEffect(() => {
+    const result = baselineTarget.result;
+    const analysisId = baselineTarget.analysisId;
+
+    if (!result || !analysisId) {
+      return;
+    }
+
+    let isStale = false;
+    const startedAt = performance.now();
+
+    void buildDerivedAnalysisInWorker({
+      analysisId,
+      result,
+      selectionState: baselineSelectionState,
+    }).then((nextDerived) => {
+      if (isStale) {
+        return;
+      }
+      recordPerformanceEntry("workbench.derived-analysis.total", startedAt, {
+        analysisId,
+        selectedSamples: nextDerived.selectedSamples.length,
+        metricsMs: nextDerived.timings.metricsMs,
+        selectionMs: nextDerived.timings.selectionMs,
+        totalMs: nextDerived.timings.totalMs,
+      });
+      setDerivedAnalysis(nextDerived);
+    });
+
+    return () => {
+      isStale = true;
+    };
+  }, [baselineSelectionState, baselineTarget.analysisId, baselineTarget.result]);
+
   const sliceMappedSamples = baselineTarget.result?.samples ?? [];
-  const baselineMetricRows = useMemo(
-    () =>
-      baselineTarget.result
-        ? buildMetricRows({
-            result: baselineTarget.result,
-            selectionState: baselineSelectionState,
-          })
-        : [],
-    [baselineTarget.result, baselineSelectionState]
-  );
+  const baselineMetricRows = derivedAnalysis.metricRows;
   const localizedBaselineMetricRows = useMemo(
     () => localizeMetricRows(baselineMetricRows),
     [baselineMetricRows]
   );
-  const baselineLuminanceHistogram = useMemo(
-    () => buildHistogramBins(baselineTarget.result?.samples ?? [], "luminance"),
-    [baselineTarget.result]
-  );
-  const baselineHueHistogram = useMemo(
-    () => buildHistogramBins(baselineTarget.result?.samples ?? [], "hue"),
-    [baselineTarget.result]
-  );
-  const baselineSaturationHistogram = useMemo(
-    () => buildHistogramBins(baselineTarget.result?.samples ?? [], "saturation"),
-    [baselineTarget.result]
-  );
+  const baselineLuminanceHistogram = derivedAnalysis.luminanceHistogram;
+  const baselineHueHistogram = derivedAnalysis.hueHistogram;
+  const baselineSaturationHistogram = derivedAnalysis.saturationHistogram;
 
-  const selectionCubePoints = useMemo(
-    () =>
-      baselineTarget.result && activeBaselineSelection
-        ? buildCubePointsFromSamples(
-            getSelectedSamples(baselineTarget.result, baselineSelectionState)
-          )
-        : [],
-    [activeBaselineSelection, baselineSelectionState, baselineTarget.result]
-  );
+  const selectionCubePoints = derivedAnalysis.selectionCubePoints;
   const hoverColor = hoverState.sample?.color ?? null;
 
   const selectedSample = useMemo(() => {
@@ -222,9 +286,7 @@ export function ColorWorkbench() {
     }
 
     if (activeBaselineSelection.source === "image-rect") {
-      return baselineTarget.result.samples.filter((sample) =>
-        activeBaselineSelection.sampleIds.includes(sample.sampleId)
-      );
+      return derivedAnalysis.selectedSamples;
     }
 
     return baselineTarget.result.samples.filter(
@@ -233,7 +295,12 @@ export function ColorWorkbench() {
         sample.color.g === selectedSample.color.g &&
         sample.color.b === selectedSample.color.b
     );
-  }, [activeBaselineSelection, baselineTarget.result, selectedSample]);
+  }, [
+    activeBaselineSelection,
+    baselineTarget.result,
+    derivedAnalysis.selectedSamples,
+    selectedSample,
+  ]);
 
   const normalizeSliceValueForAxis = (nextAxis: SliceAxis, currentValue: number): number => {
     const nextRange = getAxisRange(nextAxis);

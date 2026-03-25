@@ -129,6 +129,35 @@ export type PhotoAnalysisResult = {
   height: number;
   elapsedMs: number;
   sampledPixels: number;
+  timings: PhotoAnalysisTimings;
+};
+
+export type PhotoAnalysisTimings = {
+  totalMs: number;
+  samplingMs: number;
+  histogramMs: number;
+  colorAreasMs: number;
+  cubePointsMs: number;
+};
+
+export type DerivedAnalysisTimings = {
+  totalMs: number;
+  selectionMs: number;
+  metricsMs: number;
+  luminanceHistogramMs: number;
+  hueHistogramMs: number;
+  saturationHistogramMs: number;
+  cubePointsMs: number;
+};
+
+export type DerivedPhotoAnalysis = {
+  selectedSamples: PhotoSample[];
+  metricRows: WorkbenchMetricRow[];
+  luminanceHistogram: WorkbenchHistogramBin[];
+  hueHistogram: WorkbenchHistogramBin[];
+  saturationHistogram: WorkbenchHistogramBin[];
+  selectionCubePoints: RgbCubePoint[];
+  timings: DerivedAnalysisTimings;
 };
 
 export type PhotoAnalysisSummary = {
@@ -685,6 +714,60 @@ export const buildCubePointsFromSamples = (samples: PhotoSample[]): RgbCubePoint
   return buildRgbCubePointsCore(samples, maxCubePointCount);
 };
 
+const now = (): number => performance.now();
+
+export const buildDerivedPhotoAnalysis = ({
+  result,
+  selectionState,
+}: {
+  result: PhotoAnalysisResult;
+  selectionState: TargetSelectionState | null | undefined;
+}): DerivedPhotoAnalysis => {
+  const startAt = now();
+
+  const selectionStartAt = now();
+  const selectedSamples = getSelectedSamples(result, selectionState);
+  const selectionMs = now() - selectionStartAt;
+
+  const metricsStartAt = now();
+  const metricRows = buildMetricRows({ result, selectionState });
+  const metricsMs = now() - metricsStartAt;
+
+  const luminanceHistogramStartAt = now();
+  const luminanceHistogram = buildHistogramBins(result.samples, "luminance");
+  const luminanceHistogramMs = now() - luminanceHistogramStartAt;
+
+  const hueHistogramStartAt = now();
+  const hueHistogram = buildHistogramBins(result.samples, "hue");
+  const hueHistogramMs = now() - hueHistogramStartAt;
+
+  const saturationHistogramStartAt = now();
+  const saturationHistogram = buildHistogramBins(result.samples, "saturation");
+  const saturationHistogramMs = now() - saturationHistogramStartAt;
+
+  const cubePointsStartAt = now();
+  const selectionCubePoints = buildCubePointsFromSamples(selectedSamples);
+  const cubePointsMs = now() - cubePointsStartAt;
+
+  return {
+    selectedSamples,
+    metricRows,
+    luminanceHistogram,
+    hueHistogram,
+    saturationHistogram,
+    selectionCubePoints,
+    timings: {
+      totalMs: now() - startAt,
+      selectionMs,
+      metricsMs,
+      luminanceHistogramMs,
+      hueHistogramMs,
+      saturationHistogramMs,
+      cubePointsMs,
+    },
+  };
+};
+
 export const serializeMetricRows = (
   rows: WorkbenchMetricRow[],
   format: ExportFormat,
@@ -806,12 +889,21 @@ export const serializeHistogramBins = (
 };
 
 export const analyzePhoto = (imageData: ImageData): PhotoAnalysisResult => {
-  const startAt = performance.now();
+  const startAt = now();
   const step = pickSamplingStep(imageData.width * imageData.height);
+  const samplingStartAt = now();
   const samples = samplePixels(imageData, step, maxSampleCount);
+  const samplingMs = now() - samplingStartAt;
+  const histogramStartAt = now();
   const { hue, saturation } = fillHistograms(samples);
+  const histogramMs = now() - histogramStartAt;
+  const colorAreasStartAt = now();
   const colorAreas = calculateColorAreas(samples);
+  const colorAreasMs = now() - colorAreasStartAt;
+  const cubePointsStartAt = now();
   const cubePoints = buildRgbCubePointsCore(samples, maxCubePointCount);
+  const cubePointsMs = now() - cubePointsStartAt;
+  const totalMs = now() - startAt;
 
   return {
     hueHistogram: hue,
@@ -821,7 +913,14 @@ export const analyzePhoto = (imageData: ImageData): PhotoAnalysisResult => {
     samples,
     width: imageData.width,
     height: imageData.height,
-    elapsedMs: performance.now() - startAt,
+    elapsedMs: totalMs,
     sampledPixels: samples.length,
+    timings: {
+      totalMs,
+      samplingMs,
+      histogramMs,
+      colorAreasMs,
+      cubePointsMs,
+    },
   };
 };
