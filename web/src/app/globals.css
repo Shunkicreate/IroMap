@@ -1431,7 +1431,7 @@
   }
 }
 
-@media (min-width: 90em) {
+@media (min-width: 110em) {
   .workbenchInteractiveGrid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
     grid-template-areas: "preview cube slice metrics";

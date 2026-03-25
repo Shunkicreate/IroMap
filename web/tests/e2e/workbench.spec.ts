@@ -50,7 +50,7 @@ test.describe("モバイルレイアウト", () => {
 });
 
 test.describe("ワイドレイアウト", () => {
-  test.use({ viewport: { width: 1600, height: 900 } });
+  test.use({ viewport: { width: 1920, height: 1080 } });
 
   test("主要UIが横並びで表示される", async ({ page }) => {
     await page.goto("/");
