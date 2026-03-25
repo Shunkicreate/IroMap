@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { clampRgb } from "@/domain/color/color-conversion";
 import {
   type ColorSpace3d,
@@ -103,7 +103,8 @@ export function RgbCubeCanvas({
   onHoverColorChange,
   onColorSelect,
 }: Props) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const baseCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const focusCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvasWrapRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<{ isDragging: boolean; x: number; y: number }>({
     isDragging: false,
@@ -111,6 +112,9 @@ export function RgbCubeCanvas({
     y: 0,
   });
   const projectedPointsRef = useRef<ProjectedPoint[]>([]);
+  const [localHoverColor, setLocalHoverColor] = useState<RgbColor | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isPointerInside, setIsPointerInside] = useState(false);
   const normalizedCubeSize =
     Math.round(Math.min(maxCubeSize, Math.max(minCubeSize, cubeSize)) / cubeSizeStep) *
     cubeSizeStep;
@@ -136,16 +140,14 @@ export function RgbCubeCanvas({
 
   const hasGridOverlay = overlayMode === "grid" || overlayMode === "both";
   const hasImageOverlay = overlayMode === "image" || overlayMode === "both";
+  const displayHoverColor = isPointerInside || isDragging ? localHoverColor : hoverColor;
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) {
-      return;
-    }
-
+  const configureCanvas = (
+    canvas: HTMLCanvasElement
+  ): { context: CanvasRenderingContext2D; width: number; height: number } | null => {
     const context = canvas.getContext("2d");
     if (!context) {
-      return;
+      return null;
     }
 
     const devicePixelRatio = window.devicePixelRatio || 1;
@@ -154,6 +156,21 @@ export function RgbCubeCanvas({
     canvas.width = Math.floor(width * devicePixelRatio);
     canvas.height = Math.floor(height * devicePixelRatio);
     context.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+
+    return { context, width, height };
+  };
+
+  useEffect(() => {
+    const canvas = baseCanvasRef.current;
+    if (!canvas) {
+      return;
+    }
+
+    const configuredCanvas = configureCanvas(canvas);
+    if (!configuredCanvas) {
+      return;
+    }
+    const { context, width, height } = configuredCanvas;
 
     context.clearRect(0, 0, width, height);
     context.fillStyle = "#0e1118";
@@ -258,23 +275,6 @@ export function RgbCubeCanvas({
       context.fill();
     }
 
-    const drawFocusRing = (color: RgbColor | null | undefined, strokeStyle: string): void => {
-      if (!color) {
-        return;
-      }
-      const point = projectColor(color, space, rotation, width, height, objectScale);
-      context.strokeStyle = strokeStyle;
-      context.lineWidth = 1.5;
-      context.beginPath();
-      context.arc(point.x, point.y, focusOverlayRadius, 0, fullCircleRadians);
-      context.stroke();
-    };
-
-    if (isselectionMappingVisible && projectedSelection.length === 0) {
-      drawFocusRing(selectedColor, selectionOverlayStroke);
-    }
-    drawFocusRing(hoverColor, hoverOverlayStroke);
-
     context.fillStyle = `rgba(255, 255, 255, ${textAlpha})`;
     context.font = "0.75rem monospace";
     context.fillText(
@@ -306,17 +306,56 @@ export function RgbCubeCanvas({
     cubeSize,
     hasGridOverlay,
     hasImageOverlay,
-    hoverColor,
     imageCubePoints,
     overlayMode,
     rotation,
     sampledColors,
-    selectedColor,
     selectionCubePoints,
     isimageMappingVisible,
     isselectionMappingVisible,
     sliceAxis,
     sliceValue,
+    space,
+  ]);
+
+  useEffect(() => {
+    const canvas = focusCanvasRef.current;
+    if (!canvas) {
+      return;
+    }
+
+    const configuredCanvas = configureCanvas(canvas);
+    if (!configuredCanvas) {
+      return;
+    }
+    const { context, width, height } = configuredCanvas;
+    const objectScale = cubeSize / defaultCubeSize;
+
+    context.clearRect(0, 0, width, height);
+
+    const drawFocusRing = (color: RgbColor | null | undefined, strokeStyle: string): void => {
+      if (!color) {
+        return;
+      }
+      const point = projectColor(color, space, rotation, width, height, objectScale);
+      context.strokeStyle = strokeStyle;
+      context.lineWidth = 1.5;
+      context.beginPath();
+      context.arc(point.x, point.y, focusOverlayRadius, 0, fullCircleRadians);
+      context.stroke();
+    };
+
+    if (isselectionMappingVisible && selectionCubePoints.length === 0) {
+      drawFocusRing(selectedColor, selectionOverlayStroke);
+    }
+    drawFocusRing(displayHoverColor, hoverOverlayStroke);
+  }, [
+    cubeSize,
+    displayHoverColor,
+    rotation,
+    selectedColor,
+    selectionCubePoints.length,
+    isselectionMappingVisible,
     space,
   ]);
 
@@ -332,6 +371,8 @@ export function RgbCubeCanvas({
   const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>): void => {
     const pointer = mapPointer(event);
     dragRef.current = { isDragging: true, x: pointer.x, y: pointer.y };
+    setIsDragging(true);
+    setIsPointerInside(true);
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
@@ -339,7 +380,9 @@ export function RgbCubeCanvas({
     const pointer = mapPointer(event);
 
     const nearest = findNearestColor(pointer.x, pointer.y);
-    onHoverColorChange(nearest ? clampRgb(nearest) : null);
+    const nextHoverColor = nearest ? clampRgb(nearest) : null;
+    setLocalHoverColor(nextHoverColor);
+    onHoverColorChange(nextHoverColor);
 
     if (!dragRef.current.isDragging) {
       return;
@@ -359,31 +402,41 @@ export function RgbCubeCanvas({
   const handlePointerUp = (event: React.PointerEvent<HTMLCanvasElement>): void => {
     const pointer = mapPointer(event);
     const nearest = findNearestColor(pointer.x, pointer.y);
+    const nextHoverColor = nearest ? clampRgb(nearest) : null;
+    setLocalHoverColor(nextHoverColor);
+    onHoverColorChange(nextHoverColor);
     if (nearest) {
-      onColorSelect(clampRgb(nearest));
+      onColorSelect(nextHoverColor ?? clampRgb(nearest));
     }
 
     dragRef.current.isDragging = false;
+    setIsDragging(false);
     event.currentTarget.releasePointerCapture(event.pointerId);
   };
 
   const handlePointerLeave = (): void => {
     dragRef.current.isDragging = false;
+    setIsDragging(false);
+    setIsPointerInside(false);
+    setLocalHoverColor(null);
     onHoverColorChange(null);
   };
 
   return (
     <div ref={canvasWrapRef} className="cubeCanvasWrap">
-      <canvas
-        ref={canvasRef}
-        className="cubeCanvas"
-        tabIndex={0}
-        aria-label={t("cubeCanvasAriaLabel")}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerLeave={handlePointerLeave}
-      />
+      <div className="cubeCanvasStack">
+        <canvas
+          ref={baseCanvasRef}
+          className="cubeCanvas"
+          tabIndex={0}
+          aria-label={t("cubeCanvasAriaLabel")}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerLeave={handlePointerLeave}
+        />
+        <canvas ref={focusCanvasRef} className="cubeCanvasOverlay" aria-hidden="true" />
+      </div>
     </div>
   );
 }

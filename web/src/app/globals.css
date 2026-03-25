@@ -387,9 +387,24 @@
   touch-action: none;
 }
 
+.cubeCanvasOverlay {
+  inline-size: 100%;
+  block-size: 100%;
+  border-radius: 0.625rem;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
 .cubeCanvasWrap {
   aspect-ratio: 1;
   margin-inline: auto;
+}
+
+.cubeCanvasStack {
+  position: relative;
+  inline-size: 100%;
+  block-size: 100%;
 }
 
 .cubeCanvasWrapSize320 {
