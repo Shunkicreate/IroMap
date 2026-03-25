@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import {
   analyzePhoto,
+  buildDerivedPhotoAnalysis,
   buildHistogramBins,
   buildMetricRows,
   buildPointSelection,
@@ -142,4 +143,39 @@ test("T-205(photo-analysis): metric table と histogram を Markdown 形式で e
   expect(metricMarkdown).toContain("l_mean");
   expect(histogramMarkdown).toContain("| metric | binIndex | start | end | count | ratio |");
   expect(histogramMarkdown).toContain("luminance");
+});
+
+test("T-206(photo-analysis): derived analysis が同期計算と同じ内容を返す", async () => {
+  const imageData = createImageDataLike(8, 8, (x, y) => ({
+    r: (x * 31) % 256,
+    g: (y * 29) % 256,
+    b: ((x + y) * 17) % 256,
+  }));
+  const result = analyzePhoto(imageData);
+  const selection = buildPointSelection({
+    result,
+    targetId: "baseline",
+    sampleId: result.samples[0]!.sampleId,
+    source: "image-point",
+  });
+  const selectionState: TargetSelectionState = {
+    activeSelection: selection,
+  };
+
+  const derived = buildDerivedPhotoAnalysis({
+    result,
+    selectionState,
+  });
+
+  expect(derived.metricRows).toEqual(
+    buildMetricRows({
+      result,
+      selectionState,
+    })
+  );
+  expect(derived.luminanceHistogram).toEqual(buildHistogramBins(result.samples, "luminance"));
+  expect(derived.hueHistogram).toEqual(buildHistogramBins(result.samples, "hue"));
+  expect(derived.saturationHistogram).toEqual(buildHistogramBins(result.samples, "saturation"));
+  expect(derived.selectedSamples).toEqual(getSelectedSamples(result, selectionState));
+  expect(derived.timings.totalMs).toBeGreaterThanOrEqual(0);
 });
