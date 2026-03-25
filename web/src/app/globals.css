@@ -900,8 +900,14 @@
 }
 
 .workbenchRoot label.toggleLabel {
-  display: inline-flex;
-  gap: 0.5rem;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.workbenchRoot label.toggleLabel > span {
+  display: inline-block;
 }
 
 .workbenchRoot select,
