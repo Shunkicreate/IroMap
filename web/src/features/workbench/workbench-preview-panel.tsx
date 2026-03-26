@@ -13,6 +13,7 @@ import {
   type SelectionDraft,
   type WorkbenchTarget,
 } from "@/features/workbench/workbench-shared";
+import { findNearestPreviewSampleInWorker } from "@/features/workbench/hover-search-client";
 import { findNearestPreviewHoverSample } from "@/features/workbench/hover-search";
 import { useLatestHoverPipeline } from "@/features/workbench/use-latest-hover-pipeline";
 
@@ -74,6 +75,13 @@ export function WorkbenchPreviewPanel({
       resolve: (point) => {
         if (!point) {
           return null;
+        }
+        if (target.analysisId) {
+          return findNearestPreviewSampleInWorker({
+            analysisId: target.analysisId,
+            x: point.x,
+            y: point.y,
+          });
         }
         return findNearestPreviewHoverSample(target, point.x, point.y);
       },

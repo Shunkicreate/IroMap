@@ -22,10 +22,12 @@ import {
   type ProjectedPoint,
   type Rotation,
 } from "@/features/rgb-cube/rgb-cube-core";
+import { findNearestCubeHoverColorInWorker } from "@/features/workbench/hover-search-client";
 import { findNearestProjectedHoverColor } from "@/features/workbench/hover-search";
 import { useLatestHoverPipeline } from "@/features/workbench/use-latest-hover-pipeline";
 
 type Props = {
+  analysisId: string | null;
   space: ColorSpace3d;
   rotation: Rotation;
   cubeSize: number;
@@ -91,15 +93,20 @@ const getSliceAxisLabel = (axis: SliceAxis): string => {
   return axis.toUpperCase();
 };
 
-const mapPointer = (event: React.PointerEvent<HTMLCanvasElement>): { x: number; y: number } => {
+const mapPointer = (
+  event: React.PointerEvent<HTMLCanvasElement>
+): { x: number; y: number; width: number; height: number } => {
   const bounds = event.currentTarget.getBoundingClientRect();
   return {
     x: event.clientX - bounds.left,
     y: event.clientY - bounds.top,
+    width: bounds.width,
+    height: bounds.height,
   };
 };
 
 export function RgbCubeCanvas({
+  analysisId,
   space,
   rotation,
   cubeSize,
@@ -160,13 +167,32 @@ export function RgbCubeCanvas({
   const hasImageOverlay = overlayMode === "image" || overlayMode === "both";
   const displayHoverColor = isPointerInside || isDragging ? localHoverColor : hoverColor;
   const activeRotation = isDragging ? displayRotation : rotation;
-  const hoverPipeline = useLatestHoverPipeline<{ x: number; y: number }, RgbColor | null>({
+  const hoverPipeline = useLatestHoverPipeline<
+    { x: number; y: number; width: number; height: number },
+    RgbColor | null
+  >({
     isEqual: areSameColor,
     onResolved: (nextHoverColor) => {
       setLocalHoverColor(nextHoverColor);
       onHoverColorChange(nextHoverColor);
     },
-    resolve: ({ x, y }) => {
+    resolve: ({ x, y, width, height }) => {
+      if (!hasImageOverlay || !isimageMappingVisible) {
+        return null;
+      }
+      if (analysisId) {
+        return findNearestCubeHoverColorInWorker({
+          analysisId,
+          space,
+          rotation: activeRotation,
+          width,
+          height,
+          objectScale: cubeSize / defaultCubeSize,
+          x,
+          y,
+          maxDistanceSquared: nearestDistanceThresholdSquared,
+        });
+      }
       const nearest = findNearestProjectedHoverColor(
         projectedPointsRef.current,
         x,

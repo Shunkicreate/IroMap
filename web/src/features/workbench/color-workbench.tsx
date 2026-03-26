@@ -54,6 +54,11 @@ import {
   type SelectionDraft,
   type WorkbenchTarget,
 } from "@/features/workbench/workbench-shared";
+import {
+  registerHoverSearchAnalysis,
+  resolveHoverColorToSampleInWorker,
+  unregisterHoverSearchAnalysis,
+} from "@/features/workbench/hover-search-client";
 import { t } from "@/i18n/translate";
 
 const parseColorSpace3d = (rawValue: string): ColorSpace3d | null =>
@@ -175,6 +180,7 @@ export function ColorWorkbench() {
   });
   const pendingSharedHoverRef = useRef<SharedHoverEvent | null>(null);
   const sharedHoverFrameRef = useRef<number | null>(null);
+  const sharedHoverSequenceRef = useRef(0);
   const [selectedColor, setSelectedColor] = useState<RgbColor | null>(null);
   const [copyFormat, setCopyFormat] = useState<ExportFormat>("markdown");
   const [sliceAxis, setSliceAxis] = usePersistedState<SliceAxis>({
@@ -268,6 +274,19 @@ export function ColorWorkbench() {
     () => buildSampleBuckets(baselineTarget.result),
     [baselineTarget.result]
   );
+
+  useEffect(() => {
+    const analysisId = baselineTarget.analysisId;
+    const result = baselineTarget.result;
+    if (!analysisId || !result) {
+      return;
+    }
+
+    registerHoverSearchAnalysis(analysisId, result);
+    return () => {
+      unregisterHoverSearchAnalysis(analysisId);
+    };
+  }, [baselineTarget.analysisId, baselineTarget.result]);
 
   useEffect(() => {
     const file = baselineTarget.file;
@@ -508,6 +527,7 @@ export function ColorWorkbench() {
   };
 
   const clearSharedHoverNow = (source: HoverState["source"]): void => {
+    sharedHoverSequenceRef.current += 1;
     pendingSharedHoverRef.current = null;
     if (sharedHoverFrameRef.current != null) {
       window.cancelAnimationFrame(sharedHoverFrameRef.current);
@@ -530,26 +550,47 @@ export function ColorWorkbench() {
     if (!nextHoverEvent) {
       return;
     }
+    const sequence = sharedHoverSequenceRef.current + 1;
+    sharedHoverSequenceRef.current = sequence;
 
-    const nextHover: HoverState =
-      nextHoverEvent.kind === "sample"
-        ? {
-            targetId: nextHoverEvent.targetId,
-            sample: nextHoverEvent.sample,
-            source: nextHoverEvent.source,
-          }
-        : {
-            targetId: nextHoverEvent.targetId,
-            sample: findNearestSampleByColor(
-              baselineTarget.result,
-              baselineBuckets,
-              nextHoverEvent.color
-            ),
-            source: nextHoverEvent.source,
-          };
+    if (nextHoverEvent.kind === "sample") {
+      const nextHover: HoverState = {
+        targetId: nextHoverEvent.targetId,
+        sample: nextHoverEvent.sample,
+        source: nextHoverEvent.source,
+      };
+      setSharedHoverState((current) => {
+        return areSameHoverState(current, nextHover) ? current : nextHover;
+      });
+      return;
+    }
 
-    setSharedHoverState((current) => {
-      return areSameHoverState(current, nextHover) ? current : nextHover;
+    const applyResolvedSample = (sample: PhotoSample | null): void => {
+      if (sequence !== sharedHoverSequenceRef.current) {
+        return;
+      }
+      const nextHover: HoverState = {
+        targetId: nextHoverEvent.targetId,
+        sample,
+        source: nextHoverEvent.source,
+      };
+      setSharedHoverState((current) => {
+        return areSameHoverState(current, nextHover) ? current : nextHover;
+      });
+    };
+
+    if (!baselineTarget.analysisId) {
+      applyResolvedSample(
+        findNearestSampleByColor(baselineTarget.result, baselineBuckets, nextHoverEvent.color)
+      );
+      return;
+    }
+
+    void resolveHoverColorToSampleInWorker({
+      analysisId: baselineTarget.analysisId,
+      color: nextHoverEvent.color,
+    }).then((sample) => {
+      applyResolvedSample(sample);
     });
   };
 
@@ -937,6 +978,7 @@ export function ColorWorkbench() {
             </PersistedDisclosure>
 
             <RgbCubeCanvas
+              analysisId={baselineTarget.analysisId}
               space={space}
               rotation={rotation}
               cubeSize={cubeSize}
@@ -959,6 +1001,7 @@ export function ColorWorkbench() {
 
         <div className="workbenchSliceRegion">
           <SliceCanvas
+            analysisId={baselineTarget.analysisId}
             space={space}
             axis={sliceAxis}
             value={sliceValue}

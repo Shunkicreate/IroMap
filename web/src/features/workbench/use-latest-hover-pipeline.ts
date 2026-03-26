@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 type Options<TInput, TResult> = {
   isEqual: (left: TResult, right: TResult) => boolean;
   onResolved: (result: TResult) => void;
-  resolve: (input: TInput) => TResult;
+  resolve: (input: TInput) => TResult | Promise<TResult>;
 };
 
 export const useLatestHoverPipeline = <TInput, TResult>({
@@ -18,6 +18,8 @@ export const useLatestHoverPipeline = <TInput, TResult>({
   const hasPendingInputRef = useRef(false);
   const lastResolvedRef = useRef<TResult | null>(null);
   const hasLastResolvedRef = useRef(false);
+  const latestSequenceRef = useRef(0);
+  const pendingSequenceRef = useRef(0);
   const isEqualRef = useRef(isEqual);
   const onResolvedRef = useRef(onResolved);
   const resolveRef = useRef(resolve);
@@ -35,25 +37,37 @@ export const useLatestHoverPipeline = <TInput, TResult>({
     }
 
     const nextInput = pendingInputRef.current as TInput;
+    const sequence = pendingSequenceRef.current;
     pendingInputRef.current = null;
     hasPendingInputRef.current = false;
+    pendingSequenceRef.current = 0;
 
-    const nextResult = resolveRef.current(nextInput);
-    if (
-      hasLastResolvedRef.current &&
-      isEqualRef.current(lastResolvedRef.current as TResult, nextResult)
-    ) {
-      return;
-    }
+    void Promise.resolve(resolveRef.current(nextInput))
+      .then((nextResult) => {
+        if (sequence !== latestSequenceRef.current) {
+          return;
+        }
+        if (
+          hasLastResolvedRef.current &&
+          isEqualRef.current(lastResolvedRef.current as TResult, nextResult)
+        ) {
+          return;
+        }
 
-    lastResolvedRef.current = nextResult;
-    hasLastResolvedRef.current = true;
-    onResolvedRef.current(nextResult);
+        lastResolvedRef.current = nextResult;
+        hasLastResolvedRef.current = true;
+        onResolvedRef.current(nextResult);
+      })
+      .catch(() => {
+        // Ignore stale hover failures and keep the last visual state.
+      });
   };
 
   const schedule = (input: TInput): void => {
+    latestSequenceRef.current += 1;
     pendingInputRef.current = input;
     hasPendingInputRef.current = true;
+    pendingSequenceRef.current = latestSequenceRef.current;
     if (frameRef.current != null) {
       return;
     }
@@ -63,12 +77,14 @@ export const useLatestHoverPipeline = <TInput, TResult>({
   };
 
   const clearNow = (result: TResult): void => {
+    latestSequenceRef.current += 1;
     if (frameRef.current != null) {
       window.cancelAnimationFrame(frameRef.current);
       frameRef.current = null;
     }
     pendingInputRef.current = null;
     hasPendingInputRef.current = false;
+    pendingSequenceRef.current = 0;
     if (
       hasLastResolvedRef.current &&
       isEqualRef.current(lastResolvedRef.current as TResult, result)

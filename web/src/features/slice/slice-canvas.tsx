@@ -22,10 +22,12 @@ import { t } from "@/i18n/translate";
 import { GraphFrame } from "@/components/graph/graph-frame";
 import type { PhotoSample } from "@/domain/photo-analysis/photo-analysis";
 import controlStyles from "@/features/workbench/workbench-controls.module.css";
+import { findNearestSliceHoverColorInWorker } from "@/features/workbench/hover-search-client";
 import { findNearestMappedHoverColor } from "@/features/workbench/hover-search";
 import { useLatestHoverPipeline } from "@/features/workbench/use-latest-hover-pipeline";
 
 type Props = {
+  analysisId: string | null;
   space: ColorSpace3d;
   axis: SliceAxis;
   value: number;
@@ -364,6 +366,7 @@ const projectSampleToSlice = (
 };
 
 export function SliceCanvas({
+  analysisId,
   space,
   axis,
   value,
@@ -405,6 +408,16 @@ export function SliceCanvas({
     resolve: (point) => {
       if (!point) {
         return null;
+      }
+      if (analysisId) {
+        return findNearestSliceHoverColorInWorker({
+          analysisId,
+          axis,
+          value,
+          x: point.x,
+          y: point.y,
+          maxDistanceSquared: mappedSampleHitRadius ** 2,
+        });
       }
       return findNearestMappedHoverColor(
         projectedMappedSamples,
