@@ -1,3 +1,5 @@
+minimumReleaseAge: 20160
+
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
