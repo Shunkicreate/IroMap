@@ -39,6 +39,7 @@ export {
 } from "@/domain/photo-analysis/derived/photo-analysis-derived";
 
 export {
+  buildColorSelection,
   buildPointSelection,
   buildRectangleSelection,
   getSelectedIndexes,

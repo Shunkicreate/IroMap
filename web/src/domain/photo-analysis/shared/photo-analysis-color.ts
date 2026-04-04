@@ -2,8 +2,13 @@ import {
   chromaBinCount,
   hueBinCount,
   hueMax,
+  legacySamplingDensityPercent,
   luminanceBinCount,
   luminanceMax,
+  maximumTargetSampleCountBeforeFull,
+  maximumSamplingDensityPercent,
+  minimumTargetSampleCount,
+  minimumSamplingDensityPercent,
   minimumUnit,
   performanceSamplingThreshold,
   quantizeBucketSize,
@@ -34,10 +39,92 @@ export const quantizeComponent = (value: number): number =>
 
 export const buildAreaLabel = (color: RgbColor): string => `R${color.r}-G${color.g}-B${color.b}`;
 
-export const pickSamplingStep = (pixelCount: number): number =>
+export const pickLegacySamplingStep = (pixelCount: number): number =>
   pixelCount <= performanceSamplingThreshold
     ? minimumUnit
     : Math.ceil(Math.sqrt(pixelCount / performanceSamplingThreshold));
+
+const clampSamplingDensityPercent = (samplingDensityPercent: number): number =>
+  Math.min(
+    maximumSamplingDensityPercent,
+    Math.max(minimumSamplingDensityPercent, samplingDensityPercent)
+  );
+
+const interpolateTargetSampleCount = (samplingDensityPercent: number): number => {
+  if (samplingDensityPercent >= maximumSamplingDensityPercent) {
+    return maximumTargetSampleCountBeforeFull;
+  }
+  const normalizedProgress =
+    (samplingDensityPercent - minimumSamplingDensityPercent) /
+    (maximumSamplingDensityPercent - minimumSamplingDensityPercent - minimumUnit);
+  return Math.round(
+    minimumTargetSampleCount +
+      (maximumTargetSampleCountBeforeFull - minimumTargetSampleCount) *
+        normalizedProgress *
+        normalizedProgress
+  );
+};
+
+export const samplingDensityPercentToStep = (
+  samplingDensityPercent: number,
+  pixelCount: number
+): number => {
+  const normalizedDensity = Math.min(
+    maximumSamplingDensityPercent,
+    Math.max(minimumSamplingDensityPercent, samplingDensityPercent)
+  );
+  if (normalizedDensity === maximumSamplingDensityPercent) {
+    return minimumUnit;
+  }
+  const targetSampleCount = Math.min(pixelCount, interpolateTargetSampleCount(normalizedDensity));
+  return Math.max(
+    minimumUnit,
+    Math.ceil(Math.sqrt(pixelCount / Math.max(minimumUnit, targetSampleCount)))
+  );
+};
+
+export const samplingStepToDensityPercent = (samplingStep: number, pixelCount: number): number => {
+  if (samplingStep <= minimumUnit) {
+    return maximumSamplingDensityPercent;
+  }
+  let bestPercent = minimumSamplingDensityPercent;
+  let smallestStepDifference = Number.POSITIVE_INFINITY;
+  for (
+    let percent = minimumSamplingDensityPercent;
+    percent < maximumSamplingDensityPercent;
+    percent += minimumUnit
+  ) {
+    const candidateStep = samplingDensityPercentToStep(percent, pixelCount);
+    const stepDifference = Math.abs(candidateStep - samplingStep);
+    if (stepDifference < smallestStepDifference) {
+      smallestStepDifference = stepDifference;
+      bestPercent = percent;
+    }
+  }
+  return bestPercent;
+};
+
+export const resolveSamplingDensityPercent = (
+  requestedSamplingDensityPercent: number,
+  pixelCount: number
+): number =>
+  requestedSamplingDensityPercent === legacySamplingDensityPercent
+    ? samplingStepToDensityPercent(pickLegacySamplingStep(pixelCount), pixelCount)
+    : clampSamplingDensityPercent(requestedSamplingDensityPercent);
+
+export const pickSamplingStep = (
+  pixelCount: number,
+  requestedSamplingDensityPercent: number
+): { samplingDensityPercent: number; step: number } => {
+  const samplingDensityPercent = resolveSamplingDensityPercent(
+    requestedSamplingDensityPercent,
+    pixelCount
+  );
+  return {
+    samplingDensityPercent,
+    step: samplingDensityPercentToStep(samplingDensityPercent, pixelCount),
+  };
+};
 
 export const scaleLabComponent = (value: number): number => Math.round(value * 100);
 export const unscaleLabComponent = (value: number): number => value / 100;

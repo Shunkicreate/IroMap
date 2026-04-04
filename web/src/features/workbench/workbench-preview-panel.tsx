@@ -1,15 +1,18 @@
 "use client";
 
 import NextImage from "next/image";
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { PersistedDisclosure } from "@/components/workbench/persisted-disclosure";
 import { PanelHeader } from "@/components/workbench/panel-header";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { PhotoSample, TargetSelectionState } from "@/domain/photo-analysis/photo-analysis";
 import { t } from "@/i18n/translate";
 import controlStyles from "@/features/workbench/workbench-controls.module.css";
 import previewStyles from "@/features/workbench/photo-preview-shared.module.css";
 import {
   clamp,
+  type PreviewSamplingGridColor,
   type SelectionDraft,
   type WorkbenchTarget,
 } from "@/features/workbench/workbench-shared";
@@ -24,7 +27,14 @@ type Props = {
   selectionState: TargetSelectionState;
   selectionDraft: SelectionDraft;
   uploadDisclosureStorageKey: string;
+  optionsDisclosureStorageKey: string;
+  isSamplingGridVisible: boolean;
+  samplingGridColor: PreviewSamplingGridColor;
+  samplingDensityPercent: number;
   onHoverSampleChange: (sample: PhotoSample | null) => void;
+  onSamplingGridVisibleChange: (isVisible: boolean) => void;
+  onSamplingGridColorChange: (color: PreviewSamplingGridColor) => void;
+  onSamplingDensityPercentChange: (value: number) => void;
   onSelectionDraftChange: (draft: SelectionDraft) => void;
   onSelectionCommit: (bounds: { x: number; y: number; width: number; height: number }) => void;
   onSampleSelect: (sample: PhotoSample) => void;
@@ -38,22 +48,31 @@ const areSameSample = (
   right: PhotoSample | null | undefined
 ): boolean => left?.sampleId === right?.sampleId;
 
-export function WorkbenchPreviewPanel({
-  target,
-  selectedSamples,
-  selectionState,
-  selectionDraft,
-  uploadDisclosureStorageKey,
-  onHoverSampleChange,
-  onSelectionDraftChange,
-  onSelectionCommit,
-  onSampleSelect,
-  onSourceFileSelected,
-  onPaste,
-  onPasteButtonClick,
-}: Props) {
+export function WorkbenchPreviewPanel(props: Props) {
+  const {
+    target,
+    selectedSamples,
+    selectionState,
+    selectionDraft,
+    uploadDisclosureStorageKey,
+    optionsDisclosureStorageKey,
+    isSamplingGridVisible,
+    samplingGridColor,
+    samplingDensityPercent,
+    onHoverSampleChange,
+    onSamplingGridVisibleChange,
+    onSamplingGridColorChange,
+    onSamplingDensityPercentChange,
+    onSelectionDraftChange,
+    onSelectionCommit,
+    onSampleSelect,
+    onSourceFileSelected,
+    onPaste,
+    onPasteButtonClick,
+  } = props;
   const imageWrapRef = useRef<HTMLDivElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
+  const patternId = useId();
   const [localHoverSample, setLocalHoverSample] = useState<PhotoSample | null>(null);
   const [isPointerInside, setIsPointerInside] = useState(false);
   const sharedHoverSample = useSharedHoverState((state) => state.sample);
@@ -230,6 +249,26 @@ export function WorkbenchPreviewPanel({
   const markerRadius = target.result
     ? Math.max(4, Math.min(target.result.width, target.result.height) * 0.01)
     : 5;
+  const samplingStep = target.result?.samplingStep ?? 1;
+  const sampledPixels = target.result?.sampledPixels ?? 0;
+  const samplingGridStroke =
+    samplingGridColor === "white" ? "rgba(248, 250, 252, 0.92)" : "rgba(15, 23, 42, 0.82)";
+  const samplingGridPattern =
+    target.result && isSamplingGridVisible ? (
+      <pattern
+        id={patternId}
+        width={samplingStep}
+        height={samplingStep}
+        patternUnits="userSpaceOnUse"
+      >
+        <path
+          d={`M ${samplingStep} 0 L 0 0 0 ${samplingStep}`}
+          fill="none"
+          stroke={samplingGridStroke}
+          strokeWidth="0.7"
+        />
+      </pattern>
+    ) : null;
 
   return (
     <section className={`panel ${previewStyles.previewPanel}`}>
@@ -280,6 +319,67 @@ export function WorkbenchPreviewPanel({
         </div>
       </PersistedDisclosure>
 
+      <PersistedDisclosure
+        storageKey={optionsDisclosureStorageKey}
+        defaultOpen={false}
+        summary={t("workbenchDisplayOptionsDisclosure")}
+        className={controlStyles.inlineDisclosure}
+        contentClassName={controlStyles.inlineDisclosureContent}
+      >
+        <div className={controlStyles.cubeSettings}>
+          <div className={controlStyles.toggleRow}>
+            <label className={controlStyles.toggleLabel}>
+              <Checkbox
+                checked={isSamplingGridVisible}
+                onCheckedChange={(checked) => onSamplingGridVisibleChange(checked === true)}
+              />
+              <span>{t("previewShowSamplingGrid")}</span>
+            </label>
+          </div>
+          <div className={controlStyles.cubeOverlayMode}>
+            <span className={controlStyles.cubeControlLabel}>
+              {t("previewSamplingGridColorLabel")}
+            </span>
+            <Tabs
+              value={samplingGridColor}
+              onValueChange={(value) =>
+                onSamplingGridColorChange(value as PreviewSamplingGridColor)
+              }
+              className={controlStyles.spaceTabs}
+            >
+              <TabsList className={controlStyles.twoOptionTabsList}>
+                <TabsTrigger value="white" className={controlStyles.spaceTabTrigger}>
+                  {t("previewSamplingGridColorWhite")}
+                </TabsTrigger>
+                <TabsTrigger value="black" className={controlStyles.spaceTabTrigger}>
+                  {t("previewSamplingGridColorBlack")}
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+          <label className={controlStyles.stackedLabel}>
+            {t("previewSamplingDensityLabel", {
+              value: samplingDensityPercent,
+              sampleCount: sampledPixels.toLocaleString(),
+            })}
+            <input
+              className={controlStyles.rangeControl}
+              type="range"
+              min={1}
+              max={100}
+              step={1}
+              value={samplingDensityPercent}
+              onChange={(event) => onSamplingDensityPercentChange(Number(event.target.value))}
+            />
+          </label>
+          {samplingDensityPercent === 100 ? (
+            <p className={`muted ${previewStyles.statusLine}`}>
+              {t("previewSamplingDensityFullWarning")}
+            </p>
+          ) : null}
+        </div>
+      </PersistedDisclosure>
+
       <div
         ref={imageWrapRef}
         className={previewStyles.imageStage}
@@ -312,6 +412,17 @@ export function WorkbenchPreviewPanel({
           className={previewStyles.overlay}
           aria-hidden="true"
         >
+          <defs>{samplingGridPattern}</defs>
+          {samplingGridPattern && target.result ? (
+            <rect
+              className={previewStyles.samplingGrid}
+              x="0"
+              y="0"
+              width={target.result.width}
+              height={target.result.height}
+              fill={`url(#${patternId})`}
+            />
+          ) : null}
           {selectionBox}
           {draftRect ? (
             <rect

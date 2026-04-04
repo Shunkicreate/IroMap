@@ -1,9 +1,10 @@
 import type {
-  PhotoAnalysisResult,
   PhotoSelection,
+  PhotoAnalysisResult,
   PhotoSample,
   TargetSelectionState,
 } from "@/domain/photo-analysis/shared/photo-analysis-types";
+import type { RgbColor } from "@/domain/color/color-types";
 
 // Selection layer: builds selections and extracts selected sample identities.
 
@@ -86,5 +87,32 @@ export const buildPointSelection = ({
     sampleCount: sample ? 1 : 0,
     coverageRatio: result.samples.length === 0 || !sample ? 0 : 1 / result.samples.length,
     bounds: sample ? { x: sample.x, y: sample.y, width: 1, height: 1 } : undefined,
+  };
+};
+
+export const buildColorSelection = ({
+  result,
+  targetId,
+  color,
+  source,
+}: {
+  result: PhotoAnalysisResult;
+  targetId: string;
+  color: RgbColor;
+  source: Extract<PhotoSelection["source"], "color-space-pick" | "slice-pick">;
+}): PhotoSelection => {
+  const sampleIds = result.samples
+    .filter(
+      (sample) =>
+        sample.color.r === color.r && sample.color.g === color.g && sample.color.b === color.b
+    )
+    .map((sample) => sample.sampleId);
+  return {
+    selectionId: `${targetId}-${source}-${color.r}-${color.g}-${color.b}`,
+    targetId,
+    source,
+    sampleIds,
+    sampleCount: sampleIds.length,
+    coverageRatio: result.samples.length === 0 ? 0 : sampleIds.length / result.samples.length,
   };
 };

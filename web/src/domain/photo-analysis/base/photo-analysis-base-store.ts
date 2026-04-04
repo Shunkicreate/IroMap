@@ -3,7 +3,6 @@ import { colorChannelMax } from "@/domain/color/color-constants";
 import { toHueDegree, toPercentage, toRgbColor } from "@/domain/color/color-types";
 import {
   alphaChannelOffset,
-  maxSampleCount,
   noAlpha,
   rgbaStride,
 } from "@/domain/photo-analysis/shared/photo-analysis-constants";
@@ -25,13 +24,9 @@ import type {
 
 // Base analysis storage layer: builds and materializes sampled photo data.
 
-export const samplePixelsToStore = (
-  imageData: ImageData,
-  step: number,
-  maxSamples: number = maxSampleCount
-): PhotoSampleBufferStore => {
+export const samplePixelsToStore = (imageData: ImageData, step: number): PhotoSampleBufferStore => {
   const { data, width, height } = imageData;
-  const capacity = Math.min(maxSamples, Math.ceil(width / step) * Math.ceil(height / step));
+  const capacity = Math.ceil(width / step) * Math.ceil(height / step);
   const x = shouldUseWideCoordinates(width, height)
     ? new Uint32Array(capacity)
     : new Uint16Array(capacity);
@@ -51,10 +46,11 @@ export const samplePixelsToStore = (
 
   for (let row = 0; row < height; row += step) {
     for (let column = 0; column < width; column += step) {
-      if (count >= maxSamples) {
-        break;
-      }
-      const offset = (row * width + column) * rgbaStride;
+      const cellWidth = Math.min(step, width - column);
+      const cellHeight = Math.min(step, height - row);
+      const sampleX = column + Math.floor(cellWidth / 2);
+      const sampleY = row + Math.floor(cellHeight / 2);
+      const offset = (sampleY * width + sampleX) * rgbaStride;
       const alpha = data[offset + alphaChannelOffset] / colorChannelMax;
       if (alpha === noAlpha) {
         continue;
@@ -63,8 +59,8 @@ export const samplePixelsToStore = (
       const color = toRgbColor(data[offset], data[offset + 1], data[offset + 2]);
       const hsl = rgbToHsl(color);
       const lab = rgbToLab(color);
-      x[count] = column;
-      y[count] = row;
+      x[count] = sampleX;
+      y[count] = sampleY;
       r[count] = color.r;
       g[count] = color.g;
       b[count] = color.b;
@@ -75,9 +71,6 @@ export const samplePixelsToStore = (
       saturation[count] = scaleSaturation(hsl.s);
       lightness[count] = scaleLightness(hsl.l);
       count += 1;
-    }
-    if (count >= maxSamples) {
-      break;
     }
   }
 

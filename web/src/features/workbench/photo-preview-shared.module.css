@@ -139,6 +139,10 @@
   pointer-events: none;
 }
 
+.samplingGrid {
+  opacity: 1;
+}
+
 .selectionBox,
 .selectionDraft {
   fill: none;

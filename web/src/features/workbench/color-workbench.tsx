@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { rgbToHex } from "@/domain/color/color-format";
 import { type ColorSpace3d, type RgbColor, type SliceAxis } from "@/domain/color/color-types";
 import {
+  buildColorSelection,
   buildDerivedPhotoAnalysis,
   buildPointSelection,
   buildRectangleSelection,
@@ -34,6 +35,12 @@ import controlStyles from "@/features/workbench/workbench-controls.module.css";
 import { WorkbenchMetricsPanel } from "@/features/workbench/workbench-metrics-panel";
 import { WorkbenchPreviewPanel } from "@/features/workbench/workbench-preview-panel";
 import {
+  defaultSamplingDensityPercent,
+  legacySamplingDensityPercent,
+  maximumSamplingDensityPercent,
+} from "@/domain/photo-analysis/shared/photo-analysis-constants";
+import { resolveSamplingDensityPercent } from "@/domain/photo-analysis/shared/photo-analysis-color";
+import {
   buildSampleBuckets,
   clamp,
   clipboardImageFileName,
@@ -49,6 +56,7 @@ import {
   mapAxisValue,
   storageKeys,
   type HoverState,
+  type PreviewSamplingGridColor,
   type RgbCubeOverlayMode,
   type Rotation,
   type SelectionDraft,
@@ -94,6 +102,9 @@ const parseNumberValue =
 
 const parsePersistedSliceValue = parseNumberValue((value) => value >= -128 && value <= 360);
 const parsePersistedCubeSize = parseNumberValue((value) => value >= 320 && value <= 900);
+const parsePersistedSamplingDensityPercent = parseNumberValue(
+  (value) => value >= legacySamplingDensityPercent && value <= maximumSamplingDensityPercent
+);
 
 const parseRotation = (rawValue: string): Rotation | null => {
   try {
@@ -112,6 +123,9 @@ const parseRotation = (rawValue: string): Rotation | null => {
 
   return null;
 };
+
+const parsePreviewSamplingGridColor = (rawValue: string): PreviewSamplingGridColor | null =>
+  rawValue === "white" || rawValue === "black" ? rawValue : null;
 
 type SharedHoverEvent =
   | {
@@ -215,6 +229,23 @@ export function ColorWorkbench() {
     parse: parseCubeOverlayMode,
     serialize: String,
   });
+  const [isPreviewSamplingGridVisible, setIsPreviewSamplingGridVisible] = usePersistedBoolean({
+    storageKey: storageKeys.previewSamplingGridVisible,
+    defaultValue: false,
+  });
+  const [previewSamplingGridColor, setPreviewSamplingGridColor] =
+    usePersistedState<PreviewSamplingGridColor>({
+      storageKey: storageKeys.previewSamplingGridColor,
+      initialValue: "white",
+      parse: parsePreviewSamplingGridColor,
+      serialize: String,
+    });
+  const [samplingDensityPercent, setSamplingDensityPercent] = usePersistedState<number>({
+    storageKey: storageKeys.samplingDensityPercent,
+    initialValue: defaultSamplingDensityPercent,
+    parse: parsePersistedSamplingDensityPercent,
+    serialize: String,
+  });
   const [liveMessage, setLiveMessage] = useState<string>("");
   const [selectionDraft, setSelectionDraft] = useState<SelectionDraft>(null);
   const [derivedAnalysis, setDerivedAnalysis] = useState(() =>
@@ -229,6 +260,8 @@ export function ColorWorkbench() {
         height: 0,
         elapsedMs: 0,
         sampledPixels: 0,
+        samplingStep: 1,
+        samplingDensityPercent: maximumSamplingDensityPercent,
         timings: {
           totalMs: 0,
           samplingMs: 0,
@@ -296,6 +329,8 @@ export function ColorWorkbench() {
               height: 0,
               elapsedMs: 0,
               sampledPixels: 0,
+              samplingStep: 1,
+              samplingDensityPercent: maximumSamplingDensityPercent,
               timings: {
                 totalMs: 0,
                 samplingMs: 0,
@@ -326,7 +361,14 @@ export function ColorWorkbench() {
         const startedAt = performance.now();
         const { imageData, decodeMs, downscaleMs, width, height, analysisWidth, analysisHeight } =
           await readFileAsImageData(file);
-        const { analysisId, result } = await analyzePhotoInWorker(imageData);
+        const requestedSamplingDensityPercent = resolveSamplingDensityPercent(
+          samplingDensityPercent,
+          imageData.width * imageData.height
+        );
+        const { analysisId, result } = await analyzePhotoInWorker(
+          imageData,
+          requestedSamplingDensityPercent
+        );
         if (isStale) {
           return;
         }
@@ -379,7 +421,7 @@ export function ColorWorkbench() {
         URL.revokeObjectURL(objectUrl);
       }
     };
-  }, [baselineTarget.file]);
+  }, [baselineTarget.file, samplingDensityPercent]);
 
   useEffect(() => {
     const result = baselineTarget.result;
@@ -432,33 +474,12 @@ export function ColorWorkbench() {
 
   const selectionCubePoints = derivedAnalysis.selectionCubePoints;
 
-  const selectedSample = useMemo(() => {
-    if (!baselineTarget.result || !selectedColor) {
-      return null;
-    }
-    return findNearestSampleByColor(baselineTarget.result, baselineBuckets, selectedColor);
-  }, [baselineTarget.result, baselineBuckets, selectedColor]);
   const selectedSamples = useMemo(() => {
-    if (!baselineTarget.result || !activeBaselineSelection || !selectedSample) {
+    if (!activeBaselineSelection) {
       return [];
     }
-
-    if (activeBaselineSelection.source === "image-rect") {
-      return derivedAnalysis.selectedSamples;
-    }
-
-    return baselineTarget.result.samples.filter(
-      (sample) =>
-        sample.color.r === selectedSample.color.r &&
-        sample.color.g === selectedSample.color.g &&
-        sample.color.b === selectedSample.color.b
-    );
-  }, [
-    activeBaselineSelection,
-    baselineTarget.result,
-    derivedAnalysis.selectedSamples,
-    selectedSample,
-  ]);
+    return derivedAnalysis.selectedSamples;
+  }, [activeBaselineSelection, derivedAnalysis.selectedSamples]);
 
   const normalizeSliceValueForAxis = (nextAxis: SliceAxis, currentValue: number): number => {
     const nextRange = getAxisRange(nextAxis);
@@ -637,7 +658,10 @@ export function ColorWorkbench() {
     });
   };
 
-  const handleColorSelect = (color: RgbColor): void => {
+  const handleColorSelect = (
+    color: RgbColor,
+    source: "color-space-pick" | "slice-pick" = "color-space-pick"
+  ): void => {
     if (!baselineTarget.result) {
       return;
     }
@@ -647,11 +671,11 @@ export function ColorWorkbench() {
       return;
     }
     setActiveSelection(() =>
-      buildPointSelection({
+      buildColorSelection({
         result: baselineTarget.result!,
         targetId: baselineTarget.targetId,
-        sampleId: sample.sampleId,
-        source: "color-space-pick",
+        color: sample.color,
+        source,
       })
     );
     setLiveMessage(t("workbenchSelectedColorUpdated", { value: rgbToHex(color) }));
@@ -847,7 +871,19 @@ export function ColorWorkbench() {
             selectionState={baselineSelectionState}
             selectionDraft={selectionDraft}
             uploadDisclosureStorageKey={storageKeys.uploadPanel}
+            optionsDisclosureStorageKey={storageKeys.previewOptionsPanel}
+            isSamplingGridVisible={isPreviewSamplingGridVisible}
+            samplingGridColor={previewSamplingGridColor}
+            samplingDensityPercent={
+              baselineTarget.result?.samplingDensityPercent ??
+              (samplingDensityPercent === legacySamplingDensityPercent
+                ? defaultSamplingDensityPercent
+                : samplingDensityPercent)
+            }
             onHoverSampleChange={handlePreviewHover}
+            onSamplingGridVisibleChange={setIsPreviewSamplingGridVisible}
+            onSamplingGridColorChange={setPreviewSamplingGridColor}
+            onSamplingDensityPercentChange={setSamplingDensityPercent}
             onSelectionDraftChange={setSelectionDraft}
             onSelectionCommit={handlePreviewSelectionCommit}
             onSampleSelect={handlePreviewSampleSelect}
@@ -996,7 +1032,7 @@ export function ColorWorkbench() {
               overlayMode={cubeOverlayMode}
               onRotationChange={setRotation}
               onHoverColorChange={(color) => handleColorHover(color, "cube")}
-              onColorSelect={handleColorSelect}
+              onColorSelect={(color) => handleColorSelect(color, "color-space-pick")}
             />
           </section>
         </div>
@@ -1015,7 +1051,7 @@ export function ColorWorkbench() {
             onAxisChange={handleSliceAxisChange}
             onValueChange={setSliceValue}
             onHoverColorChange={(color) => handleColorHover(color, "slice")}
-            onColorSelect={handleColorSelect}
+            onColorSelect={(color) => handleColorSelect(color, "slice-pick")}
             onMappedSamplesVisibilityChange={setIsSliceImageMappingVisible}
             onSelectedSamplesVisibilityChange={setIsSliceSelectionMappingVisible}
           />

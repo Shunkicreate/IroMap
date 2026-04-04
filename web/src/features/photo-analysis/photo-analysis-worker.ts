@@ -32,7 +32,10 @@ self.onmessage = (event: MessageEvent<AnalysisWorkerRequest>) => {
 
   if (message.kind === "analyze-photo") {
     try {
-      const handle = createPhotoAnalysisHandle({ imageData: message.imageData });
+      const handle = createPhotoAnalysisHandle({
+        imageData: message.imageData,
+        samplingDensityPercent: message.samplingDensityPercent,
+      });
       releaseHandle(currentHandle);
       currentAnalysisId = message.analysisId;
       currentHandle = handle;

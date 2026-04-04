@@ -120,13 +120,16 @@ class PhotoAnalysisWorkerClient {
     return `analysis-${this.analysisId}`;
   }
 
-  async analyzePhoto(imageData: ImageData): Promise<AnalyzePhotoTaskResult> {
+  async analyzePhoto(
+    imageData: ImageData,
+    samplingDensityPercent?: number
+  ): Promise<AnalyzePhotoTaskResult> {
     const worker = this.ensureWorker();
     const analysisId = this.nextAnalysisId();
     if (!worker) {
       return {
         analysisId,
-        result: analyzePhoto(imageData),
+        result: analyzePhoto(imageData, samplingDensityPercent),
       };
     }
 
@@ -144,6 +147,7 @@ class PhotoAnalysisWorkerClient {
           requestId,
           analysisId,
           imageData,
+          samplingDensityPercent,
         };
         worker.postMessage(message);
       } catch (error) {
@@ -153,7 +157,7 @@ class PhotoAnalysisWorkerClient {
     }).catch(() => {
       return {
         analysisId,
-        result: analyzePhoto(imageData),
+        result: analyzePhoto(imageData, samplingDensityPercent),
       };
     });
   }
@@ -314,8 +318,11 @@ export const readFileAsImageData = async (file: File): Promise<ReadFileAsImageDa
   }
 };
 
-export const analyzePhotoInWorker = (imageData: ImageData): Promise<AnalyzePhotoTaskResult> => {
-  return client.analyzePhoto(imageData);
+export const analyzePhotoInWorker = (
+  imageData: ImageData,
+  samplingDensityPercent?: number
+): Promise<AnalyzePhotoTaskResult> => {
+  return client.analyzePhoto(imageData, samplingDensityPercent);
 };
 
 export const buildDerivedAnalysisInWorker = ({

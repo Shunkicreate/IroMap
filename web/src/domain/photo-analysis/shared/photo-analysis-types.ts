@@ -119,6 +119,8 @@ export type PhotoAnalysisResult = {
   height: number;
   elapsedMs: number;
   sampledPixels: number;
+  samplingStep: number;
+  samplingDensityPercent: number;
   timings: PhotoAnalysisTimings;
 };
 
