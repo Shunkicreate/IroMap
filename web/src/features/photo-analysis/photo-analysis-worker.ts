@@ -1,10 +1,8 @@
 /// <reference lib="webworker" />
 
-import {
-  buildDerivedPhotoAnalysisFromHandle,
-  createPhotoAnalysisHandle,
-  type PhotoAnalysisHandle,
-} from "@/domain/photo-analysis/photo-analysis";
+import { createPhotoAnalysisHandle } from "@/domain/photo-analysis/base/photo-analysis-base";
+import { buildDerivedPhotoAnalysisFromHandle } from "@/domain/photo-analysis/derived/photo-analysis-derived";
+import type { PhotoAnalysisHandle } from "@/domain/photo-analysis/shared/photo-analysis-types";
 import type {
   AnalysisWorkerRequest,
   AnalysisWorkerResponse,
