@@ -1,6 +1,10 @@
 /// <reference lib="webworker" />
 
 import { createPhotoAnalysisHandle } from "@/domain/photo-analysis/base/photo-analysis-base";
+import {
+  disposeCubePointKernelIndexes,
+  disposeCubePointKernelStore,
+} from "@/domain/photo-analysis/cube-point-kernel/cube-point-kernel";
 import { buildDerivedPhotoAnalysisFromHandle } from "@/domain/photo-analysis/derived/photo-analysis-derived";
 import type { PhotoAnalysisHandle } from "@/domain/photo-analysis/shared/photo-analysis-types";
 import type {
@@ -10,6 +14,14 @@ import type {
 
 let currentAnalysisId: string | null = null;
 let currentHandle: PhotoAnalysisHandle | null = null;
+
+const releaseHandle = (handle: PhotoAnalysisHandle | null): void => {
+  if (!handle) {
+    return;
+  }
+  disposeCubePointKernelIndexes(handle.cubePointKernelSelectionStoreId);
+  disposeCubePointKernelStore(handle.cubePointKernelStoreId);
+};
 
 const post = (message: AnalysisWorkerResponse): void => {
   self.postMessage(message);
@@ -24,6 +36,7 @@ self.onmessage = (event: MessageEvent<AnalysisWorkerRequest>) => {
         imageData: message.imageData,
         samplingDensityPercent: message.samplingDensityPercent,
       });
+      releaseHandle(currentHandle);
       currentAnalysisId = message.analysisId;
       currentHandle = handle;
       post({
@@ -77,5 +90,11 @@ self.onmessage = (event: MessageEvent<AnalysisWorkerRequest>) => {
     });
   }
 };
+
+self.addEventListener("close", () => {
+  releaseHandle(currentHandle);
+  currentAnalysisId = null;
+  currentHandle = null;
+});
 
 export {};

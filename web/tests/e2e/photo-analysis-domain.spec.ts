@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import {
   analyzePhoto,
   buildDerivedPhotoAnalysis,
+  buildCubePointsFromSamples,
   buildHistogramBins,
   buildMetricRows,
   buildPointSelection,
@@ -214,4 +215,15 @@ test("T-207(photo-analysis): handle ベースの derived analysis が同期計�
   expect(derivedFromHandle.saturationHistogram).toEqual(derivedSync.saturationHistogram);
   expect(derivedFromHandle.selectedSamples).toEqual(derivedSync.selectedSamples);
   expect(derivedFromHandle.selectionCubePoints).toEqual(derivedSync.selectionCubePoints);
+});
+
+test("T-208(photo-analysis): cube point kernel 境界を通しても既存結果を維持する", async () => {
+  const imageData = createImageDataLike(12, 12, (x, y) => ({
+    r: (x * 17 + y * 13) % 256,
+    g: (x * 7 + y * 19) % 256,
+    b: (x * 11 + y * 23) % 256,
+  }));
+  const handle = createPhotoAnalysisHandle({ imageData });
+
+  expect(buildCubePointsFromSamples(handle.result.samples)).toEqual(handle.result.cubePoints);
 });

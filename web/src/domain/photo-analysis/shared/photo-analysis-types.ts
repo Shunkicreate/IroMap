@@ -135,6 +135,9 @@ export type PhotoAnalysisTimings = {
 export type DerivedAnalysisTimings = {
   totalMs: number;
   selectionMs: number;
+  selectionRegistrationMs: number;
+  selectionProjectionMs: number;
+  selectedSamplesMs: number;
   metricsMs: number;
   luminanceHistogramMs: number;
   hueHistogramMs: number;
@@ -202,4 +205,7 @@ export type PhotoAnalysisHandle = {
   store: PhotoSampleBufferStore;
   fullSummary: MetricSummary | null;
   derivedBaseCache: DerivedBaseCache | null;
+  cubePointKernelStoreId: number | null;
+  cubePointKernelSelectionStoreId: number | null;
+  cubePointKernelSelectionId: string | null;
 };

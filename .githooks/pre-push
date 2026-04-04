@@ -12,6 +12,9 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   fi
 done
 
+cd "$(git rev-parse --show-toplevel)"
+./scripts/check-wasm-artifacts.sh
+
 cd "$(git rev-parse --show-toplevel)/web"
 pnpm run lint
 pnpm run format:check

@@ -168,9 +168,12 @@ test("アップロードと選択操作の計測ログを取得できる", async
     })
     .toContain("workbench.photo-analysis.total");
 
-  const sliceCanvas = page.locator(".sliceCanvas:not(.sliceCanvasOverlay)");
-  await expect(sliceCanvas).toBeVisible();
-  await sliceCanvas.click({ position: { x: 24, y: 24 } });
+  const previewPanel = page.locator("section.panel", {
+    has: page.getByRole("heading", { name: "選択画像" }),
+  });
+  const previewImage = previewPanel.locator("img").first();
+  await expect(previewImage).toBeVisible();
+  await previewImage.click({ position: { x: 24, y: 24 } });
 
   await expect
     .poll(async () => {
@@ -185,10 +188,18 @@ test("アップロードと選択操作の計測ログを取得できる", async
     (entry: { name: string; detail?: Record<string, unknown> }) =>
       entry.name === "workbench.photo-analysis.total"
   );
+  const derivedEntries = entries.filter(
+    (entry: { name: string; detail?: Record<string, unknown> }) =>
+      entry.name === "workbench.derived-analysis.total"
+  );
+  const derivedEntry = derivedEntries.at(-1);
   expect(photoAnalysisEntry?.detail?.decodeMs).toBeDefined();
   expect(photoAnalysisEntry?.detail?.downscaleMs).toBeDefined();
   expect(photoAnalysisEntry?.detail?.analysisWidth).toBeDefined();
   expect(photoAnalysisEntry?.detail?.analysisHeight).toBeDefined();
+  expect(derivedEntry?.detail?.selectionSource).toBe("image-point");
+  expect(derivedEntry?.detail?.selectedSamplesMs).toBeDefined();
+  expect(derivedEntry?.detail?.cubePointsMs).toBeDefined();
   for (const entry of entries) {
     expect(entry.durationMs).toBeGreaterThanOrEqual(0);
   }

@@ -443,9 +443,14 @@ export function ColorWorkbench() {
       }
       recordPerformanceEntry("workbench.derived-analysis.total", startedAt, {
         analysisId,
+        selectionSource: baselineSelectionState.activeSelection?.source ?? "none",
         selectedSamples: nextDerived.selectedSamples.length,
         metricsMs: nextDerived.timings.metricsMs,
         selectionMs: nextDerived.timings.selectionMs,
+        selectionRegistrationMs: nextDerived.timings.selectionRegistrationMs,
+        selectionProjectionMs: nextDerived.timings.selectionProjectionMs,
+        selectedSamplesMs: nextDerived.timings.selectedSamplesMs,
+        cubePointsMs: nextDerived.timings.cubePointsMs,
         totalMs: nextDerived.timings.totalMs,
       });
       setDerivedAnalysis(nextDerived);
