@@ -4,6 +4,10 @@ import {
   samplePixelsToStore,
 } from "@/domain/photo-analysis/base/photo-analysis-base-store";
 import {
+  buildCubePointKernelResult,
+  materializeCubePoints,
+} from "@/domain/photo-analysis/cube-point-kernel/cube-point-kernel";
+import {
   buildAreaLabel,
   createBins,
   getHistogramDefinition,
@@ -19,6 +23,7 @@ import {
   maxSampleCount,
   minimumUnit,
   othersColorValue,
+  quantizeBucketSize,
   ratioPercent,
   ratioTolerance,
   topAreaCount,
@@ -154,68 +159,40 @@ export const calculateColorAreasFromStore = (store: PhotoSampleBufferStore): Col
 };
 
 const buildRgbCubePointsCore = (samples: PhotoSample[], maxPoints: number): RgbCubePoint[] => {
-  const bucketCounts = new Map<string, number>();
-  for (const sample of samples) {
-    const bucketColor = toRgbColor(
-      quantizeComponent(sample.color.r),
-      quantizeComponent(sample.color.g),
-      quantizeComponent(sample.color.b)
-    );
-    const key = `${bucketColor.r}-${bucketColor.g}-${bucketColor.b}`;
-    bucketCounts.set(key, (bucketCounts.get(key) ?? 0) + 1);
+  const r = new Uint8Array(samples.length);
+  const g = new Uint8Array(samples.length);
+  const b = new Uint8Array(samples.length);
+  for (let index = 0; index < samples.length; index += 1) {
+    const sample = samples[index];
+    r[index] = sample?.color.r ?? 0;
+    g[index] = sample?.color.g ?? 0;
+    b[index] = sample?.color.b ?? 0;
   }
-
-  const sorted = [...bucketCounts.entries()]
-    .sort((left, right) => right[1] - left[1])
-    .slice(0, maxPoints);
-  const total = samples.length || minimumUnit;
-  return sorted.map(([key, count]) => {
-    const [rText, gText, bText] = key.split("-");
-    return {
-      color: toRgbColor(Number(rText), Number(gText), Number(bText)),
-      count,
-      ratio: count / total,
-    };
-  });
+  return materializeCubePoints(
+    buildCubePointKernelResult({
+      r,
+      g,
+      b,
+      bucketSize: quantizeBucketSize,
+      maxPoints,
+    })
+  );
 };
 
 export const buildCubePointsFromStore = (
   store: PhotoSampleBufferStore,
   indexes?: readonly number[]
 ): RgbCubePoint[] => {
-  const bucketCounts = new Map<string, number>();
-  const total = indexes?.length ?? store.count;
-  const accumulate = (index: number): void => {
-    const bucketColor = toRgbColor(
-      quantizeComponent(store.r[index] ?? 0),
-      quantizeComponent(store.g[index] ?? 0),
-      quantizeComponent(store.b[index] ?? 0)
-    );
-    const key = `${bucketColor.r}-${bucketColor.g}-${bucketColor.b}`;
-    bucketCounts.set(key, (bucketCounts.get(key) ?? 0) + 1);
-  };
-
-  if (indexes) {
-    for (const index of indexes) {
-      accumulate(index);
-    }
-  } else {
-    for (let index = 0; index < store.count; index += 1) {
-      accumulate(index);
-    }
-  }
-
-  const sorted = [...bucketCounts.entries()]
-    .sort((left, right) => right[1] - left[1])
-    .slice(0, maxCubePointCount);
-  return sorted.map(([key, count]) => {
-    const [rText, gText, bText] = key.split("-");
-    return {
-      color: toRgbColor(Number(rText), Number(gText), Number(bText)),
-      count,
-      ratio: count / (total || minimumUnit),
-    };
-  });
+  return materializeCubePoints(
+    buildCubePointKernelResult({
+      r: store.r,
+      g: store.g,
+      b: store.b,
+      indexes,
+      bucketSize: quantizeBucketSize,
+      maxPoints: maxCubePointCount,
+    })
+  );
 };
 
 export const buildHistogramBinsFromStore = (
