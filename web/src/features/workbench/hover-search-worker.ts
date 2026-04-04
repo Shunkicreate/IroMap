@@ -1,10 +1,7 @@
 /// <reference lib="webworker" />
 
 import type { PhotoAnalysisResult } from "@/domain/photo-analysis/photo-analysis";
-import {
-  findNearestCubeHoverColor,
-  findNearestSliceHoverColor,
-} from "@/features/workbench/hover-search";
+import { findNearestSliceHoverColor } from "@/features/workbench/hover-search";
 import type {
   HoverSearchWorkerRequest,
   HoverSearchWorkerResponse,
@@ -92,20 +89,10 @@ self.onmessage = (event: MessageEvent<HoverSearchWorkerRequest>) => {
     }
 
     post({
-      kind: "cube-hover-result",
+      kind: "error",
       requestId: message.requestId,
       analysisId: message.analysisId,
-      color: findNearestCubeHoverColor({
-        cubePoints: analysis.result.cubePoints,
-        space: message.space,
-        rotation: message.rotation,
-        width: message.width,
-        height: message.height,
-        objectScale: message.objectScale,
-        x: message.x,
-        y: message.y,
-        maxDistanceSquared: message.maxDistanceSquared,
-      }),
+      error: "hover-search-failed",
     });
   } catch {
     post({

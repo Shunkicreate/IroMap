@@ -1,13 +1,9 @@
 "use client";
 
 import { colorChannelMax } from "@/domain/color/color-constants";
-import { type ColorSpace3d, type RgbColor, type SliceAxis } from "@/domain/color/color-types";
-import { type PhotoSample, type RgbCubePoint } from "@/domain/photo-analysis/photo-analysis";
-import {
-  projectColor,
-  type ProjectedPoint,
-  type Rotation,
-} from "@/features/rgb-cube/rgb-cube-projection";
+import { type RgbColor, type SliceAxis } from "@/domain/color/color-types";
+import { type PhotoSample } from "@/domain/photo-analysis/photo-analysis";
+import { type ProjectedPoint } from "@/features/rgb-cube/rgb-cube-projection";
 import {
   findNearestSampleByCoordinate,
   type WorkbenchTarget,
@@ -189,44 +185,6 @@ export const findNearestSliceHoverColor = (
     if (distanceSquared <= nearestDistanceSquared) {
       nearestDistanceSquared = distanceSquared;
       nearestColor = sample.color;
-    }
-  }
-
-  return nearestColor;
-};
-
-export const findNearestCubeHoverColor = ({
-  cubePoints,
-  space,
-  rotation,
-  width,
-  height,
-  objectScale,
-  x,
-  y,
-  maxDistanceSquared,
-}: {
-  cubePoints: RgbCubePoint[];
-  space: ColorSpace3d;
-  rotation: Rotation;
-  width: number;
-  height: number;
-  objectScale: number;
-  x: number;
-  y: number;
-  maxDistanceSquared: number;
-}): RgbColor | null => {
-  let nearestColor: RgbColor | null = null;
-  let nearestDistanceSquared = maxDistanceSquared;
-
-  for (const point of cubePoints) {
-    const projected = projectColor(point.color, space, rotation, width, height, objectScale);
-    const dx = projected.x - x;
-    const dy = projected.y - y;
-    const distanceSquared = dx * dx + dy * dy;
-    if (distanceSquared <= nearestDistanceSquared) {
-      nearestDistanceSquared = distanceSquared;
-      nearestColor = point.color;
     }
   }
 

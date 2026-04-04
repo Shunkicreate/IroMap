@@ -400,6 +400,7 @@ export function SliceCanvas({
   );
   const displayHoverColor = isPointerInside ? localHoverColor : sharedHoverColor;
   const sharedHoverPipeline = useLatestHoverPipeline<RgbColor | null, RgbColor | null>({
+    debugLabel: "slice-shared-hover",
     isEqual: areSameColor,
     onResolved: (nextHoverColor) => {
       onHoverColorChange(nextHoverColor);
@@ -407,6 +408,7 @@ export function SliceCanvas({
     resolve: (color) => color,
   });
   const hoverPipeline = useLatestHoverPipeline<{ x: number; y: number } | null, RgbColor | null>({
+    debugLabel: "slice-local-hover",
     isEqual: areSameColor,
     onResolved: (nextHoverColor) => {
       setLocalHoverColor(nextHoverColor);

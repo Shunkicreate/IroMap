@@ -6,12 +6,14 @@ type Options<TInput, TResult> = {
   isEqual: (left: TResult, right: TResult) => boolean;
   onResolved: (result: TResult) => void;
   resolve: (input: TInput) => TResult | Promise<TResult>;
+  debugLabel?: string;
 };
 
 export const useLatestHoverPipeline = <TInput, TResult>({
   isEqual,
   onResolved,
   resolve,
+  debugLabel,
 }: Options<TInput, TResult>) => {
   const frameRef = useRef<number | null>(null);
   const isResolvingRef = useRef(false);
@@ -24,12 +26,14 @@ export const useLatestHoverPipeline = <TInput, TResult>({
   const isEqualRef = useRef(isEqual);
   const onResolvedRef = useRef(onResolved);
   const resolveRef = useRef(resolve);
+  const debugLabelRef = useRef(debugLabel ?? "hover-pipeline");
 
   useEffect(() => {
     isEqualRef.current = isEqual;
     onResolvedRef.current = onResolved;
     resolveRef.current = resolve;
-  }, [isEqual, onResolved, resolve]);
+    debugLabelRef.current = debugLabel ?? "hover-pipeline";
+  }, [debugLabel, isEqual, onResolved, resolve]);
 
   const scheduleFlush = (): void => {
     if (frameRef.current != null || isResolvingRef.current) {

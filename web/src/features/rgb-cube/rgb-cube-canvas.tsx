@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useCallback, useMemo, useRef, useState } from "react";
 import { clampRgb } from "@/domain/color/color-conversion";
 import {
   type ColorSpace3d,
@@ -10,6 +10,12 @@ import {
 } from "@/domain/color/color-types";
 import { type RgbCubePoint } from "@/domain/photo-analysis/photo-analysis";
 import { t } from "@/i18n/translate";
+import {
+  evaluateCubeSharedHoverBudget,
+  getCubeSharedHoverBudget,
+  getCubeSharedHoverViewport,
+  type CubeSharedHoverViewport,
+} from "@/features/rgb-cube/cube-shared-hover-budget";
 import {
   drawAxisGuide,
   drawGuide,
@@ -22,7 +28,6 @@ import {
   type ProjectedPoint,
   type Rotation,
 } from "@/features/rgb-cube/rgb-cube-core";
-import { findNearestCubeHoverColorInWorker } from "@/features/workbench/hover-search-client";
 import { findNearestProjectedHoverColor } from "@/features/workbench/hover-search";
 import { useSharedHoverState } from "@/features/workbench/shared-hover-store";
 import { useLatestHoverPipeline } from "@/features/workbench/use-latest-hover-pipeline";
@@ -106,7 +111,6 @@ const mapPointer = (
 };
 
 export function RgbCubeCanvas({
-  analysisId,
   space,
   rotation,
   cubeSize,
@@ -131,14 +135,31 @@ export function RgbCubeCanvas({
     x: 0,
     y: 0,
   });
+  const activePointerIdRef = useRef<number | null>(null);
   const projectedPointsRef = useRef<ProjectedPoint[]>([]);
   const rotationFrameRef = useRef<number | null>(null);
+  const sharedBudgetFrameRef = useRef<number | null>(null);
   const pendingDisplayRotationRef = useRef<Rotation | null>(null);
   const displayRotationRef = useRef(rotation);
+  const lastRotationFlushStartedAtRef = useRef<number | null>(null);
   const localHoverColorRef = useRef<RgbColor | null>(null);
+  const pendingBudgetedSharedColorRef = useRef<RgbColor | null>(null);
+  const sharedBudgetFrameTickRef = useRef(0);
+  const lastSharedPublishTickRef = useRef(0);
+  const lastSharedPublishTimeRef = useRef(0);
+  const latestSharedBudgetTimeRef = useRef(0);
+  const sharedHoverViewportRef = useRef<CubeSharedHoverViewport>("desktop");
   const isPointerInsideRef = useRef(false);
+  const lastRotationScheduledAtRef = useRef<number | null>(null);
+  const lastRotationFlushAtRef = useRef<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [displayRotation, setDisplayRotation] = useState(rotation);
+  const [, setSharedHoverViewport] = useState<CubeSharedHoverViewport>(() => {
+    if (typeof window === "undefined") {
+      return "desktop";
+    }
+    return getCubeSharedHoverViewport(window.innerWidth);
+  });
   const sharedHoverColor = useSharedHoverState((state) => state.sample?.color ?? null);
   const normalizedCubeSize =
     Math.round(Math.min(maxCubeSize, Math.max(minCubeSize, cubeSize)) / cubeSizeStep) *
@@ -150,6 +171,24 @@ export function RgbCubeCanvas({
       `${normalizedCubeSize / 16}rem`
     );
   }, [normalizedCubeSize]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const updateViewport = (): void => {
+      const nextViewport = getCubeSharedHoverViewport(window.innerWidth);
+      sharedHoverViewportRef.current = nextViewport;
+      setSharedHoverViewport(nextViewport);
+    };
+
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    return () => {
+      window.removeEventListener("resize", updateViewport);
+    };
+  }, []);
 
   const sampledColors = useMemo(() => {
     const colors: RgbColor[] = [];
@@ -236,28 +275,16 @@ export function RgbCubeCanvas({
     { x: number; y: number; width: number; height: number },
     RgbColor | null
   >({
+    debugLabel: "cube-local-hover",
     isEqual: areSameColor,
     onResolved: (nextHoverColor) => {
       localHoverColorRef.current = nextHoverColor;
       drawFocusOverlay();
-      sharedHoverPipeline.schedule(nextHoverColor);
+      attemptBudgetedSharedHoverPublish(nextHoverColor);
     },
-    resolve: ({ x, y, width, height }) => {
+    resolve: ({ x, y }) => {
       if (!hasImageOverlay || !isimageMappingVisible) {
         return null;
-      }
-      if (analysisId) {
-        return findNearestCubeHoverColorInWorker({
-          analysisId,
-          space,
-          rotation: activeRotation,
-          width,
-          height,
-          objectScale: cubeSize / defaultCubeSize,
-          x,
-          y,
-          maxDistanceSquared: nearestDistanceThresholdSquared,
-        });
       }
       const nearest = findNearestProjectedHoverColor(
         projectedPointsRef.current,
@@ -269,12 +296,108 @@ export function RgbCubeCanvas({
     },
   });
   const sharedHoverPipeline = useLatestHoverPipeline<RgbColor | null, RgbColor | null>({
+    debugLabel: "cube-shared-hover",
     isEqual: areSameColor,
     onResolved: (nextHoverColor) => {
       onHoverColorChange(nextHoverColor);
     },
     resolve: (nextHoverColor) => nextHoverColor,
   });
+
+  const stopSharedBudgetFrameLoop = useCallback((): void => {
+    if (sharedBudgetFrameRef.current != null) {
+      window.cancelAnimationFrame(sharedBudgetFrameRef.current);
+      sharedBudgetFrameRef.current = null;
+    }
+  }, []);
+
+  const flushPendingBudgetedSharedHover = useCallback((): void => {
+    const pendingColor = pendingBudgetedSharedColorRef.current;
+    if (!pendingColor) {
+      return;
+    }
+    pendingBudgetedSharedColorRef.current = null;
+    lastSharedPublishTickRef.current = sharedBudgetFrameTickRef.current;
+    lastSharedPublishTimeRef.current = latestSharedBudgetTimeRef.current;
+    sharedHoverPipeline.schedule(pendingColor);
+  }, [sharedHoverPipeline]);
+
+  const attemptBudgetedSharedHoverPublish = useCallback(
+    (nextHoverColor: RgbColor | null): void => {
+      if (!nextHoverColor) {
+        pendingBudgetedSharedColorRef.current = null;
+        sharedHoverPipeline.clearNow(null);
+        return;
+      }
+
+      const budget = getCubeSharedHoverBudget({
+        isDragging: dragRef.current.isDragging,
+        viewport: sharedHoverViewportRef.current,
+      });
+      const evaluation = evaluateCubeSharedHoverBudget({
+        budget,
+        currentTick: sharedBudgetFrameTickRef.current,
+        lastPublishedTick: lastSharedPublishTickRef.current,
+        lastPublishedTimeMs: lastSharedPublishTimeRef.current,
+        nowMs: latestSharedBudgetTimeRef.current,
+      });
+
+      if (!evaluation.shouldPublish) {
+        pendingBudgetedSharedColorRef.current = nextHoverColor;
+        return;
+      }
+
+      pendingBudgetedSharedColorRef.current = null;
+      lastSharedPublishTickRef.current = sharedBudgetFrameTickRef.current;
+      lastSharedPublishTimeRef.current = latestSharedBudgetTimeRef.current;
+      sharedHoverPipeline.schedule(nextHoverColor);
+    },
+    [sharedHoverPipeline]
+  );
+
+  const startSharedBudgetFrameLoop = useCallback((): void => {
+    if (typeof window === "undefined" || sharedBudgetFrameRef.current != null) {
+      return;
+    }
+
+    const tick = (time: number): void => {
+      sharedBudgetFrameRef.current = null;
+      sharedBudgetFrameTickRef.current += 1;
+      latestSharedBudgetTimeRef.current = time;
+
+      const pendingColor = pendingBudgetedSharedColorRef.current;
+      if (pendingColor) {
+        const context = {
+          isDragging: dragRef.current.isDragging,
+          viewport: sharedHoverViewportRef.current,
+        };
+        const budget = getCubeSharedHoverBudget(context);
+        const evaluation = evaluateCubeSharedHoverBudget({
+          budget,
+          currentTick: sharedBudgetFrameTickRef.current,
+          lastPublishedTick: lastSharedPublishTickRef.current,
+          lastPublishedTimeMs: lastSharedPublishTimeRef.current,
+          nowMs: time,
+        });
+
+        if (evaluation.shouldPublish) {
+          flushPendingBudgetedSharedHover();
+        }
+      }
+
+      if (dragRef.current.isDragging || pendingBudgetedSharedColorRef.current) {
+        sharedBudgetFrameRef.current = window.requestAnimationFrame(tick);
+      }
+    };
+
+    sharedBudgetFrameRef.current = window.requestAnimationFrame(tick);
+  }, [flushPendingBudgetedSharedHover]);
+
+  const finishDragSession = useCallback((): void => {
+    lastRotationScheduledAtRef.current = null;
+    lastRotationFlushAtRef.current = null;
+    activePointerIdRef.current = null;
+  }, []);
 
   useEffect(() => {
     const canvas = baseCanvasRef.current;
@@ -287,6 +410,7 @@ export function RgbCubeCanvas({
       return;
     }
     const { context, width, height } = configuredCanvas;
+    const effectStartedAt = performance.now();
 
     context.clearRect(0, 0, width, height);
     context.fillStyle = "#0e1118";
@@ -426,6 +550,7 @@ export function RgbCubeCanvas({
       overlayTextLeft,
       thirdOverlayTextTop
     );
+    void effectStartedAt;
   }, [
     axisGuideMode,
     cubeSize,
@@ -453,7 +578,11 @@ export function RgbCubeCanvas({
     const nextRotation = pendingDisplayRotationRef.current;
     if (nextRotation) {
       pendingDisplayRotationRef.current = null;
+      const flushedAt = performance.now();
+      lastRotationFlushStartedAtRef.current = flushedAt;
+      lastRotationFlushAtRef.current = flushedAt;
       setDisplayRotation(nextRotation);
+      return;
     }
   };
 
@@ -461,6 +590,8 @@ export function RgbCubeCanvas({
     if (rotationFrameRef.current != null) {
       return;
     }
+    const scheduledAt = performance.now();
+    lastRotationScheduledAtRef.current = scheduledAt;
     rotationFrameRef.current = window.requestAnimationFrame(() => {
       flushRotationFrame();
     });
@@ -478,6 +609,7 @@ export function RgbCubeCanvas({
   const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>): void => {
     const pointer = mapPointer(event);
     dragRef.current = { isDragging: true, x: pointer.x, y: pointer.y };
+    activePointerIdRef.current = event.pointerId;
     displayRotationRef.current = rotation;
     setDisplayRotation(rotation);
     setIsDragging(true);
@@ -488,12 +620,13 @@ export function RgbCubeCanvas({
   const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>): void => {
     const pointer = mapPointer(event);
     isPointerInsideRef.current = true;
+    latestSharedBudgetTimeRef.current = event.timeStamp;
+    startSharedBudgetFrameLoop();
     hoverPipeline.schedule(pointer);
 
     if (!dragRef.current.isDragging) {
       return;
     }
-
     const deltaX = pointer.x - dragRef.current.x;
     const deltaY = pointer.y - dragRef.current.y;
     dragRef.current.x = pointer.x;
@@ -511,6 +644,8 @@ export function RgbCubeCanvas({
   const handlePointerUp = (event: React.PointerEvent<HTMLCanvasElement>): void => {
     const pointer = mapPointer(event);
     hoverPipeline.flush();
+    latestSharedBudgetTimeRef.current = event.timeStamp;
+    flushPendingBudgetedSharedHover();
     if (rotationFrameRef.current != null) {
       window.cancelAnimationFrame(rotationFrameRef.current);
       rotationFrameRef.current = null;
@@ -528,12 +663,15 @@ export function RgbCubeCanvas({
     dragRef.current.isDragging = false;
     setIsDragging(false);
     event.currentTarget.releasePointerCapture(event.pointerId);
+    finishDragSession();
   };
 
   const handlePointerLeave = (): void => {
     dragRef.current.isDragging = false;
     setIsDragging(false);
     isPointerInsideRef.current = false;
+    pendingBudgetedSharedColorRef.current = null;
+    stopSharedBudgetFrameLoop();
     if (rotationFrameRef.current != null) {
       window.cancelAnimationFrame(rotationFrameRef.current);
       rotationFrameRef.current = null;
@@ -541,15 +679,33 @@ export function RgbCubeCanvas({
     pendingDisplayRotationRef.current = null;
     hoverPipeline.clearNow(null);
     sharedHoverPipeline.clearNow(null);
+    finishDragSession();
+  };
+
+  const handlePointerCancel = (): void => {
+    dragRef.current.isDragging = false;
+    setIsDragging(false);
+    isPointerInsideRef.current = false;
+    pendingBudgetedSharedColorRef.current = null;
+    stopSharedBudgetFrameLoop();
+    if (rotationFrameRef.current != null) {
+      window.cancelAnimationFrame(rotationFrameRef.current);
+      rotationFrameRef.current = null;
+    }
+    pendingDisplayRotationRef.current = null;
+    hoverPipeline.clearNow(null);
+    sharedHoverPipeline.clearNow(null);
+    finishDragSession();
   };
 
   useEffect(() => {
     return () => {
+      stopSharedBudgetFrameLoop();
       if (rotationFrameRef.current != null) {
         window.cancelAnimationFrame(rotationFrameRef.current);
       }
     };
-  }, []);
+  }, [stopSharedBudgetFrameLoop]);
 
   return (
     <div ref={canvasWrapRef} className="cubeCanvasWrap">
@@ -563,6 +719,7 @@ export function RgbCubeCanvas({
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerLeave={handlePointerLeave}
+          onPointerCancel={handlePointerCancel}
         />
         <canvas ref={focusCanvasRef} className="cubeCanvasOverlay" aria-hidden="true" />
       </div>

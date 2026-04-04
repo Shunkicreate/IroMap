@@ -1,6 +1,5 @@
-import type { ColorSpace3d, RgbColor, SliceAxis } from "@/domain/color/color-types";
+import type { RgbColor, SliceAxis } from "@/domain/color/color-types";
 import type { PhotoAnalysisResult, PhotoSample } from "@/domain/photo-analysis/photo-analysis";
-import type { Rotation } from "@/features/rgb-cube/rgb-cube-projection";
 
 export type RegisterHoverAnalysisRequest = {
   kind: "register-analysis";
@@ -39,27 +38,12 @@ export type SliceHoverRequest = {
   maxDistanceSquared: number;
 };
 
-export type CubeHoverRequest = {
-  kind: "cube-hover";
-  requestId: number;
-  analysisId: string;
-  space: ColorSpace3d;
-  rotation: Rotation;
-  width: number;
-  height: number;
-  objectScale: number;
-  x: number;
-  y: number;
-  maxDistanceSquared: number;
-};
-
 export type HoverSearchWorkerRequest =
   | RegisterHoverAnalysisRequest
   | UnregisterHoverAnalysisRequest
   | PreviewHoverRequest
   | ResolveColorSampleRequest
-  | SliceHoverRequest
-  | CubeHoverRequest;
+  | SliceHoverRequest;
 
 export type PreviewHoverResponse = {
   kind: "preview-hover-result";
@@ -82,13 +66,6 @@ export type SliceHoverResponse = {
   color: RgbColor | null;
 };
 
-export type CubeHoverResponse = {
-  kind: "cube-hover-result";
-  requestId: number;
-  analysisId: string;
-  color: RgbColor | null;
-};
-
 export type HoverSearchWorkerErrorResponse = {
   kind: "error";
   requestId: number;
@@ -100,5 +77,4 @@ export type HoverSearchWorkerResponse =
   | PreviewHoverResponse
   | ResolveColorSampleResponse
   | SliceHoverResponse
-  | CubeHoverResponse
   | HoverSearchWorkerErrorResponse;

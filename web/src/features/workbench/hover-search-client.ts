@@ -1,12 +1,8 @@
 "use client";
 
-import { type ColorSpace3d, type RgbColor, type SliceAxis } from "@/domain/color/color-types";
+import { type RgbColor, type SliceAxis } from "@/domain/color/color-types";
 import { type PhotoAnalysisResult, type PhotoSample } from "@/domain/photo-analysis/photo-analysis";
-import { type Rotation } from "@/features/rgb-cube/rgb-cube-projection";
-import {
-  findNearestCubeHoverColor,
-  findNearestSliceHoverColor,
-} from "@/features/workbench/hover-search";
+import { findNearestSliceHoverColor } from "@/features/workbench/hover-search";
 import type {
   HoverSearchWorkerRequest,
   HoverSearchWorkerResponse,
@@ -35,11 +31,6 @@ type PendingTask =
     }
   | {
       kind: "slice-hover";
-      resolve: (value: RgbColor | null) => void;
-      reject: (reason?: unknown) => void;
-    }
-  | {
-      kind: "cube-hover";
       resolve: (value: RgbColor | null) => void;
       reject: (reason?: unknown) => void;
     };
@@ -104,11 +95,6 @@ class HoverSearchWorkerClient {
       task.resolve(message.color);
       return;
     }
-    if (task.kind === "cube-hover" && message.kind === "cube-hover-result") {
-      task.resolve(message.color);
-      return;
-    }
-
     task.reject(new Error("hover-search-worker-response-mismatch"));
   }
 
@@ -277,62 +263,6 @@ class HoverSearchWorkerClient {
       },
     });
   }
-
-  findNearestCubeHoverColor({
-    analysisId,
-    space,
-    rotation,
-    width,
-    height,
-    objectScale,
-    x,
-    y,
-    maxDistanceSquared,
-  }: {
-    analysisId: string;
-    space: ColorSpace3d;
-    rotation: Rotation;
-    width: number;
-    height: number;
-    objectScale: number;
-    x: number;
-    y: number;
-    maxDistanceSquared: number;
-  }): Promise<RgbColor | null> {
-    return this.request({
-      kind: "cube-hover",
-      createMessage: (requestId) => ({
-        kind: "cube-hover",
-        requestId,
-        analysisId,
-        space,
-        rotation,
-        width,
-        height,
-        objectScale,
-        x,
-        y,
-        maxDistanceSquared,
-      }),
-      fallback: () => {
-        const analysis = this.getCachedAnalysis(analysisId);
-        if (!analysis) {
-          return null;
-        }
-        return findNearestCubeHoverColor({
-          cubePoints: analysis.result.cubePoints,
-          space,
-          rotation,
-          width,
-          height,
-          objectScale,
-          x,
-          y,
-          maxDistanceSquared,
-        });
-      },
-    });
-  }
 }
 
 const client = new HoverSearchWorkerClient();
@@ -372,18 +302,4 @@ export const findNearestSliceHoverColorInWorker = (params: {
   maxDistanceSquared: number;
 }): Promise<RgbColor | null> => {
   return client.findNearestSliceHoverColor(params);
-};
-
-export const findNearestCubeHoverColorInWorker = (params: {
-  analysisId: string;
-  space: ColorSpace3d;
-  rotation: Rotation;
-  width: number;
-  height: number;
-  objectScale: number;
-  x: number;
-  y: number;
-  maxDistanceSquared: number;
-}): Promise<RgbColor | null> => {
-  return client.findNearestCubeHoverColor(params);
 };

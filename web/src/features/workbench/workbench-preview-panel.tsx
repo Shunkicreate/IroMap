@@ -66,6 +66,7 @@ export function WorkbenchPreviewPanel({
   };
 
   const sharedHoverPipeline = useLatestHoverPipeline<PhotoSample | null, PhotoSample | null>({
+    debugLabel: "preview-shared-hover",
     isEqual: areSameSample,
     onResolved: (nextHoverSample) => {
       onHoverSampleChange(nextHoverSample);
@@ -75,6 +76,7 @@ export function WorkbenchPreviewPanel({
 
   const hoverPipeline = useLatestHoverPipeline<{ x: number; y: number } | null, PhotoSample | null>(
     {
+      debugLabel: "preview-local-hover",
       isEqual: areSameSample,
       onResolved: (nextHoverSample) => {
         setLocalHoverSample(nextHoverSample);
