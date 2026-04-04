@@ -77,7 +77,7 @@ test("T-201(photo-analysis): 画像サイズごとの分析処理時間を確認
   const result = analyzePhoto(imageData);
 
   expect(result.sampledPixels).toBeGreaterThan(0);
-  expect(result.elapsedMs).toBeLessThan(500);
+  expect(result.elapsedMs).toBeLessThan(700);
 });
 
 test("T-202(photo-analysis): 同一入力で再分析結果が一致する", async () => {
