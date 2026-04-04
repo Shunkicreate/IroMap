@@ -121,9 +121,10 @@ export function RgbCubeCanvas({
   selectedColor = null,
   overlayMode,
   onRotationChange,
-  onHoverColorChange,
+  onHoverColorChange: _onHoverColorChange,
   onColorSelect,
 }: Props) {
+  void _onHoverColorChange;
   const baseCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const focusCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvasWrapRef = useRef<HTMLDivElement | null>(null);
@@ -174,7 +175,6 @@ export function RgbCubeCanvas({
     isEqual: areSameColor,
     onResolved: (nextHoverColor) => {
       setLocalHoverColor(nextHoverColor);
-      onHoverColorChange(nextHoverColor);
     },
     resolve: ({ x, y, width, height }) => {
       if (!hasImageOverlay || !isimageMappingVisible) {
