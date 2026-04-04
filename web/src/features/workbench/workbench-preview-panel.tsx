@@ -250,6 +250,7 @@ export function WorkbenchPreviewPanel(props: Props) {
     ? Math.max(4, Math.min(target.result.width, target.result.height) * 0.01)
     : 5;
   const samplingStep = target.result?.samplingStep ?? 1;
+  const sampledPixels = target.result?.sampledPixels ?? 0;
   const samplingGridStroke =
     samplingGridColor === "white" ? "rgba(248, 250, 252, 0.92)" : "rgba(15, 23, 42, 0.82)";
   const samplingGridPattern =
@@ -357,7 +358,10 @@ export function WorkbenchPreviewPanel(props: Props) {
             </Tabs>
           </div>
           <label className={controlStyles.stackedLabel}>
-            {t("previewSamplingDensityLabel", { value: samplingDensityPercent })}
+            {t("previewSamplingDensityLabel", {
+              value: samplingDensityPercent,
+              sampleCount: sampledPixels.toLocaleString(),
+            })}
             <input
               className={controlStyles.rangeControl}
               type="range"
@@ -368,6 +372,11 @@ export function WorkbenchPreviewPanel(props: Props) {
               onChange={(event) => onSamplingDensityPercentChange(Number(event.target.value))}
             />
           </label>
+          {samplingDensityPercent === 100 ? (
+            <p className={`muted ${previewStyles.statusLine}`}>
+              {t("previewSamplingDensityFullWarning")}
+            </p>
+          ) : null}
         </div>
       </PersistedDisclosure>
 

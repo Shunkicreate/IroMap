@@ -18,7 +18,9 @@ export const i18nMessages = {
     previewSamplingGridColorLabel: "グリッド線",
     previewSamplingGridColorWhite: "白",
     previewSamplingGridColorBlack: "黒",
-    previewSamplingDensityLabel: "サンプリング密度: {value}%",
+    previewSamplingDensityLabel: "サンプリング密度: {value}% ({sampleCount} samples)",
+    previewSamplingDensityFullWarning:
+      "100% は全ピクセルを対象にします。高解像度画像では処理が重くなることがあります。",
     workbenchBaselineLabel: "画像情報",
     workbenchShowWhiteMappingCube: "白マッピングを表示",
     workbenchShowSelectedMappingCube: "選択マッピングを表示",
@@ -213,7 +215,9 @@ export const i18nMessages = {
     previewSamplingGridColorLabel: "Grid color",
     previewSamplingGridColorWhite: "White",
     previewSamplingGridColorBlack: "Black",
-    previewSamplingDensityLabel: "Sampling density: {value}%",
+    previewSamplingDensityLabel: "Sampling density: {value}% ({sampleCount} samples)",
+    previewSamplingDensityFullWarning:
+      "100% samples every pixel. High-resolution images may become expensive to process.",
     workbenchBaselineLabel: "Image info",
     workbenchShowWhiteMappingCube: "Show white mapping",
     workbenchShowSelectedMappingCube: "Show selected mapping",
