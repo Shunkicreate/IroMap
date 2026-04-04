@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback, useMemo, useRef, useState } from "react";
+import { useEffect, useCallback, useMemo, useRef } from "react";
 import { clampRgb } from "@/domain/color/color-conversion";
 import {
   type ColorSpace3d,
@@ -135,13 +135,11 @@ export function RgbCubeCanvas({
     x: 0,
     y: 0,
   });
-  const activePointerIdRef = useRef<number | null>(null);
   const projectedPointsRef = useRef<ProjectedPoint[]>([]);
   const rotationFrameRef = useRef<number | null>(null);
   const sharedBudgetFrameRef = useRef<number | null>(null);
   const pendingDisplayRotationRef = useRef<Rotation | null>(null);
   const displayRotationRef = useRef(rotation);
-  const lastRotationFlushStartedAtRef = useRef<number | null>(null);
   const localHoverColorRef = useRef<RgbColor | null>(null);
   const pendingBudgetedSharedColorRef = useRef<RgbColor | null>(null);
   const sharedBudgetFrameTickRef = useRef(0);
@@ -150,16 +148,6 @@ export function RgbCubeCanvas({
   const latestSharedBudgetTimeRef = useRef(0);
   const sharedHoverViewportRef = useRef<CubeSharedHoverViewport>("desktop");
   const isPointerInsideRef = useRef(false);
-  const lastRotationScheduledAtRef = useRef<number | null>(null);
-  const lastRotationFlushAtRef = useRef<number | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [displayRotation, setDisplayRotation] = useState(rotation);
-  const [, setSharedHoverViewport] = useState<CubeSharedHoverViewport>(() => {
-    if (typeof window === "undefined") {
-      return "desktop";
-    }
-    return getCubeSharedHoverViewport(window.innerWidth);
-  });
   const sharedHoverColor = useSharedHoverState((state) => state.sample?.color ?? null);
   const normalizedCubeSize =
     Math.round(Math.min(maxCubeSize, Math.max(minCubeSize, cubeSize)) / cubeSizeStep) *
@@ -178,9 +166,7 @@ export function RgbCubeCanvas({
     }
 
     const updateViewport = (): void => {
-      const nextViewport = getCubeSharedHoverViewport(window.innerWidth);
-      sharedHoverViewportRef.current = nextViewport;
-      setSharedHoverViewport(nextViewport);
+      sharedHoverViewportRef.current = getCubeSharedHoverViewport(window.innerWidth);
     };
 
     updateViewport();
@@ -226,7 +212,174 @@ export function RgbCubeCanvas({
 
   const hasGridOverlay = overlayMode === "grid" || overlayMode === "both";
   const hasImageOverlay = overlayMode === "image" || overlayMode === "both";
-  const activeRotation = isDragging ? displayRotation : rotation;
+  const drawBaseCanvas = useCallback(
+    (rotationToDraw: Rotation): void => {
+      const canvas = baseCanvasRef.current;
+      if (!canvas) {
+        return;
+      }
+
+      const configuredCanvas = configureCanvas(canvas);
+      if (!configuredCanvas) {
+        return;
+      }
+      const { context, width, height } = configuredCanvas;
+
+      context.clearRect(0, 0, width, height);
+      context.fillStyle = "#0e1118";
+      context.fillRect(0, 0, width, height);
+
+      const objectScale = cubeSize / defaultCubeSize;
+
+      drawGuide(context, space, rotationToDraw, width, height, objectScale);
+      if (axisGuideMode === "visible") {
+        drawAxisGuide(context, space, rotationToDraw, width, height, objectScale);
+      }
+      drawSlicePlane(
+        context,
+        space,
+        rotationToDraw,
+        width,
+        height,
+        sliceAxis,
+        sliceValue,
+        objectScale
+      );
+
+      const projectedGrid = hasGridOverlay
+        ? sampledColors
+            .map((color) => projectColor(color, space, rotationToDraw, width, height, objectScale))
+            .sort((left, right) => left.depth - right.depth)
+        : [];
+
+      const maxImageCount = imageCubePoints.reduce((max, point) => Math.max(max, point.count), 1);
+      const projectedImage =
+        hasImageOverlay && isimageMappingVisible
+          ? imageCubePoints
+              .map((point) => ({
+                ...projectColor(point.color, space, rotationToDraw, width, height, objectScale),
+                count: point.count,
+                ratio: point.ratio,
+              }))
+              .sort((left, right) => left.depth - right.depth)
+          : [];
+
+      const projectedSelection = isselectionMappingVisible
+        ? selectionCubePoints
+            .map((point) => ({
+              ...projectColor(point.color, space, rotationToDraw, width, height, objectScale),
+              count: point.count,
+            }))
+            .sort((left, right) => left.depth - right.depth)
+        : [];
+
+      projectedPointsRef.current = projectedImage;
+
+      for (const point of projectedGrid) {
+        context.fillStyle = `rgb(${point.color.r}, ${point.color.g}, ${point.color.b})`;
+        context.beginPath();
+        context.arc(point.x, point.y, markerRadius, 0, fullCircleRadians);
+        context.fill();
+      }
+
+      for (const point of projectedImage) {
+        const intensity = point.count / maxImageCount;
+        const radius =
+          imageOverlayMinRadius + (imageOverlayMaxRadius - imageOverlayMinRadius) * intensity;
+        const alpha =
+          imageOverlayMinAlpha + (imageOverlayMaxAlpha - imageOverlayMinAlpha) * intensity;
+        context.fillStyle = `rgba(${point.color.r}, ${point.color.g}, ${point.color.b}, ${alpha})`;
+        context.beginPath();
+        context.arc(point.x, point.y, radius, 0, fullCircleRadians);
+        context.fill();
+        context.strokeStyle = `rgba(${point.color.r}, ${point.color.g}, ${point.color.b}, ${imageOverlayStrokeAlpha})`;
+        context.lineWidth = imageOverlayStrokeWidth;
+        context.stroke();
+      }
+
+      const maxSelectionCount = projectedSelection.reduce(
+        (current, point) => Math.max(current, point.count),
+        1
+      );
+      for (const point of projectedSelection) {
+        const intensity = point.count / maxSelectionCount;
+        const radius =
+          imageOverlayMinRadius + (imageOverlayMaxRadius - imageOverlayMinRadius) * intensity + 2.4;
+        const gradient = context.createRadialGradient(
+          point.x - radius * 0.35,
+          point.y - radius * 0.45,
+          radius * 0.15,
+          point.x,
+          point.y,
+          radius
+        );
+        gradient.addColorStop(0, "rgba(255, 248, 240, 0.9)");
+        gradient.addColorStop(0.2, "rgba(253, 186, 116, 0.75)");
+        gradient.addColorStop(0.7, "rgba(249, 115, 22, 0.42)");
+        gradient.addColorStop(1, "rgba(194, 65, 12, 0.18)");
+        context.fillStyle = gradient;
+        context.beginPath();
+        context.arc(point.x, point.y, radius, 0, fullCircleRadians);
+        context.fill();
+        context.strokeStyle = "rgba(251, 146, 60, 0.82)";
+        context.lineWidth = 1.2;
+        context.stroke();
+
+        context.fillStyle = "rgba(255, 255, 255, 0.35)";
+        context.beginPath();
+        context.arc(
+          point.x - radius * 0.3,
+          point.y - radius * 0.35,
+          Math.max(radius * 0.24, 0.8),
+          0,
+          fullCircleRadians
+        );
+        context.fill();
+      }
+
+      context.fillStyle = `rgba(255, 255, 255, ${textAlpha})`;
+      context.font = "0.75rem monospace";
+      context.fillText(
+        t("cubeResolutionOverlay", { levels: rgbCubeColorCount }),
+        overlayTextLeft,
+        resolutionTextTop
+      );
+      context.fillText(
+        t("cubeSliceOverlay", { axis: getSliceAxisLabel(sliceAxis), value: sliceValue }),
+        overlayTextLeft,
+        secondOverlayTextTop
+      );
+      context.fillText(
+        t("cubeOverlayStatus", {
+          mode: t(
+            overlayMode === "grid"
+              ? "cubeOverlayModeGrid"
+              : overlayMode === "image"
+                ? "cubeOverlayModeImage"
+                : "cubeOverlayModeBoth"
+          ),
+          points: imageCubePoints.length,
+        }),
+        overlayTextLeft,
+        thirdOverlayTextTop
+      );
+    },
+    [
+      axisGuideMode,
+      cubeSize,
+      hasGridOverlay,
+      hasImageOverlay,
+      imageCubePoints,
+      isimageMappingVisible,
+      isselectionMappingVisible,
+      overlayMode,
+      sampledColors,
+      selectionCubePoints,
+      sliceAxis,
+      sliceValue,
+      space,
+    ]
+  );
   const drawFocusOverlay = useCallback((): void => {
     const canvas = focusCanvasRef.current;
     if (!canvas) {
@@ -239,6 +392,7 @@ export function RgbCubeCanvas({
     }
     const { context, width, height } = configuredCanvas;
     const objectScale = cubeSize / defaultCubeSize;
+    const rotationToDraw = dragRef.current.isDragging ? displayRotationRef.current : rotation;
     const displayHoverColor =
       isPointerInsideRef.current || dragRef.current.isDragging
         ? localHoverColorRef.current
@@ -250,7 +404,7 @@ export function RgbCubeCanvas({
       if (!color) {
         return;
       }
-      const point = projectColor(color, space, activeRotation, width, height, objectScale);
+      const point = projectColor(color, space, rotationToDraw, width, height, objectScale);
       context.strokeStyle = strokeStyle;
       context.lineWidth = 1.5;
       context.beginPath();
@@ -263,9 +417,9 @@ export function RgbCubeCanvas({
     }
     drawFocusRing(displayHoverColor, hoverOverlayStroke);
   }, [
-    activeRotation,
     cubeSize,
     isselectionMappingVisible,
+    rotation,
     selectedColor,
     selectionCubePoints.length,
     sharedHoverColor,
@@ -394,179 +548,15 @@ export function RgbCubeCanvas({
   }, [flushPendingBudgetedSharedHover]);
 
   const finishDragSession = useCallback((): void => {
-    lastRotationScheduledAtRef.current = null;
-    lastRotationFlushAtRef.current = null;
-    activePointerIdRef.current = null;
+    pendingDisplayRotationRef.current = null;
   }, []);
 
   useEffect(() => {
-    const canvas = baseCanvasRef.current;
-    if (!canvas) {
+    if (dragRef.current.isDragging) {
       return;
     }
-
-    const configuredCanvas = configureCanvas(canvas);
-    if (!configuredCanvas) {
-      return;
-    }
-    const { context, width, height } = configuredCanvas;
-    const effectStartedAt = performance.now();
-
-    context.clearRect(0, 0, width, height);
-    context.fillStyle = "#0e1118";
-    context.fillRect(0, 0, width, height);
-
-    const objectScale = cubeSize / defaultCubeSize;
-
-    drawGuide(context, space, activeRotation, width, height, objectScale);
-    if (axisGuideMode === "visible") {
-      drawAxisGuide(context, space, activeRotation, width, height, objectScale);
-    }
-    drawSlicePlane(
-      context,
-      space,
-      activeRotation,
-      width,
-      height,
-      sliceAxis,
-      sliceValue,
-      objectScale
-    );
-
-    const projectedGrid = hasGridOverlay
-      ? sampledColors
-          .map((color) => projectColor(color, space, activeRotation, width, height, objectScale))
-          .sort((left, right) => left.depth - right.depth)
-      : [];
-
-    const maxImageCount = imageCubePoints.reduce((max, point) => Math.max(max, point.count), 1);
-    const projectedImage =
-      hasImageOverlay && isimageMappingVisible
-        ? imageCubePoints
-            .map((point) => ({
-              ...projectColor(point.color, space, activeRotation, width, height, objectScale),
-              count: point.count,
-              ratio: point.ratio,
-            }))
-            .sort((left, right) => left.depth - right.depth)
-        : [];
-
-    const projectedSelection = isselectionMappingVisible
-      ? selectionCubePoints
-          .map((point) => ({
-            ...projectColor(point.color, space, activeRotation, width, height, objectScale),
-            count: point.count,
-          }))
-          .sort((left, right) => left.depth - right.depth)
-      : [];
-
-    projectedPointsRef.current = projectedImage;
-
-    for (const point of projectedGrid) {
-      context.fillStyle = `rgb(${point.color.r}, ${point.color.g}, ${point.color.b})`;
-      context.beginPath();
-      context.arc(point.x, point.y, markerRadius, 0, fullCircleRadians);
-      context.fill();
-    }
-
-    for (const point of projectedImage) {
-      const intensity = point.count / maxImageCount;
-      const radius =
-        imageOverlayMinRadius + (imageOverlayMaxRadius - imageOverlayMinRadius) * intensity;
-      const alpha =
-        imageOverlayMinAlpha + (imageOverlayMaxAlpha - imageOverlayMinAlpha) * intensity;
-      context.fillStyle = `rgba(${point.color.r}, ${point.color.g}, ${point.color.b}, ${alpha})`;
-      context.beginPath();
-      context.arc(point.x, point.y, radius, 0, fullCircleRadians);
-      context.fill();
-      context.strokeStyle = `rgba(${point.color.r}, ${point.color.g}, ${point.color.b}, ${imageOverlayStrokeAlpha})`;
-      context.lineWidth = imageOverlayStrokeWidth;
-      context.stroke();
-    }
-
-    const maxSelectionCount = projectedSelection.reduce(
-      (current, point) => Math.max(current, point.count),
-      1
-    );
-    for (const point of projectedSelection) {
-      const intensity = point.count / maxSelectionCount;
-      const radius =
-        imageOverlayMinRadius + (imageOverlayMaxRadius - imageOverlayMinRadius) * intensity + 2.4;
-      const gradient = context.createRadialGradient(
-        point.x - radius * 0.35,
-        point.y - radius * 0.45,
-        radius * 0.15,
-        point.x,
-        point.y,
-        radius
-      );
-      gradient.addColorStop(0, "rgba(255, 248, 240, 0.9)");
-      gradient.addColorStop(0.2, "rgba(253, 186, 116, 0.75)");
-      gradient.addColorStop(0.7, "rgba(249, 115, 22, 0.42)");
-      gradient.addColorStop(1, "rgba(194, 65, 12, 0.18)");
-      context.fillStyle = gradient;
-      context.beginPath();
-      context.arc(point.x, point.y, radius, 0, fullCircleRadians);
-      context.fill();
-      context.strokeStyle = "rgba(251, 146, 60, 0.82)";
-      context.lineWidth = 1.2;
-      context.stroke();
-
-      context.fillStyle = "rgba(255, 255, 255, 0.35)";
-      context.beginPath();
-      context.arc(
-        point.x - radius * 0.3,
-        point.y - radius * 0.35,
-        Math.max(radius * 0.24, 0.8),
-        0,
-        fullCircleRadians
-      );
-      context.fill();
-    }
-
-    context.fillStyle = `rgba(255, 255, 255, ${textAlpha})`;
-    context.font = "0.75rem monospace";
-    context.fillText(
-      t("cubeResolutionOverlay", { levels: rgbCubeColorCount }),
-      overlayTextLeft,
-      resolutionTextTop
-    );
-    context.fillText(
-      t("cubeSliceOverlay", { axis: getSliceAxisLabel(sliceAxis), value: sliceValue }),
-      overlayTextLeft,
-      secondOverlayTextTop
-    );
-    context.fillText(
-      t("cubeOverlayStatus", {
-        mode: t(
-          overlayMode === "grid"
-            ? "cubeOverlayModeGrid"
-            : overlayMode === "image"
-              ? "cubeOverlayModeImage"
-              : "cubeOverlayModeBoth"
-        ),
-        points: imageCubePoints.length,
-      }),
-      overlayTextLeft,
-      thirdOverlayTextTop
-    );
-    void effectStartedAt;
-  }, [
-    axisGuideMode,
-    cubeSize,
-    hasGridOverlay,
-    hasImageOverlay,
-    imageCubePoints,
-    overlayMode,
-    activeRotation,
-    sampledColors,
-    selectionCubePoints,
-    isimageMappingVisible,
-    isselectionMappingVisible,
-    sliceAxis,
-    sliceValue,
-    space,
-  ]);
+    drawBaseCanvas(rotation);
+  }, [drawBaseCanvas, rotation]);
 
   useEffect(() => {
     drawFocusOverlay();
@@ -578,10 +568,8 @@ export function RgbCubeCanvas({
     const nextRotation = pendingDisplayRotationRef.current;
     if (nextRotation) {
       pendingDisplayRotationRef.current = null;
-      const flushedAt = performance.now();
-      lastRotationFlushStartedAtRef.current = flushedAt;
-      lastRotationFlushAtRef.current = flushedAt;
-      setDisplayRotation(nextRotation);
+      drawBaseCanvas(nextRotation);
+      drawFocusOverlay();
       return;
     }
   };
@@ -590,8 +578,6 @@ export function RgbCubeCanvas({
     if (rotationFrameRef.current != null) {
       return;
     }
-    const scheduledAt = performance.now();
-    lastRotationScheduledAtRef.current = scheduledAt;
     rotationFrameRef.current = window.requestAnimationFrame(() => {
       flushRotationFrame();
     });
@@ -609,10 +595,7 @@ export function RgbCubeCanvas({
   const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>): void => {
     const pointer = mapPointer(event);
     dragRef.current = { isDragging: true, x: pointer.x, y: pointer.y };
-    activePointerIdRef.current = event.pointerId;
     displayRotationRef.current = rotation;
-    setDisplayRotation(rotation);
-    setIsDragging(true);
     isPointerInsideRef.current = true;
     event.currentTarget.setPointerCapture(event.pointerId);
   };
@@ -661,14 +644,13 @@ export function RgbCubeCanvas({
     }
 
     dragRef.current.isDragging = false;
-    setIsDragging(false);
     event.currentTarget.releasePointerCapture(event.pointerId);
     finishDragSession();
+    drawFocusOverlay();
   };
 
   const handlePointerLeave = (): void => {
     dragRef.current.isDragging = false;
-    setIsDragging(false);
     isPointerInsideRef.current = false;
     pendingBudgetedSharedColorRef.current = null;
     stopSharedBudgetFrameLoop();
@@ -684,7 +666,6 @@ export function RgbCubeCanvas({
 
   const handlePointerCancel = (): void => {
     dragRef.current.isDragging = false;
-    setIsDragging(false);
     isPointerInsideRef.current = false;
     pendingBudgetedSharedColorRef.current = null;
     stopSharedBudgetFrameLoop();
