@@ -28,6 +28,10 @@ jobs:
             pnpm-lock.yaml
             web/pnpm-lock.yaml
 
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
       - name: Install root dependencies
         run: pnpm install --frozen-lockfile
 

@@ -20,14 +20,37 @@ const generatedFile = resolve(
   "cube-point-kernel-wasm-bytes.ts"
 );
 
-const cargoCommand = `. "${cargoEnv}" && cargo build --manifest-path "${join(
-  wasmCrateDir,
-  "Cargo.toml"
-)}" --target wasm32-unknown-unknown --release`;
-const build = spawnSync("/bin/zsh", ["-lc", cargoCommand], {
-  cwd: repoRoot,
-  stdio: "inherit",
-});
+const cargoManifestPath = join(wasmCrateDir, "Cargo.toml");
+
+const buildWithCargoOnPath = () =>
+  spawnSync(
+    "cargo",
+    [
+      "build",
+      "--manifest-path",
+      cargoManifestPath,
+      "--target",
+      "wasm32-unknown-unknown",
+      "--release",
+    ],
+    {
+      cwd: repoRoot,
+      stdio: "inherit",
+    }
+  );
+
+const buildWithCargoEnv = () => {
+  const cargoCommand = `. "${cargoEnv}" && cargo build --manifest-path "${cargoManifestPath}" --target wasm32-unknown-unknown --release`;
+  return spawnSync("/bin/zsh", ["-lc", cargoCommand], {
+    cwd: repoRoot,
+    stdio: "inherit",
+  });
+};
+
+let build = buildWithCargoOnPath();
+if (build.error?.code === "ENOENT" && process.env.HOME) {
+  build = buildWithCargoEnv();
+}
 if (build.status !== 0) {
   process.exit(build.status ?? 1);
 }
