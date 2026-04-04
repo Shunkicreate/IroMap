@@ -6,6 +6,16 @@ import {
   buildMetricSummaryFromStore,
 } from "@/domain/photo-analysis/base/photo-analysis-base";
 import { materializeSamples } from "@/domain/photo-analysis/base/photo-analysis-base-store";
+import {
+  buildDerivedSelectionKernelResult,
+  disposeCubePointKernelIndexes,
+  materializeCubePoints,
+  registerCubePointKernelIndexes,
+} from "@/domain/photo-analysis/cube-point-kernel/cube-point-kernel";
+import {
+  maxCubePointCount,
+  quantizeBucketSize,
+} from "@/domain/photo-analysis/shared/photo-analysis-constants";
 import type {
   DerivedPhotoAnalysis,
   PhotoAnalysisHandle,
@@ -117,6 +127,14 @@ export const buildDerivedPhotoAnalysisFromHandle = ({
   const selectionStartAt = now();
   const selectedIndexes = getSelectedIndexes(selectionState);
   const selectedSamples = materializeSamples(handle.store, selectedIndexes);
+  const selectionId = selectionState?.activeSelection?.selectionId ?? null;
+  if (handle.cubePointKernelSelectionId !== selectionId) {
+    disposeCubePointKernelIndexes(handle.cubePointKernelSelectionStoreId);
+    handle.cubePointKernelSelectionStoreId = selectionId
+      ? (registerCubePointKernelIndexes(selectedIndexes)?.storeId ?? null)
+      : null;
+    handle.cubePointKernelSelectionId = selectionId;
+  }
   const selectionMs = now() - selectionStartAt;
 
   const metricsStartAt = now();
@@ -128,11 +146,15 @@ export const buildDerivedPhotoAnalysisFromHandle = ({
   const metricsMs = now() - metricsStartAt;
 
   const cubePointsStartAt = now();
-  const selectionCubePoints = buildCubePointsFromStore(
-    handle.store,
-    selectedIndexes,
-    handle.cubePointKernelStoreId
-  );
+  const derivedSelection = buildDerivedSelectionKernelResult({
+    registeredStoreId: handle.cubePointKernelStoreId,
+    registeredIndexesId: handle.cubePointKernelSelectionStoreId,
+    bucketSize: quantizeBucketSize,
+    maxPoints: maxCubePointCount,
+  });
+  const selectionCubePoints = derivedSelection
+    ? materializeCubePoints(derivedSelection)
+    : buildCubePointsFromStore(handle.store, selectedIndexes, handle.cubePointKernelStoreId);
   const cubePointsMs = now() - cubePointsStartAt;
 
   return {

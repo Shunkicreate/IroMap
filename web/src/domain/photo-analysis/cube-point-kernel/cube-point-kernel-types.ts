@@ -20,3 +20,7 @@ export type CubePointKernelMode = "js" | "wasm";
 export type CubePointKernelStoreRegistration = {
   storeId: number;
 };
+
+export type CubePointKernelDerivedResult = CubePointKernelResult & {
+  selectedCount: number;
+};

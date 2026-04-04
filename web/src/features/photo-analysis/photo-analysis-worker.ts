@@ -1,7 +1,10 @@
 /// <reference lib="webworker" />
 
 import { createPhotoAnalysisHandle } from "@/domain/photo-analysis/base/photo-analysis-base";
-import { disposeCubePointKernelStore } from "@/domain/photo-analysis/cube-point-kernel/cube-point-kernel";
+import {
+  disposeCubePointKernelIndexes,
+  disposeCubePointKernelStore,
+} from "@/domain/photo-analysis/cube-point-kernel/cube-point-kernel";
 import { buildDerivedPhotoAnalysisFromHandle } from "@/domain/photo-analysis/derived/photo-analysis-derived";
 import type { PhotoAnalysisHandle } from "@/domain/photo-analysis/shared/photo-analysis-types";
 import type {
@@ -16,6 +19,7 @@ const releaseHandle = (handle: PhotoAnalysisHandle | null): void => {
   if (!handle) {
     return;
   }
+  disposeCubePointKernelIndexes(handle.cubePointKernelSelectionStoreId);
   disposeCubePointKernelStore(handle.cubePointKernelStoreId);
 };
 

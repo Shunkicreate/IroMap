@@ -1,6 +1,7 @@
 import { toRgbColor } from "@/domain/color/color-types";
 import type { RgbCubePoint } from "@/domain/photo-analysis/shared/photo-analysis-types";
 import type {
+  CubePointKernelDerivedResult,
   CubePointKernelInput,
   CubePointKernelMode,
   CubePointKernelResult,
@@ -20,6 +21,8 @@ type CubePointKernelWasmExports = WebAssembly.Exports & {
   dealloc: (ptr: number, len: number) => void;
   registerStoreExport: (rPtr: number, gPtr: number, bPtr: number, colorLen: number) => number;
   releaseStoreExport: (storeId: number) => void;
+  registerIndexesExport: (indexesPtr: number, indexesLen: number) => number;
+  releaseIndexesExport: (indexesId: number) => void;
   buildCubePointsExport: (
     rPtr: number,
     gPtr: number,
@@ -39,6 +42,16 @@ type CubePointKernelWasmExports = WebAssembly.Exports & {
     indexesLen: number,
     bucketSize: number,
     maxPoints: number,
+    outColorsPtr: number,
+    outCountsPtr: number,
+    outRatiosPtr: number
+  ) => number;
+  buildDerivedSelectionExport: (
+    storeId: number,
+    indexesId: number,
+    bucketSize: number,
+    maxPoints: number,
+    outSelectedCountPtr: number,
     outColorsPtr: number,
     outCountsPtr: number,
     outRatiosPtr: number
@@ -70,17 +83,29 @@ const getWasmExports = (): CubePointKernelWasmExports => {
   const releaseStoreExport = wasmNamedExports["release_store"] as
     | CubePointKernelWasmExports["releaseStoreExport"]
     | undefined;
+  const registerIndexesExport = wasmNamedExports["register_indexes"] as
+    | CubePointKernelWasmExports["registerIndexesExport"]
+    | undefined;
+  const releaseIndexesExport = wasmNamedExports["release_indexes"] as
+    | CubePointKernelWasmExports["releaseIndexesExport"]
+    | undefined;
   const buildCubePointsExport = wasmNamedExports["build_cube_points"] as
     | CubePointKernelWasmExports["buildCubePointsExport"]
     | undefined;
   const buildCubePointsFromStoreExport = wasmNamedExports["build_cube_points_from_store"] as
     | CubePointKernelWasmExports["buildCubePointsFromStoreExport"]
     | undefined;
+  const buildDerivedSelectionExport = wasmNamedExports["build_derived_selection"] as
+    | CubePointKernelWasmExports["buildDerivedSelectionExport"]
+    | undefined;
   if (
     !registerStoreExport ||
     !releaseStoreExport ||
+    !registerIndexesExport ||
+    !releaseIndexesExport ||
     !buildCubePointsExport ||
-    !buildCubePointsFromStoreExport
+    !buildCubePointsFromStoreExport ||
+    !buildDerivedSelectionExport
   ) {
     throw new Error("cube-point-kernel-export-missing");
   }
@@ -88,8 +113,11 @@ const getWasmExports = (): CubePointKernelWasmExports => {
     ...exports,
     registerStoreExport,
     releaseStoreExport,
+    registerIndexesExport,
+    releaseIndexesExport,
     buildCubePointsExport,
     buildCubePointsFromStoreExport,
+    buildDerivedSelectionExport,
   };
   return wasmExports;
 };
@@ -134,6 +162,13 @@ const createIndexes = (input: CubePointKernelInput): Uint32Array | null => {
   return Uint32Array.from(input.indexes);
 };
 
+const emptyKernelResult = (): CubePointKernelResult => ({
+  colors: new Uint8Array(),
+  counts: new Uint32Array(),
+  ratios: new Float32Array(),
+  length: 0,
+});
+
 export const registerCubePointKernelStore = ({
   r,
   g,
@@ -170,7 +205,103 @@ export const disposeCubePointKernelStore = (storeId: number | null | undefined):
   try {
     getWasmExports().releaseStoreExport(storeId);
   } catch {
-    // Fallback keeps the worker functional even if release fails.
+    // Ignore release failures and keep the worker functional.
+  }
+};
+
+export const registerCubePointKernelIndexes = (
+  indexes: readonly number[]
+): CubePointKernelStoreRegistration | null => {
+  if (
+    indexes.length === 0 ||
+    resolveCubePointKernelMode() !== "wasm" ||
+    !cubePointKernelWasmBase64
+  ) {
+    return null;
+  }
+
+  try {
+    const exports = getWasmExports();
+    const typedIndexes = Uint32Array.from(indexes);
+    const indexesPtr = writeU32(exports, typedIndexes);
+    const storeId = exports.registerIndexesExport(indexesPtr, typedIndexes.length);
+    exports.dealloc(indexesPtr, typedIndexes.byteLength);
+    return storeId > 0 ? { storeId } : null;
+  } catch {
+    return null;
+  }
+};
+
+export const disposeCubePointKernelIndexes = (storeId: number | null | undefined): void => {
+  if (!storeId || resolveCubePointKernelMode() !== "wasm" || !cubePointKernelWasmBase64) {
+    return;
+  }
+
+  try {
+    getWasmExports().releaseIndexesExport(storeId);
+  } catch {
+    // Ignore release failures and keep the worker functional.
+  }
+};
+
+export const buildDerivedSelectionKernelResult = ({
+  registeredStoreId,
+  registeredIndexesId,
+  bucketSize,
+  maxPoints,
+}: {
+  registeredStoreId: number | null | undefined;
+  registeredIndexesId: number | null | undefined;
+  bucketSize: number;
+  maxPoints: number;
+}): CubePointKernelDerivedResult | null => {
+  if (
+    !registeredStoreId ||
+    !registeredIndexesId ||
+    resolveCubePointKernelMode() !== "wasm" ||
+    !cubePointKernelWasmBase64
+  ) {
+    return null;
+  }
+
+  try {
+    const exports = getWasmExports();
+    const outSelectedCountPtr = exports.alloc(Uint32Array.BYTES_PER_ELEMENT);
+    const outColorsPtr = exports.alloc(maxPoints * 3);
+    const outCountsPtr = exports.alloc(maxPoints * Uint32Array.BYTES_PER_ELEMENT);
+    const outRatiosPtr = exports.alloc(maxPoints * Float32Array.BYTES_PER_ELEMENT);
+
+    const length = exports.buildDerivedSelectionExport(
+      registeredStoreId,
+      registeredIndexesId,
+      bucketSize,
+      maxPoints,
+      outSelectedCountPtr,
+      outColorsPtr,
+      outCountsPtr,
+      outRatiosPtr
+    );
+
+    const selectedCount = new Uint32Array(exports.memory.buffer, outSelectedCountPtr, 1)[0] ?? 0;
+    const result = readResult({
+      exports,
+      length,
+      outColorsPtr,
+      outCountsPtr,
+      outRatiosPtr,
+    });
+
+    exports.dealloc(outSelectedCountPtr, Uint32Array.BYTES_PER_ELEMENT);
+    exports.dealloc(outColorsPtr, maxPoints * 3);
+    exports.dealloc(outCountsPtr, maxPoints * Uint32Array.BYTES_PER_ELEMENT);
+    exports.dealloc(outRatiosPtr, maxPoints * Float32Array.BYTES_PER_ELEMENT);
+
+    return {
+      ...result,
+      selectedCount,
+    };
+  } catch {
+    return null;
   }
 };
 
@@ -254,12 +385,7 @@ const buildCubePointKernelResultWithWasm = (input: CubePointKernelInput): CubePo
     return result;
   } catch {
     if (!input.r || !input.g || !input.b) {
-      return {
-        colors: new Uint8Array(),
-        counts: new Uint32Array(),
-        ratios: new Float32Array(),
-        length: 0,
-      };
+      return emptyKernelResult();
     }
     return buildCubePointKernelResultWithJs({
       ...input,
@@ -275,12 +401,7 @@ export const buildCubePointKernelResult = (input: CubePointKernelInput): CubePoi
     return buildCubePointKernelResultWithWasm(input);
   }
   if (!input.r || !input.g || !input.b) {
-    return {
-      colors: new Uint8Array(),
-      counts: new Uint32Array(),
-      ratios: new Float32Array(),
-      length: 0,
-    };
+    return emptyKernelResult();
   }
   return buildCubePointKernelResultWithJs({
     ...input,

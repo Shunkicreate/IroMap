@@ -10,9 +10,14 @@ struct RegisteredStore {
 }
 
 static mut REGISTERED_STORES: Option<Vec<Option<RegisteredStore>>> = None;
+static mut REGISTERED_INDEXES: Option<Vec<Option<Vec<u32>>>> = None;
 
 fn stores() -> &'static mut Vec<Option<RegisteredStore>> {
     unsafe { REGISTERED_STORES.get_or_insert_with(Vec::new) }
+}
+
+fn indexes_registry() -> &'static mut Vec<Option<Vec<u32>>> {
+    unsafe { REGISTERED_INDEXES.get_or_insert_with(Vec::new) }
 }
 
 #[no_mangle]
@@ -59,6 +64,26 @@ pub extern "C" fn release_store(store_id: u32) {
     let index = (store_id - 1) as usize;
     let stores = stores();
     if let Some(slot) = stores.get_mut(index) {
+        *slot = None;
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn register_indexes(indexes_ptr: *const u32, indexes_len: usize) -> u32 {
+    let indexes = unsafe { slice::from_raw_parts(indexes_ptr, indexes_len) };
+    let registry = indexes_registry();
+    registry.push(Some(indexes.to_vec()));
+    registry.len() as u32
+}
+
+#[no_mangle]
+pub extern "C" fn release_indexes(indexes_id: u32) {
+    if indexes_id == 0 {
+        return;
+    }
+    let index = (indexes_id - 1) as usize;
+    let registry = indexes_registry();
+    if let Some(slot) = registry.get_mut(index) {
         *slot = None;
     }
 }
@@ -208,5 +233,62 @@ pub extern "C" fn build_cube_points_from_store(
         out_counts_ptr,
         out_ratios_ptr,
         total_count,
+    )
+}
+
+#[no_mangle]
+pub extern "C" fn build_derived_selection(
+    store_id: u32,
+    indexes_id: u32,
+    bucket_size: u8,
+    max_points: usize,
+    out_selected_count_ptr: *mut u32,
+    out_colors_ptr: *mut u8,
+    out_counts_ptr: *mut u32,
+    out_ratios_ptr: *mut f32,
+) -> usize {
+    if store_id == 0 || indexes_id == 0 {
+        unsafe {
+            *out_selected_count_ptr = 0;
+        }
+        return 0;
+    }
+
+    let store_index = (store_id - 1) as usize;
+    let indexes_index = (indexes_id - 1) as usize;
+    let stores = stores();
+    let registry = indexes_registry();
+    let Some(Some(store)) = stores.get(store_index) else {
+        unsafe {
+            *out_selected_count_ptr = 0;
+        }
+        return 0;
+    };
+    let Some(Some(indexes)) = registry.get(indexes_index) else {
+        unsafe {
+            *out_selected_count_ptr = 0;
+        }
+        return 0;
+    };
+
+    let ranked = build_ranked_buckets(
+        &store.r,
+        &store.g,
+        &store.b,
+        indexes.as_ptr(),
+        indexes.len(),
+        bucket_size,
+    );
+    unsafe {
+        *out_selected_count_ptr = indexes.len() as u32;
+    }
+    write_output(
+        ranked,
+        bucket_size,
+        max_points,
+        out_colors_ptr,
+        out_counts_ptr,
+        out_ratios_ptr,
+        indexes.len(),
     )
 }

@@ -342,6 +342,8 @@ export const createPhotoAnalysisHandle = ({
     fullSummary: null,
     derivedBaseCache: null,
     cubePointKernelStoreId: cubePointKernelStore?.storeId ?? null,
+    cubePointKernelSelectionStoreId: null,
+    cubePointKernelSelectionId: null,
   };
 };
 

@@ -201,4 +201,6 @@ export type PhotoAnalysisHandle = {
   fullSummary: MetricSummary | null;
   derivedBaseCache: DerivedBaseCache | null;
   cubePointKernelStoreId: number | null;
+  cubePointKernelSelectionStoreId: number | null;
+  cubePointKernelSelectionId: string | null;
 };
