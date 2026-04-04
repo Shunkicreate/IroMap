@@ -9,6 +9,7 @@ export type AnalyzePhotoWorkerRequest = {
   requestId: number;
   analysisId: string;
   imageData: ImageData;
+  samplingDensityPercent?: number;
 };
 
 export type BuildDerivedAnalysisWorkerRequest = {

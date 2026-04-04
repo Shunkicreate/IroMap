@@ -2,8 +2,11 @@ import {
   chromaBinCount,
   hueBinCount,
   hueMax,
+  legacySamplingDensityPercent,
   luminanceBinCount,
   luminanceMax,
+  maximumSamplingDensityPercent,
+  minimumSamplingDensityPercent,
   minimumUnit,
   performanceSamplingThreshold,
   quantizeBucketSize,
@@ -34,10 +37,55 @@ export const quantizeComponent = (value: number): number =>
 
 export const buildAreaLabel = (color: RgbColor): string => `R${color.r}-G${color.g}-B${color.b}`;
 
-export const pickSamplingStep = (pixelCount: number): number =>
+export const pickLegacySamplingStep = (pixelCount: number): number =>
   pixelCount <= performanceSamplingThreshold
     ? minimumUnit
     : Math.ceil(Math.sqrt(pixelCount / performanceSamplingThreshold));
+
+export const samplingDensityPercentToStep = (samplingDensityPercent: number): number => {
+  const normalizedDensity = Math.min(
+    maximumSamplingDensityPercent,
+    Math.max(minimumSamplingDensityPercent, samplingDensityPercent)
+  );
+  return Math.max(
+    minimumUnit,
+    Math.ceil(Math.sqrt(maximumSamplingDensityPercent / normalizedDensity))
+  );
+};
+
+export const samplingStepToDensityPercent = (samplingStep: number): number =>
+  Math.min(
+    maximumSamplingDensityPercent,
+    Math.max(
+      minimumSamplingDensityPercent,
+      Math.round(maximumSamplingDensityPercent / (samplingStep * samplingStep))
+    )
+  );
+
+export const resolveSamplingDensityPercent = (
+  requestedSamplingDensityPercent: number,
+  pixelCount: number
+): number =>
+  requestedSamplingDensityPercent === legacySamplingDensityPercent
+    ? samplingStepToDensityPercent(pickLegacySamplingStep(pixelCount))
+    : Math.min(
+        maximumSamplingDensityPercent,
+        Math.max(minimumSamplingDensityPercent, requestedSamplingDensityPercent)
+      );
+
+export const pickSamplingStep = (
+  pixelCount: number,
+  requestedSamplingDensityPercent: number
+): { samplingDensityPercent: number; step: number } => {
+  const samplingDensityPercent = resolveSamplingDensityPercent(
+    requestedSamplingDensityPercent,
+    pixelCount
+  );
+  return {
+    samplingDensityPercent,
+    step: samplingDensityPercentToStep(samplingDensityPercent),
+  };
+};
 
 export const scaleLabComponent = (value: number): number => Math.round(value * 100);
 export const unscaleLabComponent = (value: number): number => value / 100;

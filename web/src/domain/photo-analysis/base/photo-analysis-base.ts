@@ -16,7 +16,6 @@ import {
 import {
   highlightThreshold,
   maxCubePointCount,
-  maxSampleCount,
   minimumUnit,
   othersColorValue,
   ratioPercent,
@@ -275,6 +274,8 @@ const buildPhotoAnalysisResultFromStore = ({
   colorAreas,
   cubePoints,
   samples,
+  samplingStep,
+  samplingDensityPercent,
 }: {
   store: PhotoSampleBufferStore;
   width: number;
@@ -285,6 +286,8 @@ const buildPhotoAnalysisResultFromStore = ({
   colorAreas: ColorArea[];
   cubePoints: RgbCubePoint[];
   samples: PhotoSample[];
+  samplingStep: number;
+  samplingDensityPercent: number;
 }): PhotoAnalysisResult => ({
   hueHistogram,
   saturationHistogram,
@@ -295,6 +298,8 @@ const buildPhotoAnalysisResultFromStore = ({
   height,
   elapsedMs: timings.totalMs,
   sampledPixels: store.count,
+  samplingStep,
+  samplingDensityPercent,
   timings,
 });
 
@@ -302,13 +307,18 @@ const now = (): number => performance.now();
 
 export const createPhotoAnalysisHandle = ({
   imageData,
+  samplingDensityPercent: requestedSamplingDensityPercent = 100,
 }: {
   imageData: ImageData;
+  samplingDensityPercent?: number;
 }): PhotoAnalysisHandle => {
   const startAt = now();
-  const step = pickSamplingStep(imageData.width * imageData.height);
+  const { step, samplingDensityPercent } = pickSamplingStep(
+    imageData.width * imageData.height,
+    requestedSamplingDensityPercent
+  );
   const samplingStartAt = now();
-  const store = samplePixelsToStore(imageData, step, maxSampleCount);
+  const store = samplePixelsToStore(imageData, step);
   const samplingMs = now() - samplingStartAt;
 
   const histogramStartAt = now();
@@ -352,6 +362,8 @@ export const createPhotoAnalysisHandle = ({
       colorAreas,
       cubePoints,
       samples,
+      samplingStep: step,
+      samplingDensityPercent,
     }),
     store,
     fullSummary: null,
@@ -359,8 +371,10 @@ export const createPhotoAnalysisHandle = ({
   };
 };
 
-export const analyzePhoto = (imageData: ImageData): PhotoAnalysisResult =>
-  createPhotoAnalysisHandle({ imageData }).result;
+export const analyzePhoto = (
+  imageData: ImageData,
+  samplingDensityPercent?: number
+): PhotoAnalysisResult => createPhotoAnalysisHandle({ imageData, samplingDensityPercent }).result;
 
 export const buildCubePointsFromSamples = (samples: PhotoSample[]): RgbCubePoint[] =>
   buildRgbCubePointsCore(samples, maxCubePointCount);

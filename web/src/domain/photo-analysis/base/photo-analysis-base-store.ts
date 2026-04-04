@@ -3,7 +3,6 @@ import { colorChannelMax } from "@/domain/color/color-constants";
 import { toHueDegree, toPercentage, toRgbColor } from "@/domain/color/color-types";
 import {
   alphaChannelOffset,
-  maxSampleCount,
   noAlpha,
   rgbaStride,
 } from "@/domain/photo-analysis/shared/photo-analysis-constants";
@@ -25,13 +24,9 @@ import type {
 
 // Base analysis storage layer: builds and materializes sampled photo data.
 
-export const samplePixelsToStore = (
-  imageData: ImageData,
-  step: number,
-  maxSamples: number = maxSampleCount
-): PhotoSampleBufferStore => {
+export const samplePixelsToStore = (imageData: ImageData, step: number): PhotoSampleBufferStore => {
   const { data, width, height } = imageData;
-  const capacity = Math.min(maxSamples, Math.ceil(width / step) * Math.ceil(height / step));
+  const capacity = Math.ceil(width / step) * Math.ceil(height / step);
   const x = shouldUseWideCoordinates(width, height)
     ? new Uint32Array(capacity)
     : new Uint16Array(capacity);
@@ -51,9 +46,6 @@ export const samplePixelsToStore = (
 
   for (let row = 0; row < height; row += step) {
     for (let column = 0; column < width; column += step) {
-      if (count >= maxSamples) {
-        break;
-      }
       const offset = (row * width + column) * rgbaStride;
       const alpha = data[offset + alphaChannelOffset] / colorChannelMax;
       if (alpha === noAlpha) {
@@ -75,9 +67,6 @@ export const samplePixelsToStore = (
       saturation[count] = scaleSaturation(hsl.s);
       lightness[count] = scaleLightness(hsl.l);
       count += 1;
-    }
-    if (count >= maxSamples) {
-      break;
     }
   }
 
