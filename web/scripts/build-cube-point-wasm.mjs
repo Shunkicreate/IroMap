@@ -57,6 +57,19 @@ if (build.status !== 0) {
 
 const bytes = await readFile(wasmFile);
 const base64 = bytes.toString("base64");
+const chunkSize = 120;
+const chunks = Array.from({ length: Math.ceil(base64.length / chunkSize) }, (_, index) =>
+  base64.slice(index * chunkSize, (index + 1) * chunkSize)
+);
 await mkdir(dirname(generatedFile), { recursive: true });
-await writeFile(generatedFile, `export const cubePointKernelWasmBase64 = "${base64}";\n`, "utf8");
+await writeFile(
+  generatedFile,
+  [
+    "export const cubePointKernelWasmBase64 = [",
+    ...chunks.map((chunk) => `  \"${chunk}\",`),
+    '].join("");',
+    "",
+  ].join("\n"),
+  "utf8"
+);
 console.log(`generated ${generatedFile}`);
