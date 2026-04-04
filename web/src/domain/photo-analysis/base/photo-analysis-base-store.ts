@@ -46,7 +46,11 @@ export const samplePixelsToStore = (imageData: ImageData, step: number): PhotoSa
 
   for (let row = 0; row < height; row += step) {
     for (let column = 0; column < width; column += step) {
-      const offset = (row * width + column) * rgbaStride;
+      const cellWidth = Math.min(step, width - column);
+      const cellHeight = Math.min(step, height - row);
+      const sampleX = column + Math.floor(cellWidth / 2);
+      const sampleY = row + Math.floor(cellHeight / 2);
+      const offset = (sampleY * width + sampleX) * rgbaStride;
       const alpha = data[offset + alphaChannelOffset] / colorChannelMax;
       if (alpha === noAlpha) {
         continue;
@@ -55,8 +59,8 @@ export const samplePixelsToStore = (imageData: ImageData, step: number): PhotoSa
       const color = toRgbColor(data[offset], data[offset + 1], data[offset + 2]);
       const hsl = rgbToHsl(color);
       const lab = rgbToLab(color);
-      x[count] = column;
-      y[count] = row;
+      x[count] = sampleX;
+      y[count] = sampleY;
       r[count] = color.r;
       g[count] = color.g;
       b[count] = color.b;
