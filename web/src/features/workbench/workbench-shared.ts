@@ -15,6 +15,7 @@ export type Rotation = {
 };
 
 export type RgbCubeOverlayMode = "grid" | "image" | "both";
+export type PreviewSamplingGridColor = "white" | "black";
 
 export type WorkbenchTarget = {
   targetId: string;
@@ -60,6 +61,7 @@ export const histogramChartViewboxWidth = 100;
 export const histogramChartViewboxHeight = 100;
 export const storageKeys = {
   uploadPanel: "iromap.workbench.preview.upload-panel.open",
+  previewOptionsPanel: "iromap.workbench.preview.options.open",
   cubeOptionsPanel: "iromap.workbench.cube.options.open",
   sliceOptionsPanel: "iromap.workbench.slice.options.open",
   inspectorPanel: "iromap.workbench.inspector.panel.open",
@@ -75,6 +77,9 @@ export const storageKeys = {
   cubeSelectionMapping: "iromap.workbench.cube.selection-mapping.visible",
   sliceImageMapping: "iromap.workbench.slice.image-mapping.visible",
   sliceSelectionMapping: "iromap.workbench.slice.selection-mapping.visible",
+  previewSamplingGridVisible: "iromap.workbench.preview.sampling-grid.visible",
+  previewSamplingGridColor: "iromap.workbench.preview.sampling-grid.color",
+  samplingDensityPercent: "iromap.workbench.preview.sampling-density-percent",
 } as const;
 
 export const emptyTarget = (targetId: string, label: string): WorkbenchTarget => ({
