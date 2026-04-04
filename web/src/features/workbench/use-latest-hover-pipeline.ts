@@ -14,6 +14,7 @@ export const useLatestHoverPipeline = <TInput, TResult>({
   resolve,
 }: Options<TInput, TResult>) => {
   const frameRef = useRef<number | null>(null);
+  const isResolvingRef = useRef(false);
   const pendingInputRef = useRef<TInput | null>(null);
   const hasPendingInputRef = useRef(false);
   const lastResolvedRef = useRef<TResult | null>(null);
@@ -30,9 +31,18 @@ export const useLatestHoverPipeline = <TInput, TResult>({
     resolveRef.current = resolve;
   }, [isEqual, onResolved, resolve]);
 
+  const scheduleFlush = (): void => {
+    if (frameRef.current != null || isResolvingRef.current) {
+      return;
+    }
+    frameRef.current = window.requestAnimationFrame(() => {
+      flush();
+    });
+  };
+
   const flush = (): void => {
     frameRef.current = null;
-    if (!hasPendingInputRef.current) {
+    if (!hasPendingInputRef.current || isResolvingRef.current) {
       return;
     }
 
@@ -41,6 +51,7 @@ export const useLatestHoverPipeline = <TInput, TResult>({
     pendingInputRef.current = null;
     hasPendingInputRef.current = false;
     pendingSequenceRef.current = 0;
+    isResolvingRef.current = true;
 
     void Promise.resolve(resolveRef.current(nextInput))
       .then((nextResult) => {
@@ -60,6 +71,12 @@ export const useLatestHoverPipeline = <TInput, TResult>({
       })
       .catch(() => {
         // Ignore stale hover failures and keep the last visual state.
+      })
+      .finally(() => {
+        isResolvingRef.current = false;
+        if (hasPendingInputRef.current) {
+          scheduleFlush();
+        }
       });
   };
 
@@ -68,12 +85,7 @@ export const useLatestHoverPipeline = <TInput, TResult>({
     pendingInputRef.current = input;
     hasPendingInputRef.current = true;
     pendingSequenceRef.current = latestSequenceRef.current;
-    if (frameRef.current != null) {
-      return;
-    }
-    frameRef.current = window.requestAnimationFrame(() => {
-      flush();
-    });
+    scheduleFlush();
   };
 
   const clearNow = (result: TResult): void => {

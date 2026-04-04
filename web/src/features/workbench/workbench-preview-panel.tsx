@@ -65,12 +65,20 @@ export function WorkbenchPreviewPanel({
     return imageWrapRef.current?.getBoundingClientRect() ?? null;
   };
 
+  const sharedHoverPipeline = useLatestHoverPipeline<PhotoSample | null, PhotoSample | null>({
+    isEqual: areSameSample,
+    onResolved: (nextHoverSample) => {
+      onHoverSampleChange(nextHoverSample);
+    },
+    resolve: (sample) => sample,
+  });
+
   const hoverPipeline = useLatestHoverPipeline<{ x: number; y: number } | null, PhotoSample | null>(
     {
       isEqual: areSameSample,
       onResolved: (nextHoverSample) => {
         setLocalHoverSample(nextHoverSample);
-        onHoverSampleChange(nextHoverSample);
+        sharedHoverPipeline.schedule(nextHoverSample);
       },
       resolve: (point) => {
         if (!point) {
@@ -279,6 +287,7 @@ export function WorkbenchPreviewPanel({
         onPointerLeave={() => {
           setIsPointerInside(false);
           hoverPipeline.clearNow(null);
+          sharedHoverPipeline.clearNow(null);
           onSelectionDraftChange(null);
         }}
       >

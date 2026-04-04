@@ -399,11 +399,18 @@ export function SliceCanvas({
     [axis, mappedSamples, value]
   );
   const displayHoverColor = isPointerInside ? localHoverColor : hoverColor;
+  const sharedHoverPipeline = useLatestHoverPipeline<RgbColor | null, RgbColor | null>({
+    isEqual: areSameColor,
+    onResolved: (nextHoverColor) => {
+      onHoverColorChange(nextHoverColor);
+    },
+    resolve: (color) => color,
+  });
   const hoverPipeline = useLatestHoverPipeline<{ x: number; y: number } | null, RgbColor | null>({
     isEqual: areSameColor,
     onResolved: (nextHoverColor) => {
       setLocalHoverColor(nextHoverColor);
-      onHoverColorChange(nextHoverColor);
+      sharedHoverPipeline.schedule(nextHoverColor);
     },
     resolve: (point) => {
       if (!point) {
@@ -693,6 +700,7 @@ export function SliceCanvas({
               onPointerLeave={() => {
                 setIsPointerInside(false);
                 hoverPipeline.clearNow(null);
+                sharedHoverPipeline.clearNow(null);
               }}
               onClick={handleClick}
             />

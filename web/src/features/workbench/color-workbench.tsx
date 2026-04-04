@@ -181,6 +181,7 @@ export function ColorWorkbench() {
   const pendingSharedHoverRef = useRef<SharedHoverEvent | null>(null);
   const sharedHoverFrameRef = useRef<number | null>(null);
   const sharedHoverSequenceRef = useRef(0);
+  const isResolvingSharedHoverRef = useRef(false);
   const [selectedColor, setSelectedColor] = useState<RgbColor | null>(null);
   const [copyFormat, setCopyFormat] = useState<ExportFormat>("markdown");
   const [sliceAxis, setSliceAxis] = usePersistedState<SliceAxis>({
@@ -543,8 +544,20 @@ export function ColorWorkbench() {
     });
   };
 
+  const scheduleSharedHoverFlush = (): void => {
+    if (sharedHoverFrameRef.current != null || isResolvingSharedHoverRef.current) {
+      return;
+    }
+    sharedHoverFrameRef.current = window.requestAnimationFrame(() => {
+      flushSharedHover();
+    });
+  };
+
   const flushSharedHover = (): void => {
     sharedHoverFrameRef.current = null;
+    if (isResolvingSharedHoverRef.current) {
+      return;
+    }
     const nextHoverEvent = pendingSharedHoverRef.current;
     pendingSharedHoverRef.current = null;
     if (!nextHoverEvent) {
@@ -583,15 +596,26 @@ export function ColorWorkbench() {
       applyResolvedSample(
         findNearestSampleByColor(baselineTarget.result, baselineBuckets, nextHoverEvent.color)
       );
+      if (pendingSharedHoverRef.current) {
+        scheduleSharedHoverFlush();
+      }
       return;
     }
 
+    isResolvingSharedHoverRef.current = true;
     void resolveHoverColorToSampleInWorker({
       analysisId: baselineTarget.analysisId,
       color: nextHoverEvent.color,
-    }).then((sample) => {
-      applyResolvedSample(sample);
-    });
+    })
+      .then((sample) => {
+        applyResolvedSample(sample);
+      })
+      .finally(() => {
+        isResolvingSharedHoverRef.current = false;
+        if (pendingSharedHoverRef.current) {
+          scheduleSharedHoverFlush();
+        }
+      });
   };
 
   const enqueueSharedHover = (nextHover: SharedHoverEvent): void => {
@@ -599,12 +623,7 @@ export function ColorWorkbench() {
       return;
     }
     pendingSharedHoverRef.current = nextHover;
-    if (sharedHoverFrameRef.current != null) {
-      return;
-    }
-    sharedHoverFrameRef.current = window.requestAnimationFrame(() => {
-      flushSharedHover();
-    });
+    scheduleSharedHoverFlush();
   };
 
   const handleColorHover = (color: RgbColor | null, source: HoverState["source"]): void => {
