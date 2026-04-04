@@ -6,6 +6,18 @@ import {
   buildMetricSummaryFromStore,
 } from "@/domain/photo-analysis/base/photo-analysis-base";
 import { materializeSamples } from "@/domain/photo-analysis/base/photo-analysis-base-store";
+import {
+  buildDerivedSelectionProjectionFromKernel,
+  buildDerivedSelectionKernelResult,
+  disposeCubePointKernelIndexes,
+  materializeSelectedSamplesFromKernel,
+  materializeCubePoints,
+  registerCubePointKernelIndexes,
+} from "@/domain/photo-analysis/cube-point-kernel/cube-point-kernel";
+import {
+  maxCubePointCount,
+  quantizeBucketSize,
+} from "@/domain/photo-analysis/shared/photo-analysis-constants";
 import type {
   DerivedPhotoAnalysis,
   PhotoAnalysisHandle,
@@ -56,6 +68,7 @@ export const buildDerivedPhotoAnalysis = ({
   const selectionStartAt = now();
   const selectedSamples = getSelectedSamples(result, selectionState);
   const selectionMs = now() - selectionStartAt;
+  const selectedSamplesMs = selectionMs;
 
   const metricsStartAt = now();
   const baseCache = buildDerivedBaseCache({ result });
@@ -80,6 +93,9 @@ export const buildDerivedPhotoAnalysis = ({
     timings: {
       totalMs: now() - startAt,
       selectionMs,
+      selectionRegistrationMs: 0,
+      selectionProjectionMs: 0,
+      selectedSamplesMs,
       metricsMs,
       luminanceHistogramMs: 0,
       hueHistogramMs: 0,
@@ -116,19 +132,57 @@ export const buildDerivedPhotoAnalysisFromHandle = ({
 
   const selectionStartAt = now();
   const selectedIndexes = getSelectedIndexes(selectionState);
-  const selectedSamples = materializeSamples(handle.store, selectedIndexes);
+  const selectionId = selectionState?.activeSelection?.selectionId ?? null;
+  const selectionRegistrationStartAt = now();
+  if (handle.cubePointKernelSelectionId !== selectionId) {
+    disposeCubePointKernelIndexes(handle.cubePointKernelSelectionStoreId);
+    handle.cubePointKernelSelectionStoreId = selectionId
+      ? (registerCubePointKernelIndexes(selectedIndexes)?.storeId ?? null)
+      : null;
+    handle.cubePointKernelSelectionId = selectionId;
+  }
+  const selectionRegistrationMs = now() - selectionRegistrationStartAt;
+  const selectionProjectionStartAt = now();
+  const derivedProjection = buildDerivedSelectionProjectionFromKernel({
+    registeredStoreId: handle.cubePointKernelStoreId,
+    registeredIndexesId: handle.cubePointKernelSelectionStoreId,
+    bucketSize: quantizeBucketSize,
+    maxPoints: maxCubePointCount,
+  });
+  const selectionProjectionMs = now() - selectionProjectionStartAt;
+  const selectedSamplesStartAt = now();
+  const selectedSamples =
+    derivedProjection?.selectedSamples ??
+    materializeSelectedSamplesFromKernel({
+      registeredStoreId: handle.cubePointKernelStoreId,
+      registeredIndexesId: handle.cubePointKernelSelectionStoreId,
+    }) ??
+    materializeSamples(handle.store, selectedIndexes);
+  const selectedSamplesMs = now() - selectedSamplesStartAt;
   const selectionMs = now() - selectionStartAt;
 
   const metricsStartAt = now();
   const metricRows = replaceSelectionCoverageMetric({
     metricRows: handle.derivedBaseCache.metricRows,
     sampleCount: handle.store.count,
-    selectionCount: selectedIndexes.length,
+    selectionCount: derivedProjection?.selectedCount ?? selectedIndexes.length,
   });
   const metricsMs = now() - metricsStartAt;
 
   const cubePointsStartAt = now();
-  const selectionCubePoints = buildCubePointsFromStore(handle.store, selectedIndexes);
+  const selectionCubePoints =
+    derivedProjection?.selectionCubePoints ??
+    (() => {
+      const derivedSelection = buildDerivedSelectionKernelResult({
+        registeredStoreId: handle.cubePointKernelStoreId,
+        registeredIndexesId: handle.cubePointKernelSelectionStoreId,
+        bucketSize: quantizeBucketSize,
+        maxPoints: maxCubePointCount,
+      });
+      return derivedSelection
+        ? materializeCubePoints(derivedSelection)
+        : buildCubePointsFromStore(handle.store, selectedIndexes, handle.cubePointKernelStoreId);
+    })();
   const cubePointsMs = now() - cubePointsStartAt;
 
   return {
@@ -141,6 +195,9 @@ export const buildDerivedPhotoAnalysisFromHandle = ({
     timings: {
       totalMs: now() - startAt,
       selectionMs,
+      selectionRegistrationMs,
+      selectionProjectionMs,
+      selectedSamplesMs,
       metricsMs,
       luminanceHistogramMs: 0,
       hueHistogramMs: 0,

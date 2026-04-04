@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:wasm:cube-points": "node ./scripts/build-cube-point-wasm.mjs",
     "start": "next start",
     "test:e2e": "playwright test",
     "test:e2e:debug": "playwright test --debug",

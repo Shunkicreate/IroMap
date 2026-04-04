@@ -28,6 +28,10 @@ jobs:
             pnpm-lock.yaml
             web/pnpm-lock.yaml
 
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
       - name: Install root dependencies
         run: pnpm install --frozen-lockfile
 
@@ -37,6 +41,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
         working-directory: web
+
+      - name: Build cube-point WASM artifact
+        run: pnpm run build:wasm:cube-points
+        working-directory: web
+
+      - name: Verify generated WASM artifact is committed
+        run: git diff --exit-code -- web/src/domain/photo-analysis/cube-point-kernel/generated/cube-point-kernel-wasm-bytes.ts
 
       - name: Lint
         run: pnpm run lint
