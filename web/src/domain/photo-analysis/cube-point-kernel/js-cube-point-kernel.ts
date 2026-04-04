@@ -3,6 +3,12 @@ import type {
   CubePointKernelResult,
 } from "@/domain/photo-analysis/cube-point-kernel/cube-point-kernel-types";
 
+type JsCubePointKernelInput = CubePointKernelInput & {
+  r: Uint8Array;
+  g: Uint8Array;
+  b: Uint8Array;
+};
+
 const normalizeComponent = (value: number, bucketSize: number): number =>
   Math.floor(value / bucketSize) * bucketSize;
 
@@ -13,7 +19,7 @@ export const buildCubePointKernelResultWithJs = ({
   indexes,
   bucketSize,
   maxPoints,
-}: CubePointKernelInput): CubePointKernelResult => {
+}: JsCubePointKernelInput): CubePointKernelResult => {
   const bucketCounts = new Map<string, number>();
   const targetIndexes = indexes ?? Array.from({ length: r.length }, (_, index) => index);
   const total = targetIndexes.length;

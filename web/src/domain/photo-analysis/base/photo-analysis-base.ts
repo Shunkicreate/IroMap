@@ -5,6 +5,7 @@ import {
 } from "@/domain/photo-analysis/base/photo-analysis-base-store";
 import {
   buildCubePointKernelResult,
+  registerCubePointKernelStore,
   materializeCubePoints,
 } from "@/domain/photo-analysis/cube-point-kernel/cube-point-kernel";
 import {
@@ -181,13 +182,15 @@ const buildRgbCubePointsCore = (samples: PhotoSample[], maxPoints: number): RgbC
 
 export const buildCubePointsFromStore = (
   store: PhotoSampleBufferStore,
-  indexes?: readonly number[]
+  indexes?: readonly number[],
+  registeredStoreId?: number | null
 ): RgbCubePoint[] => {
   return materializeCubePoints(
     buildCubePointKernelResult({
-      r: store.r,
-      g: store.g,
-      b: store.b,
+      r: registeredStoreId ? undefined : store.r,
+      g: registeredStoreId ? undefined : store.g,
+      b: registeredStoreId ? undefined : store.b,
+      registeredStoreId,
       indexes,
       bucketSize: quantizeBucketSize,
       maxPoints: maxCubePointCount,
@@ -287,6 +290,11 @@ export const createPhotoAnalysisHandle = ({
   const samplingStartAt = now();
   const store = samplePixelsToStore(imageData, step, maxSampleCount);
   const samplingMs = now() - samplingStartAt;
+  const cubePointKernelStore = registerCubePointKernelStore({
+    r: store.r,
+    g: store.g,
+    b: store.b,
+  });
 
   const histogramStartAt = now();
   const hueHistogram = buildHistogramBinsFromStore(store, "hue").map((bin) => ({
@@ -306,7 +314,7 @@ export const createPhotoAnalysisHandle = ({
   const colorAreasMs = now() - colorAreasStartAt;
 
   const cubePointsStartAt = now();
-  const cubePoints = buildCubePointsFromStore(store);
+  const cubePoints = buildCubePointsFromStore(store, undefined, cubePointKernelStore?.storeId);
   const cubePointsMs = now() - cubePointsStartAt;
 
   const samples = materializeSamples(store);
@@ -333,6 +341,7 @@ export const createPhotoAnalysisHandle = ({
     store,
     fullSummary: null,
     derivedBaseCache: null,
+    cubePointKernelStoreId: cubePointKernelStore?.storeId ?? null,
   };
 };
 

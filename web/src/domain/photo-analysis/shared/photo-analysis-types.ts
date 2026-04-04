@@ -200,4 +200,5 @@ export type PhotoAnalysisHandle = {
   store: PhotoSampleBufferStore;
   fullSummary: MetricSummary | null;
   derivedBaseCache: DerivedBaseCache | null;
+  cubePointKernelStoreId: number | null;
 };

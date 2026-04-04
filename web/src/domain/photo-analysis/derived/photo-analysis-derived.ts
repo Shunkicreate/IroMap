@@ -128,7 +128,11 @@ export const buildDerivedPhotoAnalysisFromHandle = ({
   const metricsMs = now() - metricsStartAt;
 
   const cubePointsStartAt = now();
-  const selectionCubePoints = buildCubePointsFromStore(handle.store, selectedIndexes);
+  const selectionCubePoints = buildCubePointsFromStore(
+    handle.store,
+    selectedIndexes,
+    handle.cubePointKernelStoreId
+  );
   const cubePointsMs = now() - cubePointsStartAt;
 
   return {
