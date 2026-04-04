@@ -94,12 +94,13 @@ fn build_ranked_buckets(
     b: &[u8],
     indexes_ptr: *const u32,
     indexes_len: usize,
+    use_full_store: bool,
     bucket_size: u8,
 ) -> Vec<BucketRank> {
     let mut buckets = vec![0u32; 4096];
     let bucket_size_u32 = bucket_size as u32;
 
-    if indexes_len == 0 {
+    if use_full_store {
         for index in 0..r.len() {
             let bucket_r = (r[index] as u32 / bucket_size_u32).min(15);
             let bucket_g = (g[index] as u32 / bucket_size_u32).min(15);
@@ -169,6 +170,7 @@ pub extern "C" fn build_cube_points(
     color_len: usize,
     indexes_ptr: *const u32,
     indexes_len: usize,
+    use_full_store: u8,
     bucket_size: u8,
     max_points: usize,
     out_colors_ptr: *mut u8,
@@ -178,8 +180,9 @@ pub extern "C" fn build_cube_points(
     let r = unsafe { slice::from_raw_parts(r_ptr, color_len) };
     let g = unsafe { slice::from_raw_parts(g_ptr, color_len) };
     let b = unsafe { slice::from_raw_parts(b_ptr, color_len) };
-    let ranked = build_ranked_buckets(r, g, b, indexes_ptr, indexes_len, bucket_size);
-    let total_count = if indexes_len == 0 { color_len } else { indexes_len };
+    let use_full_store = use_full_store != 0;
+    let ranked = build_ranked_buckets(r, g, b, indexes_ptr, indexes_len, use_full_store, bucket_size);
+    let total_count = if use_full_store { color_len } else { indexes_len };
     write_output(
         ranked,
         bucket_size,
@@ -196,6 +199,7 @@ pub extern "C" fn build_cube_points_from_store(
     store_id: u32,
     indexes_ptr: *const u32,
     indexes_len: usize,
+    use_full_store: u8,
     bucket_size: u8,
     max_points: usize,
     out_colors_ptr: *mut u8,
@@ -212,15 +216,17 @@ pub extern "C" fn build_cube_points_from_store(
         return 0;
     };
 
+    let use_full_store = use_full_store != 0;
     let ranked = build_ranked_buckets(
         &store.r,
         &store.g,
         &store.b,
         indexes_ptr,
         indexes_len,
+        use_full_store,
         bucket_size,
     );
-    let total_count = if indexes_len == 0 {
+    let total_count = if use_full_store {
         store.r.len()
     } else {
         indexes_len
@@ -277,6 +283,7 @@ pub extern "C" fn build_derived_selection(
         &store.b,
         indexes.as_ptr(),
         indexes.len(),
+        false,
         bucket_size,
     );
     unsafe {

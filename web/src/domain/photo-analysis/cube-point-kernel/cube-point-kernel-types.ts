@@ -4,6 +4,7 @@ export type CubePointKernelInput = {
   b?: Uint8Array;
   registeredStoreId?: number | null;
   indexes?: readonly number[];
+  isFullStore?: boolean;
   bucketSize: number;
   maxPoints: number;
 };

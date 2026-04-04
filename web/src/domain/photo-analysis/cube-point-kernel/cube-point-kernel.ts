@@ -30,6 +30,7 @@ type CubePointKernelWasmExports = WebAssembly.Exports & {
     colorLen: number,
     indexesPtr: number,
     indexesLen: number,
+    useFullStore: number,
     bucketSize: number,
     maxPoints: number,
     outColorsPtr: number,
@@ -40,6 +41,7 @@ type CubePointKernelWasmExports = WebAssembly.Exports & {
     storeId: number,
     indexesPtr: number,
     indexesLen: number,
+    useFullStore: number,
     bucketSize: number,
     maxPoints: number,
     outColorsPtr: number,
@@ -155,11 +157,20 @@ const readResult = ({
   length,
 });
 
-const createIndexes = (input: CubePointKernelInput): Uint32Array | null => {
-  if (!input.indexes || input.indexes.length === 0) {
-    return null;
+const createIndexes = (
+  input: CubePointKernelInput
+): { indexes: Uint32Array | null; isFullStore: boolean } => {
+  const isFullStore = input.isFullStore ?? input.indexes === undefined;
+  if (input.indexes === undefined) {
+    return {
+      indexes: null,
+      isFullStore,
+    };
   }
-  return Uint32Array.from(input.indexes);
+  return {
+    indexes: Uint32Array.from(input.indexes),
+    isFullStore,
+  };
 };
 
 const emptyKernelResult = (): CubePointKernelResult => ({
@@ -317,7 +328,7 @@ const buildCubePointKernelResultWithWasm = (input: CubePointKernelInput): CubePo
 
   try {
     const exports = getWasmExports();
-    const indexes = createIndexes(input);
+    const { indexes, isFullStore } = createIndexes(input);
     const outColorsPtr = exports.alloc(input.maxPoints * 3);
     const outCountsPtr = exports.alloc(input.maxPoints * Uint32Array.BYTES_PER_ELEMENT);
     const outRatiosPtr = exports.alloc(input.maxPoints * Float32Array.BYTES_PER_ELEMENT);
@@ -325,11 +336,12 @@ const buildCubePointKernelResultWithWasm = (input: CubePointKernelInput): CubePo
     let length = 0;
 
     if (input.registeredStoreId) {
-      const indexesPtr = indexes ? writeU32(exports, indexes) : 0;
+      const indexesPtr = indexes && indexes.length > 0 ? writeU32(exports, indexes) : 0;
       length = exports.buildCubePointsFromStoreExport(
         input.registeredStoreId,
         indexesPtr,
         indexes?.length ?? 0,
+        isFullStore ? 1 : 0,
         input.bucketSize,
         input.maxPoints,
         outColorsPtr,
@@ -346,7 +358,7 @@ const buildCubePointKernelResultWithWasm = (input: CubePointKernelInput): CubePo
       const rPtr = writeBytes(exports, input.r);
       const gPtr = writeBytes(exports, input.g);
       const bPtr = writeBytes(exports, input.b);
-      const indexesPtr = indexes ? writeU32(exports, indexes) : 0;
+      const indexesPtr = indexes && indexes.length > 0 ? writeU32(exports, indexes) : 0;
 
       length = exports.buildCubePointsExport(
         rPtr,
@@ -355,6 +367,7 @@ const buildCubePointKernelResultWithWasm = (input: CubePointKernelInput): CubePo
         input.r.length,
         indexesPtr,
         indexes?.length ?? 0,
+        isFullStore ? 1 : 0,
         input.bucketSize,
         input.maxPoints,
         outColorsPtr,

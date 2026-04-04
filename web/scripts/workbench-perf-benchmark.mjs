@@ -56,6 +56,98 @@ const readPerfEntries = async (page) => {
   return page.evaluate(() => window.__IROMAP_PERF__?.entries ?? []);
 };
 
+const clearPerfEntries = async (page) => {
+  await page.evaluate(() => {
+    window.__IROMAP_PERF__ = { entries: [] };
+  });
+};
+
+const waitForPerfEntry = async (page, name, selectionSource) => {
+  await page.waitForFunction(
+    ({ targetName, targetSelectionSource }) =>
+      (window.__IROMAP_PERF__?.entries ?? []).some(
+        (entry) =>
+          entry.name === targetName &&
+          (targetSelectionSource == null ||
+            (entry.detail?.selectionSource ?? "none") === targetSelectionSource)
+      ),
+    { targetName: name, targetSelectionSource: selectionSource },
+    { timeout: 30000 }
+  );
+};
+
+const waitForPerfEntryCount = async (page, name, count = 1) => {
+  await page.waitForFunction(
+    ({ targetName, targetCount }) =>
+      (window.__IROMAP_PERF__?.entries ?? []).filter((entry) => entry.name === targetName).length >=
+      targetCount,
+    { targetName: name, targetCount: count },
+    { timeout: 30000 }
+  );
+};
+
+const findPerfEntry = (entries, name, selectionSource) => {
+  return entries.find(
+    (entry) =>
+      entry.name === name &&
+      (selectionSource == null || (entry.detail?.selectionSource ?? "none") === selectionSource)
+  );
+};
+
+const getPreviewImage = (page) => {
+  const previewPanel = page.locator("section.panel", {
+    has: page.getByRole("heading", { name: "選択画像" }),
+  });
+  return previewPanel.locator("img").first();
+};
+
+const getPreviewStage = (page) => {
+  const previewPanel = page.locator("section.panel", {
+    has: page.getByRole("heading", { name: "選択画像" }),
+  });
+  return previewPanel.locator('[class*="imageStage"]').first();
+};
+
+const runPreviewPointSelection = async (page) => {
+  const previewImage = getPreviewImage(page);
+  await previewImage.waitFor({ state: "visible" });
+  const box = await previewImage.boundingBox();
+  if (!box) {
+    throw new Error("Missing preview image bounds");
+  }
+  await previewImage.click({
+    position: {
+      x: box.width * 0.3,
+      y: box.height * 0.3,
+    },
+  });
+};
+
+const runPreviewRectangleSelection = async (page) => {
+  const previewStage = getPreviewStage(page);
+  await previewStage.waitFor({ state: "visible" });
+  await previewStage.evaluate(async (element) => {
+    const bounds = element.getBoundingClientRect();
+    const startX = bounds.left + bounds.width * 0.2;
+    const startY = bounds.top + bounds.height * 0.2;
+    const endX = bounds.left + bounds.width * 0.6;
+    const endY = bounds.top + bounds.height * 0.6;
+    const init = (clientX, clientY) => ({
+      bubbles: true,
+      pointerId: 1,
+      pointerType: "mouse",
+      clientX,
+      clientY,
+    });
+
+    element.dispatchEvent(new PointerEvent("pointerdown", init(startX, startY)));
+    await new Promise((resolve) => requestAnimationFrame(() => resolve()));
+    element.dispatchEvent(new PointerEvent("pointermove", init(endX, endY)));
+    await new Promise((resolve) => requestAnimationFrame(() => resolve()));
+    element.dispatchEvent(new PointerEvent("pointerup", init(endX, endY)));
+  });
+};
+
 const summarize = (values) => {
   const sorted = [...values].sort((left, right) => left - right);
   const total = values.reduce((sum, value) => sum + value, 0);
@@ -86,7 +178,11 @@ const printTable = (rows) => {
       sampledPixels: row.sampledPixels.toLocaleString("en-US"),
       derivedAvgMs: row.derivedTotalMs.avg.toFixed(1),
       derivedMedianMs: row.derivedTotalMs.median.toFixed(1),
+      pointDerivedAvgMs: row.pointDerivedTotalMs.avg.toFixed(1),
+      rectDerivedAvgMs: row.rectDerivedTotalMs.avg.toFixed(1),
       metricsAvgMs: row.metricsMs.avg.toFixed(1),
+      pointCubePointsAvgMs: row.pointCubePointsMs.avg.toFixed(1),
+      rectCubePointsAvgMs: row.rectCubePointsMs.avg.toFixed(1),
       filePath: row.filePath,
     }))
   );
@@ -109,6 +205,12 @@ try {
       derivedTotalMs: [],
       derivedWorkerMs: [],
       metricsMs: [],
+      pointDerivedTotalMs: [],
+      pointSelectionMs: [],
+      pointCubePointsMs: [],
+      rectDerivedTotalMs: [],
+      rectSelectionMs: [],
+      rectCubePointsMs: [],
     };
 
     for (let index = 0; index < iterations; index += 1) {
@@ -116,9 +218,7 @@ try {
         await page.goto(appUrl);
       }
 
-      await page.evaluate(() => {
-        window.__IROMAP_PERF__ = { entries: [] };
-      });
+      await clearPerfEntries(page);
 
       await page.getByLabel("画像をアップロード").setInputFiles({
         name: `${size.name}.png`,
@@ -126,24 +226,12 @@ try {
         buffer,
       });
 
-      await page.waitForFunction(
-        () =>
-          (window.__IROMAP_PERF__?.entries ?? []).some(
-            (entry) => entry.name === "workbench.photo-analysis.total"
-          ),
-        { timeout: 30000 }
-      );
-      await page.waitForFunction(
-        () =>
-          (window.__IROMAP_PERF__?.entries ?? []).some(
-            (entry) => entry.name === "workbench.derived-analysis.total"
-          ),
-        { timeout: 30000 }
-      );
+      await waitForPerfEntry(page, "workbench.photo-analysis.total");
+      await waitForPerfEntry(page, "workbench.derived-analysis.total", "none");
 
       const entries = await readPerfEntries(page);
-      const photo = entries.find((entry) => entry.name === "workbench.photo-analysis.total");
-      const derived = entries.find((entry) => entry.name === "workbench.derived-analysis.total");
+      const photo = findPerfEntry(entries, "workbench.photo-analysis.total");
+      const derived = findPerfEntry(entries, "workbench.derived-analysis.total", "none");
 
       if (!photo || !derived) {
         throw new Error(`Missing perf entries for ${size.name} at iteration ${index + 1}`);
@@ -156,6 +244,38 @@ try {
       samples.derivedTotalMs.push(derived.durationMs);
       samples.derivedWorkerMs.push(Number(derived.detail?.totalMs ?? Number.NaN));
       samples.metricsMs.push(Number(derived.detail?.metricsMs ?? Number.NaN));
+
+      await clearPerfEntries(page);
+      await runPreviewPointSelection(page);
+      await waitForPerfEntryCount(page, "workbench.derived-analysis.total", 1);
+      const pointEntries = await readPerfEntries(page);
+      const pointDerived = pointEntries
+        .filter((entry) => entry.name === "workbench.derived-analysis.total")
+        .at(-1);
+      if (!pointDerived) {
+        throw new Error(
+          `Missing point selection perf entry for ${size.name} at iteration ${index + 1}`
+        );
+      }
+      samples.pointDerivedTotalMs.push(pointDerived.durationMs);
+      samples.pointSelectionMs.push(Number(pointDerived.detail?.selectionMs ?? Number.NaN));
+      samples.pointCubePointsMs.push(Number(pointDerived.detail?.cubePointsMs ?? Number.NaN));
+
+      await clearPerfEntries(page);
+      await runPreviewRectangleSelection(page);
+      await waitForPerfEntryCount(page, "workbench.derived-analysis.total", 1);
+      const rectEntries = await readPerfEntries(page);
+      const rectDerived = rectEntries
+        .filter((entry) => entry.name === "workbench.derived-analysis.total")
+        .at(-1);
+      if (!rectDerived) {
+        throw new Error(
+          `Missing rectangle selection perf entry for ${size.name} at iteration ${index + 1}`
+        );
+      }
+      samples.rectDerivedTotalMs.push(rectDerived.durationMs);
+      samples.rectSelectionMs.push(Number(rectDerived.detail?.selectionMs ?? Number.NaN));
+      samples.rectCubePointsMs.push(Number(rectDerived.detail?.cubePointsMs ?? Number.NaN));
     }
 
     results.push({
@@ -171,11 +291,17 @@ try {
       derivedTotalMs: summarize(samples.derivedTotalMs),
       derivedWorkerMs: summarize(samples.derivedWorkerMs),
       metricsMs: summarize(samples.metricsMs),
+      pointDerivedTotalMs: summarize(samples.pointDerivedTotalMs),
+      pointSelectionMs: summarize(samples.pointSelectionMs),
+      pointCubePointsMs: summarize(samples.pointCubePointsMs),
+      rectDerivedTotalMs: summarize(samples.rectDerivedTotalMs),
+      rectSelectionMs: summarize(samples.rectSelectionMs),
+      rectCubePointsMs: summarize(samples.rectCubePointsMs),
       filePath,
     });
 
     console.log(
-      `[perf] completed ${size.name} (${iterations} runs) avg photo=${results.at(-1).photoTotalMs.avg.toFixed(1)}ms avg derived=${results.at(-1).derivedTotalMs.avg.toFixed(1)}ms`
+      `[perf] completed ${size.name} (${iterations} runs) avg photo=${results.at(-1).photoTotalMs.avg.toFixed(1)}ms avg derived=${results.at(-1).derivedTotalMs.avg.toFixed(1)}ms avg point=${results.at(-1).pointDerivedTotalMs.avg.toFixed(1)}ms avg rect=${results.at(-1).rectDerivedTotalMs.avg.toFixed(1)}ms`
     );
   }
 
