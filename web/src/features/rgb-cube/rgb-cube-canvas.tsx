@@ -24,6 +24,7 @@ import {
 } from "@/features/rgb-cube/rgb-cube-core";
 import { findNearestCubeHoverColorInWorker } from "@/features/workbench/hover-search-client";
 import { findNearestProjectedHoverColor } from "@/features/workbench/hover-search";
+import { useSharedHoverState } from "@/features/workbench/shared-hover-store";
 import { useLatestHoverPipeline } from "@/features/workbench/use-latest-hover-pipeline";
 
 type Props = {
@@ -38,7 +39,6 @@ type Props = {
   selectionCubePoints?: RgbCubePoint[];
   isimageMappingVisible?: boolean;
   isselectionMappingVisible?: boolean;
-  hoverColor?: RgbColor | null;
   selectedColor?: RgbColor | null;
   overlayMode: "grid" | "image" | "both";
   onRotationChange: (rotation: Rotation) => void;
@@ -117,7 +117,6 @@ export function RgbCubeCanvas({
   selectionCubePoints = [],
   isimageMappingVisible = true,
   isselectionMappingVisible = true,
-  hoverColor = null,
   selectedColor = null,
   overlayMode,
   onRotationChange,
@@ -140,6 +139,7 @@ export function RgbCubeCanvas({
   const [isDragging, setIsDragging] = useState(false);
   const [isPointerInside, setIsPointerInside] = useState(false);
   const [displayRotation, setDisplayRotation] = useState(rotation);
+  const sharedHoverColor = useSharedHoverState((state) => state.sample?.color ?? null);
   const normalizedCubeSize =
     Math.round(Math.min(maxCubeSize, Math.max(minCubeSize, cubeSize)) / cubeSizeStep) *
     cubeSizeStep;
@@ -165,7 +165,7 @@ export function RgbCubeCanvas({
 
   const hasGridOverlay = overlayMode === "grid" || overlayMode === "both";
   const hasImageOverlay = overlayMode === "image" || overlayMode === "both";
-  const displayHoverColor = isPointerInside || isDragging ? localHoverColor : hoverColor;
+  const displayHoverColor = isPointerInside || isDragging ? localHoverColor : sharedHoverColor;
   const activeRotation = isDragging ? displayRotation : rotation;
   const hoverPipeline = useLatestHoverPipeline<
     { x: number; y: number; width: number; height: number },

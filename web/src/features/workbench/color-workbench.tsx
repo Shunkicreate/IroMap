@@ -59,6 +59,7 @@ import {
   resolveHoverColorToSampleInWorker,
   unregisterHoverSearchAnalysis,
 } from "@/features/workbench/hover-search-client";
+import { setSharedHoverState as setSharedHoverStateStore } from "@/features/workbench/shared-hover-store";
 import { t } from "@/i18n/translate";
 
 const parseColorSpace3d = (rawValue: string): ColorSpace3d | null =>
@@ -126,14 +127,6 @@ type SharedHoverEvent =
       color: RgbColor | null;
     };
 
-const areSameHoverState = (left: HoverState, right: HoverState): boolean => {
-  return (
-    left.targetId === right.targetId &&
-    left.source === right.source &&
-    left.sample?.sampleId === right.sample?.sampleId
-  );
-};
-
 const areSameSharedHoverEvent = (
   left: SharedHoverEvent | null,
   right: SharedHoverEvent | null
@@ -172,11 +165,6 @@ export function ColorWorkbench() {
     Record<string, TargetSelectionState>
   >({
     baseline: { ...defaultSelectionState },
-  });
-  const [sharedHoverState, setSharedHoverState] = useState<HoverState>({
-    targetId: "baseline",
-    sample: null,
-    source: "preview",
   });
   const pendingSharedHoverRef = useRef<SharedHoverEvent | null>(null);
   const sharedHoverFrameRef = useRef<number | null>(null);
@@ -438,7 +426,6 @@ export function ColorWorkbench() {
   const baselineSaturationHistogram = derivedAnalysis.saturationHistogram;
 
   const selectionCubePoints = derivedAnalysis.selectionCubePoints;
-  const hoverColor = sharedHoverState.sample?.color ?? null;
 
   const selectedSample = useMemo(() => {
     if (!baselineTarget.result || !selectedColor) {
@@ -534,13 +521,10 @@ export function ColorWorkbench() {
       window.cancelAnimationFrame(sharedHoverFrameRef.current);
       sharedHoverFrameRef.current = null;
     }
-    setSharedHoverState((current) => {
-      const nextState: HoverState = {
-        targetId: baselineTarget.targetId,
-        sample: null,
-        source,
-      };
-      return areSameHoverState(current, nextState) ? current : nextState;
+    setSharedHoverStateStore({
+      targetId: baselineTarget.targetId,
+      sample: null,
+      source,
     });
   };
 
@@ -572,9 +556,7 @@ export function ColorWorkbench() {
         sample: nextHoverEvent.sample,
         source: nextHoverEvent.source,
       };
-      setSharedHoverState((current) => {
-        return areSameHoverState(current, nextHover) ? current : nextHover;
-      });
+      setSharedHoverStateStore(nextHover);
       return;
     }
 
@@ -587,9 +569,7 @@ export function ColorWorkbench() {
         sample,
         source: nextHoverEvent.source,
       };
-      setSharedHoverState((current) => {
-        return areSameHoverState(current, nextHover) ? current : nextHover;
-      });
+      setSharedHoverStateStore(nextHover);
     };
 
     if (!baselineTarget.analysisId) {
@@ -697,7 +677,7 @@ export function ColorWorkbench() {
       window.cancelAnimationFrame(sharedHoverFrameRef.current);
       sharedHoverFrameRef.current = null;
     }
-    setSharedHoverState({ targetId: "baseline", sample: null, source: "preview" });
+    setSharedHoverStateStore({ targetId: "baseline", sample: null, source: "preview" });
   };
 
   const getClipboardImageFile = (clipboardData: DataTransfer | null | undefined): File | null => {
@@ -858,7 +838,6 @@ export function ColorWorkbench() {
         <div className="workbenchPreviewRegion">
           <WorkbenchPreviewPanel
             target={baselineTarget}
-            hoverSample={sharedHoverState.sample}
             selectedSamples={selectedSamples}
             selectionState={baselineSelectionState}
             selectionDraft={selectionDraft}
@@ -1008,7 +987,6 @@ export function ColorWorkbench() {
               selectionCubePoints={selectionCubePoints}
               isimageMappingVisible={isCubeImageMappingVisible}
               isselectionMappingVisible={isCubeSelectionMappingVisible}
-              hoverColor={hoverColor}
               selectedColor={selectedColor}
               overlayMode={cubeOverlayMode}
               onRotationChange={setRotation}
@@ -1029,7 +1007,6 @@ export function ColorWorkbench() {
             selectedSamples={selectedSamples}
             ismappedSamplesVisible={isSliceImageMappingVisible}
             isselectedSamplesVisible={isSliceSelectionMappingVisible}
-            hoverColor={hoverColor}
             onAxisChange={handleSliceAxisChange}
             onValueChange={setSliceValue}
             onHoverColorChange={(color) => handleColorHover(color, "slice")}
@@ -1058,7 +1035,6 @@ export function ColorWorkbench() {
       />
 
       <ColorInspector
-        hoverColor={hoverColor}
         selectedColor={selectedColor}
         contentStorageKey={storageKeys.inspectorPanel}
         onColorPasted={(color) => {

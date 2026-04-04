@@ -24,6 +24,7 @@ import type { PhotoSample } from "@/domain/photo-analysis/photo-analysis";
 import controlStyles from "@/features/workbench/workbench-controls.module.css";
 import { findNearestSliceHoverColorInWorker } from "@/features/workbench/hover-search-client";
 import { findNearestMappedHoverColor } from "@/features/workbench/hover-search";
+import { useSharedHoverState } from "@/features/workbench/shared-hover-store";
 import { useLatestHoverPipeline } from "@/features/workbench/use-latest-hover-pipeline";
 
 type Props = {
@@ -36,7 +37,6 @@ type Props = {
   selectedSamples?: PhotoSample[];
   ismappedSamplesVisible?: boolean;
   isselectedSamplesVisible?: boolean;
-  hoverColor?: RgbColor | null;
   onAxisChange: (axis: SliceAxis) => void;
   onValueChange: (value: number) => void;
   onHoverColorChange: (color: RgbColor | null) => void;
@@ -375,7 +375,6 @@ export function SliceCanvas({
   selectedSamples = [],
   ismappedSamplesVisible = true,
   isselectedSamplesVisible = true,
-  hoverColor = null,
   onAxisChange,
   onValueChange,
   onHoverColorChange,
@@ -388,6 +387,7 @@ export function SliceCanvas({
   const cursorCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [localHoverColor, setLocalHoverColor] = useState<RgbColor | null>(null);
   const [isPointerInside, setIsPointerInside] = useState(false);
+  const sharedHoverColor = useSharedHoverState((state) => state.sample?.color ?? null);
   const labels = getPlaneLabels(axis);
   const axisRange = useMemo(() => getAxisRange(axis), [axis]);
   const projectedMappedSamples = useMemo(
@@ -398,7 +398,7 @@ export function SliceCanvas({
       }),
     [axis, mappedSamples, value]
   );
-  const displayHoverColor = isPointerInside ? localHoverColor : hoverColor;
+  const displayHoverColor = isPointerInside ? localHoverColor : sharedHoverColor;
   const sharedHoverPipeline = useLatestHoverPipeline<RgbColor | null, RgbColor | null>({
     isEqual: areSameColor,
     onResolved: (nextHoverColor) => {

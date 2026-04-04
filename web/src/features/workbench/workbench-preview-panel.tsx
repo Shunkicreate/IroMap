@@ -15,11 +15,11 @@ import {
 } from "@/features/workbench/workbench-shared";
 import { findNearestPreviewSampleInWorker } from "@/features/workbench/hover-search-client";
 import { findNearestPreviewHoverSample } from "@/features/workbench/hover-search";
+import { useSharedHoverState } from "@/features/workbench/shared-hover-store";
 import { useLatestHoverPipeline } from "@/features/workbench/use-latest-hover-pipeline";
 
 type Props = {
   target: WorkbenchTarget;
-  hoverSample: PhotoSample | null;
   selectedSamples: PhotoSample[];
   selectionState: TargetSelectionState;
   selectionDraft: SelectionDraft;
@@ -40,7 +40,6 @@ const areSameSample = (
 
 export function WorkbenchPreviewPanel({
   target,
-  hoverSample,
   selectedSamples,
   selectionState,
   selectionDraft,
@@ -57,6 +56,7 @@ export function WorkbenchPreviewPanel({
   const imageRef = useRef<HTMLImageElement | null>(null);
   const [localHoverSample, setLocalHoverSample] = useState<PhotoSample | null>(null);
   const [isPointerInside, setIsPointerInside] = useState(false);
+  const sharedHoverSample = useSharedHoverState((state) => state.sample);
 
   const getPreviewBounds = (): DOMRect | null => {
     if (imageRef.current) {
@@ -146,7 +146,7 @@ export function WorkbenchPreviewPanel({
     });
   };
 
-  const displayedHoverSample = isPointerInside ? localHoverSample : hoverSample;
+  const displayedHoverSample = isPointerInside ? localHoverSample : sharedHoverSample;
 
   const commitDraft = (
     event: React.PointerEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement>

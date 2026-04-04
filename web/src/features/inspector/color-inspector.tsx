@@ -10,9 +10,9 @@ import { hslToRgb } from "@/domain/color/color-conversion";
 import { formatHsl, formatRgb, rgbToHex } from "@/domain/color/color-format";
 import { toHueDegree, toPercentage, toRgbColor, type RgbColor } from "@/domain/color/color-types";
 import { t } from "@/i18n/translate";
+import { useSharedHoverState } from "@/features/workbench/shared-hover-store";
 
 type Props = {
-  hoverColor: RgbColor | null;
   selectedColor: RgbColor | null;
   contentStorageKey: string;
   onColorPasted?: (color: RgbColor) => void;
@@ -80,13 +80,13 @@ const renderSwatch = (color: RgbColor | null) => {
 };
 
 export function ColorInspector({
-  hoverColor,
   selectedColor,
   contentStorageKey,
   onColorPasted,
   onStatusChange,
 }: Props) {
   const [message, setMessage] = useState<string>("");
+  const hoverColor = useSharedHoverState((state) => state.sample?.color ?? null);
   const selectedFormats = useMemo(() => {
     if (!selectedColor) {
       return [
