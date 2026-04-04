@@ -346,6 +346,7 @@ export function ColorWorkbench() {
         selectedSamples: nextDerived.selectedSamples.length,
         metricsMs: nextDerived.timings.metricsMs,
         selectionMs: nextDerived.timings.selectionMs,
+        selectedSamplesMs: nextDerived.timings.selectedSamplesMs,
         cubePointsMs: nextDerived.timings.cubePointsMs,
         totalMs: nextDerived.timings.totalMs,
       });

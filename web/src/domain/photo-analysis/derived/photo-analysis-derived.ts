@@ -67,6 +67,7 @@ export const buildDerivedPhotoAnalysis = ({
   const selectionStartAt = now();
   const selectedSamples = getSelectedSamples(result, selectionState);
   const selectionMs = now() - selectionStartAt;
+  const selectedSamplesMs = selectionMs;
 
   const metricsStartAt = now();
   const baseCache = buildDerivedBaseCache({ result });
@@ -91,6 +92,7 @@ export const buildDerivedPhotoAnalysis = ({
     timings: {
       totalMs: now() - startAt,
       selectionMs,
+      selectedSamplesMs,
       metricsMs,
       luminanceHistogramMs: 0,
       hueHistogramMs: 0,
@@ -135,11 +137,13 @@ export const buildDerivedPhotoAnalysisFromHandle = ({
       : null;
     handle.cubePointKernelSelectionId = selectionId;
   }
+  const selectedSamplesStartAt = now();
   const selectedSamples =
     materializeSelectedSamplesFromKernel({
       registeredStoreId: handle.cubePointKernelStoreId,
       registeredIndexesId: handle.cubePointKernelSelectionStoreId,
     }) ?? materializeSamples(handle.store, selectedIndexes);
+  const selectedSamplesMs = now() - selectedSamplesStartAt;
   const selectionMs = now() - selectionStartAt;
 
   const metricsStartAt = now();
@@ -172,6 +176,7 @@ export const buildDerivedPhotoAnalysisFromHandle = ({
     timings: {
       totalMs: now() - startAt,
       selectionMs,
+      selectedSamplesMs,
       metricsMs,
       luminanceHistogramMs: 0,
       hueHistogramMs: 0,

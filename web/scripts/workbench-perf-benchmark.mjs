@@ -22,6 +22,7 @@ const sizes =
   selectedSizeNames.length > 0
     ? allSizes.filter((size) => selectedSizeNames.includes(size.name))
     : allSizes;
+const debugPerf = process.env.IROMAP_PERF_DEBUG === "1";
 
 const createGradientPng = async (width, height) => {
   const data = Buffer.alloc(width * height * 3);
@@ -91,6 +92,24 @@ const findPerfEntry = (entries, name, selectionSource) => {
     (entry) =>
       entry.name === name &&
       (selectionSource == null || (entry.detail?.selectionSource ?? "none") === selectionSource)
+  );
+};
+
+const debugEntries = (label, entries) => {
+  if (!debugPerf) {
+    return;
+  }
+  console.log(
+    `[perf:debug] ${label}`,
+    JSON.stringify(
+      entries.map((entry) => ({
+        name: entry.name,
+        selectionSource: entry.detail?.selectionSource ?? "none",
+        detail: entry.detail,
+      })),
+      null,
+      2
+    )
   );
 };
 
@@ -179,7 +198,9 @@ const printTable = (rows) => {
       derivedAvgMs: row.derivedTotalMs.avg.toFixed(1),
       derivedMedianMs: row.derivedTotalMs.median.toFixed(1),
       pointDerivedAvgMs: row.pointDerivedTotalMs.avg.toFixed(1),
+      pointSelectedSamplesAvgMs: row.pointSelectedSamplesMs.avg.toFixed(1),
       rectDerivedAvgMs: row.rectDerivedTotalMs.avg.toFixed(1),
+      rectSelectedSamplesAvgMs: row.rectSelectedSamplesMs.avg.toFixed(1),
       metricsAvgMs: row.metricsMs.avg.toFixed(1),
       pointCubePointsAvgMs: row.pointCubePointsMs.avg.toFixed(1),
       rectCubePointsAvgMs: row.rectCubePointsMs.avg.toFixed(1),
@@ -207,9 +228,11 @@ try {
       metricsMs: [],
       pointDerivedTotalMs: [],
       pointSelectionMs: [],
+      pointSelectedSamplesMs: [],
       pointCubePointsMs: [],
       rectDerivedTotalMs: [],
       rectSelectionMs: [],
+      rectSelectedSamplesMs: [],
       rectCubePointsMs: [],
     };
 
@@ -249,9 +272,10 @@ try {
       await runPreviewPointSelection(page);
       await waitForPerfEntryCount(page, "workbench.derived-analysis.total", 1);
       const pointEntries = await readPerfEntries(page);
-      const pointDerived = pointEntries
-        .filter((entry) => entry.name === "workbench.derived-analysis.total")
-        .at(-1);
+      debugEntries(`point:${size.name}:${index + 1}`, pointEntries);
+      const pointDerived =
+        findPerfEntry(pointEntries, "workbench.derived-analysis.total", "image-point") ??
+        pointEntries.filter((entry) => entry.name === "workbench.derived-analysis.total").at(-1);
       if (!pointDerived) {
         throw new Error(
           `Missing point selection perf entry for ${size.name} at iteration ${index + 1}`
@@ -259,15 +283,19 @@ try {
       }
       samples.pointDerivedTotalMs.push(pointDerived.durationMs);
       samples.pointSelectionMs.push(Number(pointDerived.detail?.selectionMs ?? Number.NaN));
+      samples.pointSelectedSamplesMs.push(
+        Number(pointDerived.detail?.selectedSamplesMs ?? Number.NaN)
+      );
       samples.pointCubePointsMs.push(Number(pointDerived.detail?.cubePointsMs ?? Number.NaN));
 
       await clearPerfEntries(page);
       await runPreviewRectangleSelection(page);
       await waitForPerfEntryCount(page, "workbench.derived-analysis.total", 1);
       const rectEntries = await readPerfEntries(page);
-      const rectDerived = rectEntries
-        .filter((entry) => entry.name === "workbench.derived-analysis.total")
-        .at(-1);
+      debugEntries(`rect:${size.name}:${index + 1}`, rectEntries);
+      const rectDerived =
+        findPerfEntry(rectEntries, "workbench.derived-analysis.total", "image-rect") ??
+        rectEntries.filter((entry) => entry.name === "workbench.derived-analysis.total").at(-1);
       if (!rectDerived) {
         throw new Error(
           `Missing rectangle selection perf entry for ${size.name} at iteration ${index + 1}`
@@ -275,6 +303,9 @@ try {
       }
       samples.rectDerivedTotalMs.push(rectDerived.durationMs);
       samples.rectSelectionMs.push(Number(rectDerived.detail?.selectionMs ?? Number.NaN));
+      samples.rectSelectedSamplesMs.push(
+        Number(rectDerived.detail?.selectedSamplesMs ?? Number.NaN)
+      );
       samples.rectCubePointsMs.push(Number(rectDerived.detail?.cubePointsMs ?? Number.NaN));
     }
 
@@ -293,9 +324,11 @@ try {
       metricsMs: summarize(samples.metricsMs),
       pointDerivedTotalMs: summarize(samples.pointDerivedTotalMs),
       pointSelectionMs: summarize(samples.pointSelectionMs),
+      pointSelectedSamplesMs: summarize(samples.pointSelectedSamplesMs),
       pointCubePointsMs: summarize(samples.pointCubePointsMs),
       rectDerivedTotalMs: summarize(samples.rectDerivedTotalMs),
       rectSelectionMs: summarize(samples.rectSelectionMs),
+      rectSelectedSamplesMs: summarize(samples.rectSelectedSamplesMs),
       rectCubePointsMs: summarize(samples.rectCubePointsMs),
       filePath,
     });
