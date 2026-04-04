@@ -22,8 +22,13 @@ import { t } from "@/i18n/translate";
 import { GraphFrame } from "@/components/graph/graph-frame";
 import type { PhotoSample } from "@/domain/photo-analysis/photo-analysis";
 import controlStyles from "@/features/workbench/workbench-controls.module.css";
+import { findNearestSliceHoverColorInWorker } from "@/features/workbench/hover-search-client";
+import { findNearestMappedHoverColor } from "@/features/workbench/hover-search";
+import { useSharedHoverState } from "@/features/workbench/shared-hover-store";
+import { useLatestHoverPipeline } from "@/features/workbench/use-latest-hover-pipeline";
 
 type Props = {
+  analysisId: string | null;
   space: ColorSpace3d;
   axis: SliceAxis;
   value: number;
@@ -32,7 +37,6 @@ type Props = {
   selectedSamples?: PhotoSample[];
   ismappedSamplesVisible?: boolean;
   isselectedSamplesVisible?: boolean;
-  hoverColor?: RgbColor | null;
   onAxisChange: (axis: SliceAxis) => void;
   onValueChange: (value: number) => void;
   onHoverColorChange: (color: RgbColor | null) => void;
@@ -47,6 +51,19 @@ const greenOffset = 1;
 const blueOffset = 2;
 const alphaOffset = 3;
 const mappedSampleHitRadius = 8;
+
+const areSameColor = (
+  left: RgbColor | null | undefined,
+  right: RgbColor | null | undefined
+): boolean => {
+  if (!left && !right) {
+    return true;
+  }
+  if (!left || !right) {
+    return false;
+  }
+  return left.r === right.r && left.g === right.g && left.b === right.b;
+};
 
 const toScaledValue = (value: number, max: number): number => {
   return Math.round((value / colorChannelMax) * max);
@@ -349,6 +366,7 @@ const projectSampleToSlice = (
 };
 
 export function SliceCanvas({
+  analysisId,
   space,
   axis,
   value,
@@ -357,7 +375,6 @@ export function SliceCanvas({
   selectedSamples = [],
   ismappedSamplesVisible = true,
   isselectedSamplesVisible = true,
-  hoverColor = null,
   onAxisChange,
   onValueChange,
   onHoverColorChange,
@@ -370,6 +387,7 @@ export function SliceCanvas({
   const cursorCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [localHoverColor, setLocalHoverColor] = useState<RgbColor | null>(null);
   const [isPointerInside, setIsPointerInside] = useState(false);
+  const sharedHoverColor = useSharedHoverState((state) => state.sample?.color ?? null);
   const labels = getPlaneLabels(axis);
   const axisRange = useMemo(() => getAxisRange(axis), [axis]);
   const projectedMappedSamples = useMemo(
@@ -380,7 +398,44 @@ export function SliceCanvas({
       }),
     [axis, mappedSamples, value]
   );
-  const displayHoverColor = isPointerInside ? localHoverColor : hoverColor;
+  const displayHoverColor = isPointerInside ? localHoverColor : sharedHoverColor;
+  const sharedHoverPipeline = useLatestHoverPipeline<RgbColor | null, RgbColor | null>({
+    debugLabel: "slice-shared-hover",
+    isEqual: areSameColor,
+    onResolved: (nextHoverColor) => {
+      onHoverColorChange(nextHoverColor);
+    },
+    resolve: (color) => color,
+  });
+  const hoverPipeline = useLatestHoverPipeline<{ x: number; y: number } | null, RgbColor | null>({
+    debugLabel: "slice-local-hover",
+    isEqual: areSameColor,
+    onResolved: (nextHoverColor) => {
+      setLocalHoverColor(nextHoverColor);
+      sharedHoverPipeline.schedule(nextHoverColor);
+    },
+    resolve: (point) => {
+      if (!point) {
+        return null;
+      }
+      if (analysisId) {
+        return findNearestSliceHoverColorInWorker({
+          analysisId,
+          axis,
+          value,
+          x: point.x,
+          y: point.y,
+          maxDistanceSquared: mappedSampleHitRadius ** 2,
+        });
+      }
+      return findNearestMappedHoverColor(
+        projectedMappedSamples,
+        point.x,
+        point.y,
+        mappedSampleHitRadius ** 2
+      );
+    },
+  });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -521,9 +576,9 @@ export function SliceCanvas({
     drawMarker(displayHoverColor, "#ffffff", 7);
   }, [axis, displayHoverColor]);
 
-  const mapPointerToColor = (
+  const mapPointerToCanvasPoint = (
     event: React.PointerEvent<HTMLCanvasElement> | React.MouseEvent<HTMLCanvasElement>
-  ): RgbColor | null => {
+  ): { x: number; y: number } | null => {
     const bounds = event.currentTarget.getBoundingClientRect();
     const x = Math.floor((event.clientX - bounds.left) * (colorChannelLevels / bounds.width));
     const y = Math.floor((event.clientY - bounds.top) * (colorChannelLevels / bounds.height));
@@ -532,30 +587,24 @@ export function SliceCanvas({
       return null;
     }
 
-    let nearestColor: RgbColor | null = null;
-    let nearestDistanceSquared = mappedSampleHitRadius ** 2;
-    for (const projected of projectedMappedSamples) {
-      const dx = projected.point.x - x;
-      const dy = projected.point.y - y;
-      const distanceSquared = dx * dx + dy * dy;
-      if (distanceSquared <= nearestDistanceSquared) {
-        nearestDistanceSquared = distanceSquared;
-        nearestColor = projected.sample.color;
-      }
-    }
-
-    return nearestColor;
+    return { x, y };
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>): void => {
-    const color = mapPointerToColor(event);
     setIsPointerInside(true);
-    setLocalHoverColor(color);
-    onHoverColorChange(color);
+    hoverPipeline.schedule(mapPointerToCanvasPoint(event));
   };
 
   const handleClick = (event: React.MouseEvent<HTMLCanvasElement>): void => {
-    const color = mapPointerToColor(event);
+    const point = mapPointerToCanvasPoint(event);
+    const color = point
+      ? findNearestMappedHoverColor(
+          projectedMappedSamples,
+          point.x,
+          point.y,
+          mappedSampleHitRadius ** 2
+        )
+      : null;
     if (color) {
       onColorSelect(color);
     }
@@ -652,8 +701,8 @@ export function SliceCanvas({
               onPointerMove={handlePointerMove}
               onPointerLeave={() => {
                 setIsPointerInside(false);
-                setLocalHoverColor(null);
-                onHoverColorChange(null);
+                hoverPipeline.clearNow(null);
+                sharedHoverPipeline.clearNow(null);
               }}
               onClick={handleClick}
             />
