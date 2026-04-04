@@ -291,9 +291,17 @@ export const createPhotoAnalysisHandle = ({
   const store = samplePixelsToStore(imageData, step, maxSampleCount);
   const samplingMs = now() - samplingStartAt;
   const cubePointKernelStore = registerCubePointKernelStore({
+    x: store.x,
+    y: store.y,
     r: store.r,
     g: store.g,
     b: store.b,
+    labL: store.labL,
+    labA: store.labA,
+    labB: store.labB,
+    hue: store.hue,
+    saturation: store.saturation,
+    lightness: store.lightness,
   });
 
   const histogramStartAt = now();

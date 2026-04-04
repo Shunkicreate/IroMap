@@ -1,5 +1,15 @@
-import { toRgbColor } from "@/domain/color/color-types";
-import type { RgbCubePoint } from "@/domain/photo-analysis/shared/photo-analysis-types";
+import { labToChroma } from "@/domain/color/color-conversion";
+import { toHueDegree, toPercentage, toRgbColor } from "@/domain/color/color-types";
+import {
+  unscaleHue,
+  unscaleLabComponent,
+  unscaleLightness,
+  unscaleSaturation,
+} from "@/domain/photo-analysis/shared/photo-analysis-color";
+import type {
+  PhotoSample,
+  RgbCubePoint,
+} from "@/domain/photo-analysis/shared/photo-analysis-types";
 import type {
   CubePointKernelDerivedResult,
   CubePointKernelInput,
@@ -19,7 +29,20 @@ type CubePointKernelWasmExports = WebAssembly.Exports & {
   memory: WebAssembly.Memory;
   alloc: (len: number) => number;
   dealloc: (ptr: number, len: number) => void;
-  registerStoreExport: (rPtr: number, gPtr: number, bPtr: number, colorLen: number) => number;
+  registerStoreExport: (
+    xPtr: number,
+    yPtr: number,
+    rPtr: number,
+    gPtr: number,
+    bPtr: number,
+    labLPtr: number,
+    labAPtr: number,
+    labBPtr: number,
+    huePtr: number,
+    saturationPtr: number,
+    lightnessPtr: number,
+    colorLen: number
+  ) => number;
   releaseStoreExport: (storeId: number) => void;
   registerIndexesExport: (indexesPtr: number, indexesLen: number) => number;
   releaseIndexesExport: (indexesId: number) => void;
@@ -58,9 +81,24 @@ type CubePointKernelWasmExports = WebAssembly.Exports & {
     outCountsPtr: number,
     outRatiosPtr: number
   ) => number;
+  materializeSelectedSamplesFromStoreExport: (
+    storeId: number,
+    indexesId: number,
+    outXPtr: number,
+    outYPtr: number,
+    outColorsPtr: number,
+    outLabLPtr: number,
+    outLabAPtr: number,
+    outLabBPtr: number,
+    outHuePtr: number,
+    outSaturationPtr: number,
+    outLightnessPtr: number
+  ) => number;
 };
 
 let wasmExports: CubePointKernelWasmExports | null = null;
+const selectionLengthRegistry = new Map<number, number>();
+const selectionIndexesRegistry = new Map<number, readonly number[]>();
 
 const getWasmExports = (): CubePointKernelWasmExports => {
   if (wasmExports) {
@@ -100,6 +138,9 @@ const getWasmExports = (): CubePointKernelWasmExports => {
   const buildDerivedSelectionExport = wasmNamedExports["build_derived_selection"] as
     | CubePointKernelWasmExports["buildDerivedSelectionExport"]
     | undefined;
+  const materializeSelectedSamplesFromStoreExport = wasmNamedExports[
+    "materialize_selected_samples_from_store"
+  ] as CubePointKernelWasmExports["materializeSelectedSamplesFromStoreExport"] | undefined;
   if (
     !registerStoreExport ||
     !releaseStoreExport ||
@@ -107,7 +148,8 @@ const getWasmExports = (): CubePointKernelWasmExports => {
     !releaseIndexesExport ||
     !buildCubePointsExport ||
     !buildCubePointsFromStoreExport ||
-    !buildDerivedSelectionExport
+    !buildDerivedSelectionExport ||
+    !materializeSelectedSamplesFromStoreExport
   ) {
     throw new Error("cube-point-kernel-export-missing");
   }
@@ -120,6 +162,7 @@ const getWasmExports = (): CubePointKernelWasmExports => {
     buildCubePointsExport,
     buildCubePointsFromStoreExport,
     buildDerivedSelectionExport,
+    materializeSelectedSamplesFromStoreExport,
   };
   return wasmExports;
 };
@@ -134,6 +177,20 @@ const writeBytes = (exports: CubePointKernelWasmExports, bytes: Uint8Array): num
 const writeU32 = (exports: CubePointKernelWasmExports, values: Uint32Array): number => {
   const ptr = exports.alloc(values.byteLength);
   const memory = new Uint32Array(exports.memory.buffer, ptr, values.length);
+  memory.set(values);
+  return ptr;
+};
+
+const writeU16 = (exports: CubePointKernelWasmExports, values: Uint16Array): number => {
+  const ptr = exports.alloc(values.byteLength);
+  const memory = new Uint16Array(exports.memory.buffer, ptr, values.length);
+  memory.set(values);
+  return ptr;
+};
+
+const writeI16 = (exports: CubePointKernelWasmExports, values: Int16Array): number => {
+  const ptr = exports.alloc(values.byteLength);
+  const memory = new Int16Array(exports.memory.buffer, ptr, values.length);
   memory.set(values);
   return ptr;
 };
@@ -181,13 +238,29 @@ const emptyKernelResult = (): CubePointKernelResult => ({
 });
 
 export const registerCubePointKernelStore = ({
+  x,
+  y,
   r,
   g,
   b,
+  labL,
+  labA,
+  labB,
+  hue,
+  saturation,
+  lightness,
 }: {
+  x: Uint16Array | Uint32Array;
+  y: Uint16Array | Uint32Array;
   r: Uint8Array;
   g: Uint8Array;
   b: Uint8Array;
+  labL: Uint16Array;
+  labA: Int16Array;
+  labB: Int16Array;
+  hue: Uint16Array;
+  saturation: Uint16Array;
+  lightness: Uint16Array;
 }): CubePointKernelStoreRegistration | null => {
   if (resolveCubePointKernelMode() !== "wasm" || !cubePointKernelWasmBase64) {
     return null;
@@ -195,13 +268,44 @@ export const registerCubePointKernelStore = ({
 
   try {
     const exports = getWasmExports();
+    const xValues = Uint32Array.from(x);
+    const yValues = Uint32Array.from(y);
+    const xPtr = writeU32(exports, xValues);
+    const yPtr = writeU32(exports, yValues);
     const rPtr = writeBytes(exports, r);
     const gPtr = writeBytes(exports, g);
     const bPtr = writeBytes(exports, b);
-    const storeId = exports.registerStoreExport(rPtr, gPtr, bPtr, r.length);
+    const labLPtr = writeU16(exports, labL);
+    const labAPtr = writeI16(exports, labA);
+    const labBPtr = writeI16(exports, labB);
+    const huePtr = writeU16(exports, hue);
+    const saturationPtr = writeU16(exports, saturation);
+    const lightnessPtr = writeU16(exports, lightness);
+    const storeId = exports.registerStoreExport(
+      xPtr,
+      yPtr,
+      rPtr,
+      gPtr,
+      bPtr,
+      labLPtr,
+      labAPtr,
+      labBPtr,
+      huePtr,
+      saturationPtr,
+      lightnessPtr,
+      r.length
+    );
+    exports.dealloc(xPtr, xValues.byteLength);
+    exports.dealloc(yPtr, yValues.byteLength);
     exports.dealloc(rPtr, r.byteLength);
     exports.dealloc(gPtr, g.byteLength);
     exports.dealloc(bPtr, b.byteLength);
+    exports.dealloc(labLPtr, labL.byteLength);
+    exports.dealloc(labAPtr, labA.byteLength);
+    exports.dealloc(labBPtr, labB.byteLength);
+    exports.dealloc(huePtr, hue.byteLength);
+    exports.dealloc(saturationPtr, saturation.byteLength);
+    exports.dealloc(lightnessPtr, lightness.byteLength);
     return storeId > 0 ? { storeId } : null;
   } catch {
     return null;
@@ -237,6 +341,10 @@ export const registerCubePointKernelIndexes = (
     const indexesPtr = writeU32(exports, typedIndexes);
     const storeId = exports.registerIndexesExport(indexesPtr, typedIndexes.length);
     exports.dealloc(indexesPtr, typedIndexes.byteLength);
+    if (storeId > 0) {
+      selectionLengthRegistry.set(storeId, typedIndexes.length);
+      selectionIndexesRegistry.set(storeId, [...indexes]);
+    }
     return storeId > 0 ? { storeId } : null;
   } catch {
     return null;
@@ -250,6 +358,8 @@ export const disposeCubePointKernelIndexes = (storeId: number | null | undefined
 
   try {
     getWasmExports().releaseIndexesExport(storeId);
+    selectionLengthRegistry.delete(storeId);
+    selectionIndexesRegistry.delete(storeId);
   } catch {
     // Ignore release failures and keep the worker functional.
   }
@@ -311,6 +421,108 @@ export const buildDerivedSelectionKernelResult = ({
       ...result,
       selectedCount,
     };
+  } catch {
+    return null;
+  }
+};
+
+export const materializeSelectedSamplesFromKernel = ({
+  registeredStoreId,
+  registeredIndexesId,
+}: {
+  registeredStoreId: number | null | undefined;
+  registeredIndexesId: number | null | undefined;
+}): PhotoSample[] | null => {
+  if (
+    !registeredStoreId ||
+    !registeredIndexesId ||
+    resolveCubePointKernelMode() !== "wasm" ||
+    !cubePointKernelWasmBase64
+  ) {
+    return null;
+  }
+
+  try {
+    const exports = getWasmExports();
+    const selectionLength = selectionLengthRegistry.get(registeredIndexesId) ?? 0;
+    const selectionIndexes = selectionIndexesRegistry.get(registeredIndexesId) ?? [];
+    if (selectionLength === 0) {
+      return [];
+    }
+
+    const outXPtr = exports.alloc(selectionLength * Uint32Array.BYTES_PER_ELEMENT);
+    const outYPtr = exports.alloc(selectionLength * Uint32Array.BYTES_PER_ELEMENT);
+    const outColorsPtr = exports.alloc(selectionLength * 3);
+    const outLabLPtr = exports.alloc(selectionLength * Uint16Array.BYTES_PER_ELEMENT);
+    const outLabAPtr = exports.alloc(selectionLength * Int16Array.BYTES_PER_ELEMENT);
+    const outLabBPtr = exports.alloc(selectionLength * Int16Array.BYTES_PER_ELEMENT);
+    const outHuePtr = exports.alloc(selectionLength * Uint16Array.BYTES_PER_ELEMENT);
+    const outSaturationPtr = exports.alloc(selectionLength * Uint16Array.BYTES_PER_ELEMENT);
+    const outLightnessPtr = exports.alloc(selectionLength * Uint16Array.BYTES_PER_ELEMENT);
+
+    const length = exports.materializeSelectedSamplesFromStoreExport(
+      registeredStoreId,
+      registeredIndexesId,
+      outXPtr,
+      outYPtr,
+      outColorsPtr,
+      outLabLPtr,
+      outLabAPtr,
+      outLabBPtr,
+      outHuePtr,
+      outSaturationPtr,
+      outLightnessPtr
+    );
+
+    const xs = new Uint32Array(exports.memory.buffer, outXPtr, length).slice();
+    const ys = new Uint32Array(exports.memory.buffer, outYPtr, length).slice();
+    const colors = new Uint8Array(exports.memory.buffer, outColorsPtr, length * 3).slice();
+    const labLValues = new Uint16Array(exports.memory.buffer, outLabLPtr, length).slice();
+    const labAValues = new Int16Array(exports.memory.buffer, outLabAPtr, length).slice();
+    const labBValues = new Int16Array(exports.memory.buffer, outLabBPtr, length).slice();
+    const hueValues = new Uint16Array(exports.memory.buffer, outHuePtr, length).slice();
+    const saturationValues = new Uint16Array(
+      exports.memory.buffer,
+      outSaturationPtr,
+      length
+    ).slice();
+    const lightnessValues = new Uint16Array(exports.memory.buffer, outLightnessPtr, length).slice();
+
+    exports.dealloc(outXPtr, selectionLength * Uint32Array.BYTES_PER_ELEMENT);
+    exports.dealloc(outYPtr, selectionLength * Uint32Array.BYTES_PER_ELEMENT);
+    exports.dealloc(outColorsPtr, selectionLength * 3);
+    exports.dealloc(outLabLPtr, selectionLength * Uint16Array.BYTES_PER_ELEMENT);
+    exports.dealloc(outLabAPtr, selectionLength * Int16Array.BYTES_PER_ELEMENT);
+    exports.dealloc(outLabBPtr, selectionLength * Int16Array.BYTES_PER_ELEMENT);
+    exports.dealloc(outHuePtr, selectionLength * Uint16Array.BYTES_PER_ELEMENT);
+    exports.dealloc(outSaturationPtr, selectionLength * Uint16Array.BYTES_PER_ELEMENT);
+    exports.dealloc(outLightnessPtr, selectionLength * Uint16Array.BYTES_PER_ELEMENT);
+
+    return Array.from({ length }, (_, index) => {
+      const colorOffset = index * 3;
+      const lab = {
+        l: unscaleLabComponent(labLValues[index] ?? 0),
+        a: unscaleLabComponent(labAValues[index] ?? 0),
+        b: unscaleLabComponent(labBValues[index] ?? 0),
+      };
+      return {
+        sampleId: selectionIndexes[index] ?? index,
+        x: xs[index] ?? 0,
+        y: ys[index] ?? 0,
+        color: toRgbColor(
+          colors[colorOffset] ?? 0,
+          colors[colorOffset + 1] ?? 0,
+          colors[colorOffset + 2] ?? 0
+        ),
+        hsl: {
+          h: toHueDegree(unscaleHue(hueValues[index] ?? 0)),
+          s: toPercentage(unscaleSaturation(saturationValues[index] ?? 0)),
+          l: toPercentage(unscaleLightness(lightnessValues[index] ?? 0)),
+        },
+        lab,
+        chroma: labToChroma(lab),
+      } satisfies PhotoSample;
+    });
   } catch {
     return null;
   }

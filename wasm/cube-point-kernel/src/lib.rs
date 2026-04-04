@@ -4,9 +4,17 @@ use std::slice;
 type BucketRank = (usize, u32);
 
 struct RegisteredStore {
+    x: Vec<u32>,
+    y: Vec<u32>,
     r: Vec<u8>,
     g: Vec<u8>,
     b: Vec<u8>,
+    lab_l: Vec<u16>,
+    lab_a: Vec<i16>,
+    lab_b: Vec<i16>,
+    hue: Vec<u16>,
+    saturation: Vec<u16>,
+    lightness: Vec<u16>,
 }
 
 static mut REGISTERED_STORES: Option<Vec<Option<RegisteredStore>>> = None;
@@ -37,18 +45,42 @@ pub extern "C" fn dealloc(ptr: *mut u8, len: usize) {
 
 #[no_mangle]
 pub extern "C" fn register_store(
+    x_ptr: *const u32,
+    y_ptr: *const u32,
     r_ptr: *const u8,
     g_ptr: *const u8,
     b_ptr: *const u8,
+    lab_l_ptr: *const u16,
+    lab_a_ptr: *const i16,
+    lab_b_ptr: *const i16,
+    hue_ptr: *const u16,
+    saturation_ptr: *const u16,
+    lightness_ptr: *const u16,
     color_len: usize,
 ) -> u32 {
+    let x = unsafe { slice::from_raw_parts(x_ptr, color_len) };
+    let y = unsafe { slice::from_raw_parts(y_ptr, color_len) };
     let r = unsafe { slice::from_raw_parts(r_ptr, color_len) };
     let g = unsafe { slice::from_raw_parts(g_ptr, color_len) };
     let b = unsafe { slice::from_raw_parts(b_ptr, color_len) };
+    let lab_l = unsafe { slice::from_raw_parts(lab_l_ptr, color_len) };
+    let lab_a = unsafe { slice::from_raw_parts(lab_a_ptr, color_len) };
+    let lab_b = unsafe { slice::from_raw_parts(lab_b_ptr, color_len) };
+    let hue = unsafe { slice::from_raw_parts(hue_ptr, color_len) };
+    let saturation = unsafe { slice::from_raw_parts(saturation_ptr, color_len) };
+    let lightness = unsafe { slice::from_raw_parts(lightness_ptr, color_len) };
     let store = RegisteredStore {
+        x: x.to_vec(),
+        y: y.to_vec(),
         r: r.to_vec(),
         g: g.to_vec(),
         b: b.to_vec(),
+        lab_l: lab_l.to_vec(),
+        lab_a: lab_a.to_vec(),
+        lab_b: lab_b.to_vec(),
+        hue: hue.to_vec(),
+        saturation: saturation.to_vec(),
+        lightness: lightness.to_vec(),
     };
 
     let stores = stores();
@@ -298,4 +330,67 @@ pub extern "C" fn build_derived_selection(
         out_ratios_ptr,
         indexes.len(),
     )
+}
+
+#[no_mangle]
+pub extern "C" fn materialize_selected_samples_from_store(
+    store_id: u32,
+    indexes_id: u32,
+    out_x_ptr: *mut u32,
+    out_y_ptr: *mut u32,
+    out_colors_ptr: *mut u8,
+    out_lab_l_ptr: *mut u16,
+    out_lab_a_ptr: *mut i16,
+    out_lab_b_ptr: *mut i16,
+    out_hue_ptr: *mut u16,
+    out_saturation_ptr: *mut u16,
+    out_lightness_ptr: *mut u16,
+) -> usize {
+    if store_id == 0 || indexes_id == 0 {
+        return 0;
+    }
+
+    let store_index = (store_id - 1) as usize;
+    let indexes_index = (indexes_id - 1) as usize;
+    let stores = stores();
+    let registry = indexes_registry();
+    let Some(Some(store)) = stores.get(store_index) else {
+        return 0;
+    };
+    let Some(Some(indexes)) = registry.get(indexes_index) else {
+        return 0;
+    };
+
+    let out_x = unsafe { slice::from_raw_parts_mut(out_x_ptr, indexes.len()) };
+    let out_y = unsafe { slice::from_raw_parts_mut(out_y_ptr, indexes.len()) };
+    let out_colors = unsafe { slice::from_raw_parts_mut(out_colors_ptr, indexes.len() * 3) };
+    let out_lab_l = unsafe { slice::from_raw_parts_mut(out_lab_l_ptr, indexes.len()) };
+    let out_lab_a = unsafe { slice::from_raw_parts_mut(out_lab_a_ptr, indexes.len()) };
+    let out_lab_b = unsafe { slice::from_raw_parts_mut(out_lab_b_ptr, indexes.len()) };
+    let out_hue = unsafe { slice::from_raw_parts_mut(out_hue_ptr, indexes.len()) };
+    let out_saturation = unsafe { slice::from_raw_parts_mut(out_saturation_ptr, indexes.len()) };
+    let out_lightness = unsafe { slice::from_raw_parts_mut(out_lightness_ptr, indexes.len()) };
+
+    let mut written = 0usize;
+    for raw_index in indexes {
+        let index = *raw_index as usize;
+        if index >= store.r.len() {
+            continue;
+        }
+        out_x[written] = store.x[index];
+        out_y[written] = store.y[index];
+        let color_offset = written * 3;
+        out_colors[color_offset] = store.r[index];
+        out_colors[color_offset + 1] = store.g[index];
+        out_colors[color_offset + 2] = store.b[index];
+        out_lab_l[written] = store.lab_l[index];
+        out_lab_a[written] = store.lab_a[index];
+        out_lab_b[written] = store.lab_b[index];
+        out_hue[written] = store.hue[index];
+        out_saturation[written] = store.saturation[index];
+        out_lightness[written] = store.lightness[index];
+        written += 1;
+    }
+
+    written
 }

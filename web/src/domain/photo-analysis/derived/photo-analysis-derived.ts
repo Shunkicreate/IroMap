@@ -9,6 +9,7 @@ import { materializeSamples } from "@/domain/photo-analysis/base/photo-analysis-
 import {
   buildDerivedSelectionKernelResult,
   disposeCubePointKernelIndexes,
+  materializeSelectedSamplesFromKernel,
   materializeCubePoints,
   registerCubePointKernelIndexes,
 } from "@/domain/photo-analysis/cube-point-kernel/cube-point-kernel";
@@ -126,7 +127,6 @@ export const buildDerivedPhotoAnalysisFromHandle = ({
 
   const selectionStartAt = now();
   const selectedIndexes = getSelectedIndexes(selectionState);
-  const selectedSamples = materializeSamples(handle.store, selectedIndexes);
   const selectionId = selectionState?.activeSelection?.selectionId ?? null;
   if (handle.cubePointKernelSelectionId !== selectionId) {
     disposeCubePointKernelIndexes(handle.cubePointKernelSelectionStoreId);
@@ -135,6 +135,11 @@ export const buildDerivedPhotoAnalysisFromHandle = ({
       : null;
     handle.cubePointKernelSelectionId = selectionId;
   }
+  const selectedSamples =
+    materializeSelectedSamplesFromKernel({
+      registeredStoreId: handle.cubePointKernelStoreId,
+      registeredIndexesId: handle.cubePointKernelSelectionStoreId,
+    }) ?? materializeSamples(handle.store, selectedIndexes);
   const selectionMs = now() - selectionStartAt;
 
   const metricsStartAt = now();
