@@ -1,3 +1,8 @@
+import type {
+  PhotoSample,
+  RgbCubePoint,
+} from "@/domain/photo-analysis/shared/photo-analysis-types";
+
 export type CubePointKernelInput = {
   r?: Uint8Array;
   g?: Uint8Array;
@@ -24,4 +29,10 @@ export type CubePointKernelStoreRegistration = {
 
 export type CubePointKernelDerivedResult = CubePointKernelResult & {
   selectedCount: number;
+};
+
+export type CubePointKernelSelectionProjection = {
+  selectedCount: number;
+  selectedSamples: PhotoSample[];
+  selectionCubePoints: RgbCubePoint[];
 };

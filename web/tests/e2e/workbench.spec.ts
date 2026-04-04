@@ -198,6 +198,7 @@ test("アップロードと選択操作の計測ログを取得できる", async
   expect(photoAnalysisEntry?.detail?.analysisWidth).toBeDefined();
   expect(photoAnalysisEntry?.detail?.analysisHeight).toBeDefined();
   expect(derivedEntry?.detail?.selectionSource).toBe("image-point");
+  expect(derivedEntry?.detail?.selectedSamplesMs).toBeDefined();
   expect(derivedEntry?.detail?.cubePointsMs).toBeDefined();
   for (const entry of entries) {
     expect(entry.durationMs).toBeGreaterThanOrEqual(0);

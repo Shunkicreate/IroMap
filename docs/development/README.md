@@ -104,6 +104,8 @@ pnpm run setup:hooks:check
 
 期待値は `.githooks`。
 
+`wasm/cube-point-kernel/` を変更した push では、`pre-push` が自動で `pnpm --dir web run build:wasm:cube-points` を実行し、[`cube-point-kernel-wasm-bytes.ts`](/Users/shunki.tada/VSCode/IroMap/.worktree/feature/wasm-cube-points-poc/web/src/domain/photo-analysis/cube-point-kernel/generated/cube-point-kernel-wasm-bytes.ts) の更新漏れを検知する。
+
 ## 10. UI E2E テスト（Playwright）
 
 `web/` では Playwright による E2E テストを利用できる。

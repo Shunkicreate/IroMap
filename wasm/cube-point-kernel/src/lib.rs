@@ -394,3 +394,110 @@ pub extern "C" fn materialize_selected_samples_from_store(
 
     written
 }
+
+#[no_mangle]
+pub extern "C" fn build_derived_selection_projection(
+    store_id: u32,
+    indexes_id: u32,
+    bucket_size: u8,
+    max_points: usize,
+    out_selected_count_ptr: *mut u32,
+    out_x_ptr: *mut u32,
+    out_y_ptr: *mut u32,
+    out_sample_colors_ptr: *mut u8,
+    out_lab_l_ptr: *mut u16,
+    out_lab_a_ptr: *mut i16,
+    out_lab_b_ptr: *mut i16,
+    out_hue_ptr: *mut u16,
+    out_saturation_ptr: *mut u16,
+    out_lightness_ptr: *mut u16,
+    out_cube_colors_ptr: *mut u8,
+    out_cube_counts_ptr: *mut u32,
+    out_cube_ratios_ptr: *mut f32,
+) -> usize {
+    if store_id == 0 || indexes_id == 0 {
+        unsafe {
+            *out_selected_count_ptr = 0;
+        }
+        return 0;
+    }
+
+    let store_index = (store_id - 1) as usize;
+    let indexes_index = (indexes_id - 1) as usize;
+    let stores = stores();
+    let registry = indexes_registry();
+    let Some(Some(store)) = stores.get(store_index) else {
+        unsafe {
+            *out_selected_count_ptr = 0;
+        }
+        return 0;
+    };
+    let Some(Some(indexes)) = registry.get(indexes_index) else {
+        unsafe {
+            *out_selected_count_ptr = 0;
+        }
+        return 0;
+    };
+
+    let out_x = unsafe { slice::from_raw_parts_mut(out_x_ptr, indexes.len()) };
+    let out_y = unsafe { slice::from_raw_parts_mut(out_y_ptr, indexes.len()) };
+    let out_sample_colors = unsafe { slice::from_raw_parts_mut(out_sample_colors_ptr, indexes.len() * 3) };
+    let out_lab_l = unsafe { slice::from_raw_parts_mut(out_lab_l_ptr, indexes.len()) };
+    let out_lab_a = unsafe { slice::from_raw_parts_mut(out_lab_a_ptr, indexes.len()) };
+    let out_lab_b = unsafe { slice::from_raw_parts_mut(out_lab_b_ptr, indexes.len()) };
+    let out_hue = unsafe { slice::from_raw_parts_mut(out_hue_ptr, indexes.len()) };
+    let out_saturation = unsafe { slice::from_raw_parts_mut(out_saturation_ptr, indexes.len()) };
+    let out_lightness = unsafe { slice::from_raw_parts_mut(out_lightness_ptr, indexes.len()) };
+
+    let mut buckets = vec![0u32; 4096];
+    let bucket_size_u32 = bucket_size as u32;
+    let mut written = 0usize;
+
+    for raw_index in indexes {
+        let index = *raw_index as usize;
+        if index >= store.r.len() {
+            continue;
+        }
+
+        out_x[written] = store.x[index];
+        out_y[written] = store.y[index];
+        let color_offset = written * 3;
+        out_sample_colors[color_offset] = store.r[index];
+        out_sample_colors[color_offset + 1] = store.g[index];
+        out_sample_colors[color_offset + 2] = store.b[index];
+        out_lab_l[written] = store.lab_l[index];
+        out_lab_a[written] = store.lab_a[index];
+        out_lab_b[written] = store.lab_b[index];
+        out_hue[written] = store.hue[index];
+        out_saturation[written] = store.saturation[index];
+        out_lightness[written] = store.lightness[index];
+
+        let bucket_r = (store.r[index] as u32 / bucket_size_u32).min(15);
+        let bucket_g = (store.g[index] as u32 / bucket_size_u32).min(15);
+        let bucket_b = (store.b[index] as u32 / bucket_size_u32).min(15);
+        let bucket_index = ((bucket_r << 8) | (bucket_g << 4) | bucket_b) as usize;
+        buckets[bucket_index] += 1;
+        written += 1;
+    }
+
+    unsafe {
+        *out_selected_count_ptr = written as u32;
+    }
+
+    let mut ranked: Vec<BucketRank> = buckets
+        .into_iter()
+        .enumerate()
+        .filter(|(_, count)| *count > 0)
+        .collect();
+    ranked.sort_unstable_by(|left, right| right.1.cmp(&left.1));
+
+    write_output(
+        ranked,
+        bucket_size,
+        max_points,
+        out_cube_colors_ptr,
+        out_cube_counts_ptr,
+        out_cube_ratios_ptr,
+        written,
+    )
+}

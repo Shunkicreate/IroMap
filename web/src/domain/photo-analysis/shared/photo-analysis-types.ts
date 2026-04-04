@@ -133,6 +133,8 @@ export type PhotoAnalysisTimings = {
 export type DerivedAnalysisTimings = {
   totalMs: number;
   selectionMs: number;
+  selectionRegistrationMs: number;
+  selectionProjectionMs: number;
   selectedSamplesMs: number;
   metricsMs: number;
   luminanceHistogramMs: number;

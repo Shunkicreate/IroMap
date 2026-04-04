@@ -168,8 +168,17 @@ const runPreviewRectangleSelection = async (page) => {
 };
 
 const summarize = (values) => {
-  const sorted = [...values].sort((left, right) => left - right);
-  const total = values.reduce((sum, value) => sum + value, 0);
+  const finiteValues = values.filter((value) => Number.isFinite(value));
+  if (finiteValues.length === 0) {
+    return {
+      avg: Number.NaN,
+      min: Number.NaN,
+      median: Number.NaN,
+      max: Number.NaN,
+    };
+  }
+  const sorted = [...finiteValues].sort((left, right) => left - right);
+  const total = finiteValues.reduce((sum, value) => sum + value, 0);
   const middle = Math.floor(sorted.length / 2);
   const median =
     sorted.length % 2 === 0
@@ -177,7 +186,7 @@ const summarize = (values) => {
       : (sorted[middle] ?? Number.NaN);
 
   return {
-    avg: total / values.length,
+    avg: total / finiteValues.length,
     min: sorted[0] ?? Number.NaN,
     median,
     max: sorted.at(-1) ?? Number.NaN,
@@ -198,8 +207,14 @@ const printTable = (rows) => {
       derivedAvgMs: row.derivedTotalMs.avg.toFixed(1),
       derivedMedianMs: row.derivedTotalMs.median.toFixed(1),
       pointDerivedAvgMs: row.pointDerivedTotalMs.avg.toFixed(1),
+      pointDerivedWorkerAvgMs: row.pointDerivedWorkerMs.avg.toFixed(1),
+      pointSelectionRegistrationAvgMs: row.pointSelectionRegistrationMs.avg.toFixed(1),
+      pointSelectionProjectionAvgMs: row.pointSelectionProjectionMs.avg.toFixed(1),
       pointSelectedSamplesAvgMs: row.pointSelectedSamplesMs.avg.toFixed(1),
       rectDerivedAvgMs: row.rectDerivedTotalMs.avg.toFixed(1),
+      rectDerivedWorkerAvgMs: row.rectDerivedWorkerMs.avg.toFixed(1),
+      rectSelectionRegistrationAvgMs: row.rectSelectionRegistrationMs.avg.toFixed(1),
+      rectSelectionProjectionAvgMs: row.rectSelectionProjectionMs.avg.toFixed(1),
       rectSelectedSamplesAvgMs: row.rectSelectedSamplesMs.avg.toFixed(1),
       metricsAvgMs: row.metricsMs.avg.toFixed(1),
       pointCubePointsAvgMs: row.pointCubePointsMs.avg.toFixed(1),
@@ -227,11 +242,17 @@ try {
       derivedWorkerMs: [],
       metricsMs: [],
       pointDerivedTotalMs: [],
+      pointDerivedWorkerMs: [],
       pointSelectionMs: [],
+      pointSelectionRegistrationMs: [],
+      pointSelectionProjectionMs: [],
       pointSelectedSamplesMs: [],
       pointCubePointsMs: [],
       rectDerivedTotalMs: [],
+      rectDerivedWorkerMs: [],
       rectSelectionMs: [],
+      rectSelectionRegistrationMs: [],
+      rectSelectionProjectionMs: [],
       rectSelectedSamplesMs: [],
       rectCubePointsMs: [],
     };
@@ -250,11 +271,11 @@ try {
       });
 
       await waitForPerfEntry(page, "workbench.photo-analysis.total");
-      await waitForPerfEntry(page, "workbench.derived-analysis.total", "none");
+      await waitForPerfEntry(page, "workbench.derived-analysis.total");
 
       const entries = await readPerfEntries(page);
       const photo = findPerfEntry(entries, "workbench.photo-analysis.total");
-      const derived = findPerfEntry(entries, "workbench.derived-analysis.total", "none");
+      const derived = entries.find((entry) => entry.name === "workbench.derived-analysis.total");
 
       if (!photo || !derived) {
         throw new Error(`Missing perf entries for ${size.name} at iteration ${index + 1}`);
@@ -282,7 +303,14 @@ try {
         );
       }
       samples.pointDerivedTotalMs.push(pointDerived.durationMs);
+      samples.pointDerivedWorkerMs.push(Number(pointDerived.detail?.totalMs ?? Number.NaN));
       samples.pointSelectionMs.push(Number(pointDerived.detail?.selectionMs ?? Number.NaN));
+      samples.pointSelectionRegistrationMs.push(
+        Number(pointDerived.detail?.selectionRegistrationMs ?? Number.NaN)
+      );
+      samples.pointSelectionProjectionMs.push(
+        Number(pointDerived.detail?.selectionProjectionMs ?? Number.NaN)
+      );
       samples.pointSelectedSamplesMs.push(
         Number(pointDerived.detail?.selectedSamplesMs ?? Number.NaN)
       );
@@ -302,7 +330,14 @@ try {
         );
       }
       samples.rectDerivedTotalMs.push(rectDerived.durationMs);
+      samples.rectDerivedWorkerMs.push(Number(rectDerived.detail?.totalMs ?? Number.NaN));
       samples.rectSelectionMs.push(Number(rectDerived.detail?.selectionMs ?? Number.NaN));
+      samples.rectSelectionRegistrationMs.push(
+        Number(rectDerived.detail?.selectionRegistrationMs ?? Number.NaN)
+      );
+      samples.rectSelectionProjectionMs.push(
+        Number(rectDerived.detail?.selectionProjectionMs ?? Number.NaN)
+      );
       samples.rectSelectedSamplesMs.push(
         Number(rectDerived.detail?.selectedSamplesMs ?? Number.NaN)
       );
@@ -323,11 +358,17 @@ try {
       derivedWorkerMs: summarize(samples.derivedWorkerMs),
       metricsMs: summarize(samples.metricsMs),
       pointDerivedTotalMs: summarize(samples.pointDerivedTotalMs),
+      pointDerivedWorkerMs: summarize(samples.pointDerivedWorkerMs),
       pointSelectionMs: summarize(samples.pointSelectionMs),
+      pointSelectionRegistrationMs: summarize(samples.pointSelectionRegistrationMs),
+      pointSelectionProjectionMs: summarize(samples.pointSelectionProjectionMs),
       pointSelectedSamplesMs: summarize(samples.pointSelectedSamplesMs),
       pointCubePointsMs: summarize(samples.pointCubePointsMs),
       rectDerivedTotalMs: summarize(samples.rectDerivedTotalMs),
+      rectDerivedWorkerMs: summarize(samples.rectDerivedWorkerMs),
       rectSelectionMs: summarize(samples.rectSelectionMs),
+      rectSelectionRegistrationMs: summarize(samples.rectSelectionRegistrationMs),
+      rectSelectionProjectionMs: summarize(samples.rectSelectionProjectionMs),
       rectSelectedSamplesMs: summarize(samples.rectSelectedSamplesMs),
       rectCubePointsMs: summarize(samples.rectCubePointsMs),
       filePath,

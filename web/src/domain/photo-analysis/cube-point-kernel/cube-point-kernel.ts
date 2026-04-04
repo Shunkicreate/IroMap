@@ -15,6 +15,7 @@ import type {
   CubePointKernelInput,
   CubePointKernelMode,
   CubePointKernelResult,
+  CubePointKernelSelectionProjection,
   CubePointKernelStoreRegistration,
 } from "@/domain/photo-analysis/cube-point-kernel/cube-point-kernel-types";
 import { cubePointKernelWasmBase64 } from "@/domain/photo-analysis/cube-point-kernel/generated/cube-point-kernel-wasm-bytes";
@@ -94,6 +95,25 @@ type CubePointKernelWasmExports = WebAssembly.Exports & {
     outSaturationPtr: number,
     outLightnessPtr: number
   ) => number;
+  buildDerivedSelectionProjectionExport: (
+    storeId: number,
+    indexesId: number,
+    bucketSize: number,
+    maxPoints: number,
+    outSelectedCountPtr: number,
+    outXPtr: number,
+    outYPtr: number,
+    outSampleColorsPtr: number,
+    outLabLPtr: number,
+    outLabAPtr: number,
+    outLabBPtr: number,
+    outHuePtr: number,
+    outSaturationPtr: number,
+    outLightnessPtr: number,
+    outCubeColorsPtr: number,
+    outCubeCountsPtr: number,
+    outCubeRatiosPtr: number
+  ) => number;
 };
 
 let wasmExports: CubePointKernelWasmExports | null = null;
@@ -141,6 +161,9 @@ const getWasmExports = (): CubePointKernelWasmExports => {
   const materializeSelectedSamplesFromStoreExport = wasmNamedExports[
     "materialize_selected_samples_from_store"
   ] as CubePointKernelWasmExports["materializeSelectedSamplesFromStoreExport"] | undefined;
+  const buildDerivedSelectionProjectionExport = wasmNamedExports[
+    "build_derived_selection_projection"
+  ] as CubePointKernelWasmExports["buildDerivedSelectionProjectionExport"] | undefined;
   if (
     !registerStoreExport ||
     !releaseStoreExport ||
@@ -149,7 +172,8 @@ const getWasmExports = (): CubePointKernelWasmExports => {
     !buildCubePointsExport ||
     !buildCubePointsFromStoreExport ||
     !buildDerivedSelectionExport ||
-    !materializeSelectedSamplesFromStoreExport
+    !materializeSelectedSamplesFromStoreExport ||
+    !buildDerivedSelectionProjectionExport
   ) {
     throw new Error("cube-point-kernel-export-missing");
   }
@@ -163,6 +187,7 @@ const getWasmExports = (): CubePointKernelWasmExports => {
     buildCubePointsFromStoreExport,
     buildDerivedSelectionExport,
     materializeSelectedSamplesFromStoreExport,
+    buildDerivedSelectionProjectionExport,
   };
   return wasmExports;
 };
@@ -236,6 +261,55 @@ const emptyKernelResult = (): CubePointKernelResult => ({
   ratios: new Float32Array(),
   length: 0,
 });
+
+const materializePhotoSamples = ({
+  xs,
+  ys,
+  colors,
+  labLValues,
+  labAValues,
+  labBValues,
+  hueValues,
+  saturationValues,
+  lightnessValues,
+  sampleIds,
+}: {
+  xs: Uint32Array;
+  ys: Uint32Array;
+  colors: Uint8Array;
+  labLValues: Uint16Array;
+  labAValues: Int16Array;
+  labBValues: Int16Array;
+  hueValues: Uint16Array;
+  saturationValues: Uint16Array;
+  lightnessValues: Uint16Array;
+  sampleIds: readonly number[];
+}): PhotoSample[] =>
+  Array.from({ length: xs.length }, (_, index) => {
+    const colorOffset = index * 3;
+    const lab = {
+      l: unscaleLabComponent(labLValues[index] ?? 0),
+      a: unscaleLabComponent(labAValues[index] ?? 0),
+      b: unscaleLabComponent(labBValues[index] ?? 0),
+    };
+    return {
+      sampleId: sampleIds[index] ?? index,
+      x: xs[index] ?? 0,
+      y: ys[index] ?? 0,
+      color: toRgbColor(
+        colors[colorOffset] ?? 0,
+        colors[colorOffset + 1] ?? 0,
+        colors[colorOffset + 2] ?? 0
+      ),
+      hsl: {
+        h: toHueDegree(unscaleHue(hueValues[index] ?? 0)),
+        s: toPercentage(unscaleSaturation(saturationValues[index] ?? 0)),
+        l: toPercentage(unscaleLightness(lightnessValues[index] ?? 0)),
+      },
+      lab,
+      chroma: labToChroma(lab),
+    } satisfies PhotoSample;
+  });
 
 export const registerCubePointKernelStore = ({
   x,
@@ -498,31 +572,149 @@ export const materializeSelectedSamplesFromKernel = ({
     exports.dealloc(outSaturationPtr, selectionLength * Uint16Array.BYTES_PER_ELEMENT);
     exports.dealloc(outLightnessPtr, selectionLength * Uint16Array.BYTES_PER_ELEMENT);
 
-    return Array.from({ length }, (_, index) => {
-      const colorOffset = index * 3;
-      const lab = {
-        l: unscaleLabComponent(labLValues[index] ?? 0),
-        a: unscaleLabComponent(labAValues[index] ?? 0),
-        b: unscaleLabComponent(labBValues[index] ?? 0),
-      };
-      return {
-        sampleId: selectionIndexes[index] ?? index,
-        x: xs[index] ?? 0,
-        y: ys[index] ?? 0,
-        color: toRgbColor(
-          colors[colorOffset] ?? 0,
-          colors[colorOffset + 1] ?? 0,
-          colors[colorOffset + 2] ?? 0
-        ),
-        hsl: {
-          h: toHueDegree(unscaleHue(hueValues[index] ?? 0)),
-          s: toPercentage(unscaleSaturation(saturationValues[index] ?? 0)),
-          l: toPercentage(unscaleLightness(lightnessValues[index] ?? 0)),
-        },
-        lab,
-        chroma: labToChroma(lab),
-      } satisfies PhotoSample;
+    return materializePhotoSamples({
+      xs,
+      ys,
+      colors,
+      labLValues,
+      labAValues,
+      labBValues,
+      hueValues,
+      saturationValues,
+      lightnessValues,
+      sampleIds: selectionIndexes.slice(0, length),
     });
+  } catch {
+    return null;
+  }
+};
+
+export const buildDerivedSelectionProjectionFromKernel = ({
+  registeredStoreId,
+  registeredIndexesId,
+  bucketSize,
+  maxPoints,
+}: {
+  registeredStoreId: number | null | undefined;
+  registeredIndexesId: number | null | undefined;
+  bucketSize: number;
+  maxPoints: number;
+}): CubePointKernelSelectionProjection | null => {
+  if (
+    !registeredStoreId ||
+    !registeredIndexesId ||
+    resolveCubePointKernelMode() !== "wasm" ||
+    !cubePointKernelWasmBase64
+  ) {
+    return null;
+  }
+
+  try {
+    const exports = getWasmExports();
+    const selectionLength = selectionLengthRegistry.get(registeredIndexesId) ?? 0;
+    const selectionIndexes = selectionIndexesRegistry.get(registeredIndexesId) ?? [];
+    if (selectionLength === 0) {
+      return {
+        selectedCount: 0,
+        selectedSamples: [],
+        selectionCubePoints: [],
+      };
+    }
+
+    const outSelectedCountPtr = exports.alloc(Uint32Array.BYTES_PER_ELEMENT);
+    const outXPtr = exports.alloc(selectionLength * Uint32Array.BYTES_PER_ELEMENT);
+    const outYPtr = exports.alloc(selectionLength * Uint32Array.BYTES_PER_ELEMENT);
+    const outSampleColorsPtr = exports.alloc(selectionLength * 3);
+    const outLabLPtr = exports.alloc(selectionLength * Uint16Array.BYTES_PER_ELEMENT);
+    const outLabAPtr = exports.alloc(selectionLength * Int16Array.BYTES_PER_ELEMENT);
+    const outLabBPtr = exports.alloc(selectionLength * Int16Array.BYTES_PER_ELEMENT);
+    const outHuePtr = exports.alloc(selectionLength * Uint16Array.BYTES_PER_ELEMENT);
+    const outSaturationPtr = exports.alloc(selectionLength * Uint16Array.BYTES_PER_ELEMENT);
+    const outLightnessPtr = exports.alloc(selectionLength * Uint16Array.BYTES_PER_ELEMENT);
+    const outCubeColorsPtr = exports.alloc(maxPoints * 3);
+    const outCubeCountsPtr = exports.alloc(maxPoints * Uint32Array.BYTES_PER_ELEMENT);
+    const outCubeRatiosPtr = exports.alloc(maxPoints * Float32Array.BYTES_PER_ELEMENT);
+
+    const cubeLength = exports.buildDerivedSelectionProjectionExport(
+      registeredStoreId,
+      registeredIndexesId,
+      bucketSize,
+      maxPoints,
+      outSelectedCountPtr,
+      outXPtr,
+      outYPtr,
+      outSampleColorsPtr,
+      outLabLPtr,
+      outLabAPtr,
+      outLabBPtr,
+      outHuePtr,
+      outSaturationPtr,
+      outLightnessPtr,
+      outCubeColorsPtr,
+      outCubeCountsPtr,
+      outCubeRatiosPtr
+    );
+
+    const selectedCount = new Uint32Array(exports.memory.buffer, outSelectedCountPtr, 1)[0] ?? 0;
+    const xs = new Uint32Array(exports.memory.buffer, outXPtr, selectedCount).slice();
+    const ys = new Uint32Array(exports.memory.buffer, outYPtr, selectedCount).slice();
+    const sampleColors = new Uint8Array(
+      exports.memory.buffer,
+      outSampleColorsPtr,
+      selectedCount * 3
+    ).slice();
+    const labLValues = new Uint16Array(exports.memory.buffer, outLabLPtr, selectedCount).slice();
+    const labAValues = new Int16Array(exports.memory.buffer, outLabAPtr, selectedCount).slice();
+    const labBValues = new Int16Array(exports.memory.buffer, outLabBPtr, selectedCount).slice();
+    const hueValues = new Uint16Array(exports.memory.buffer, outHuePtr, selectedCount).slice();
+    const saturationValues = new Uint16Array(
+      exports.memory.buffer,
+      outSaturationPtr,
+      selectedCount
+    ).slice();
+    const lightnessValues = new Uint16Array(
+      exports.memory.buffer,
+      outLightnessPtr,
+      selectedCount
+    ).slice();
+    const cubeResult = readResult({
+      exports,
+      length: cubeLength,
+      outColorsPtr: outCubeColorsPtr,
+      outCountsPtr: outCubeCountsPtr,
+      outRatiosPtr: outCubeRatiosPtr,
+    });
+
+    exports.dealloc(outSelectedCountPtr, Uint32Array.BYTES_PER_ELEMENT);
+    exports.dealloc(outXPtr, selectionLength * Uint32Array.BYTES_PER_ELEMENT);
+    exports.dealloc(outYPtr, selectionLength * Uint32Array.BYTES_PER_ELEMENT);
+    exports.dealloc(outSampleColorsPtr, selectionLength * 3);
+    exports.dealloc(outLabLPtr, selectionLength * Uint16Array.BYTES_PER_ELEMENT);
+    exports.dealloc(outLabAPtr, selectionLength * Int16Array.BYTES_PER_ELEMENT);
+    exports.dealloc(outLabBPtr, selectionLength * Int16Array.BYTES_PER_ELEMENT);
+    exports.dealloc(outHuePtr, selectionLength * Uint16Array.BYTES_PER_ELEMENT);
+    exports.dealloc(outSaturationPtr, selectionLength * Uint16Array.BYTES_PER_ELEMENT);
+    exports.dealloc(outLightnessPtr, selectionLength * Uint16Array.BYTES_PER_ELEMENT);
+    exports.dealloc(outCubeColorsPtr, maxPoints * 3);
+    exports.dealloc(outCubeCountsPtr, maxPoints * Uint32Array.BYTES_PER_ELEMENT);
+    exports.dealloc(outCubeRatiosPtr, maxPoints * Float32Array.BYTES_PER_ELEMENT);
+
+    return {
+      selectedCount,
+      selectedSamples: materializePhotoSamples({
+        xs,
+        ys,
+        colors: sampleColors,
+        labLValues,
+        labAValues,
+        labBValues,
+        hueValues,
+        saturationValues,
+        lightnessValues,
+        sampleIds: selectionIndexes.slice(0, selectedCount),
+      }),
+      selectionCubePoints: materializeCubePoints(cubeResult),
+    };
   } catch {
     return null;
   }
