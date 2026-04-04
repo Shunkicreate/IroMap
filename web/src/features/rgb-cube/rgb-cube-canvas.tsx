@@ -594,20 +594,26 @@ export function RgbCubeCanvas({
 
   const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>): void => {
     const pointer = mapPointer(event);
+    pendingBudgetedSharedColorRef.current = null;
+    stopSharedBudgetFrameLoop();
+    localHoverColorRef.current = null;
+    hoverPipeline.clearNow(null);
+    sharedHoverPipeline.clearNow(null);
     dragRef.current = { isDragging: true, x: pointer.x, y: pointer.y };
     displayRotationRef.current = rotation;
     isPointerInsideRef.current = true;
     event.currentTarget.setPointerCapture(event.pointerId);
+    drawFocusOverlay();
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>): void => {
     const pointer = mapPointer(event);
     isPointerInsideRef.current = true;
-    latestSharedBudgetTimeRef.current = event.timeStamp;
-    startSharedBudgetFrameLoop();
-    hoverPipeline.schedule(pointer);
 
     if (!dragRef.current.isDragging) {
+      latestSharedBudgetTimeRef.current = event.timeStamp;
+      startSharedBudgetFrameLoop();
+      hoverPipeline.schedule(pointer);
       return;
     }
     const deltaX = pointer.x - dragRef.current.x;
