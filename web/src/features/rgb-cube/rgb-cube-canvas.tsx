@@ -121,10 +121,9 @@ export function RgbCubeCanvas({
   selectedColor = null,
   overlayMode,
   onRotationChange,
-  onHoverColorChange: _onHoverColorChange,
+  onHoverColorChange,
   onColorSelect,
 }: Props) {
-  void _onHoverColorChange;
   const baseCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const focusCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvasWrapRef = useRef<HTMLDivElement | null>(null);
@@ -175,6 +174,7 @@ export function RgbCubeCanvas({
     isEqual: areSameColor,
     onResolved: (nextHoverColor) => {
       setLocalHoverColor(nextHoverColor);
+      sharedHoverPipeline.schedule(nextHoverColor);
     },
     resolve: ({ x, y, width, height }) => {
       if (!hasImageOverlay || !isimageMappingVisible) {
@@ -201,6 +201,13 @@ export function RgbCubeCanvas({
       );
       return nearest ? clampRgb(nearest) : null;
     },
+  });
+  const sharedHoverPipeline = useLatestHoverPipeline<RgbColor | null, RgbColor | null>({
+    isEqual: areSameColor,
+    onResolved: (nextHoverColor) => {
+      onHoverColorChange(nextHoverColor);
+    },
+    resolve: (nextHoverColor) => nextHoverColor,
   });
 
   const configureCanvas = (
@@ -526,6 +533,7 @@ export function RgbCubeCanvas({
     }
     pendingDisplayRotationRef.current = null;
     hoverPipeline.clearNow(null);
+    sharedHoverPipeline.clearNow(null);
   };
 
   useEffect(() => {
