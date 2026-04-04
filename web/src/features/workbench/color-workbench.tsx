@@ -35,6 +35,7 @@ import controlStyles from "@/features/workbench/workbench-controls.module.css";
 import { WorkbenchMetricsPanel } from "@/features/workbench/workbench-metrics-panel";
 import { WorkbenchPreviewPanel } from "@/features/workbench/workbench-preview-panel";
 import {
+  defaultSamplingDensityPercent,
   legacySamplingDensityPercent,
   maximumSamplingDensityPercent,
 } from "@/domain/photo-analysis/shared/photo-analysis-constants";
@@ -241,7 +242,7 @@ export function ColorWorkbench() {
     });
   const [samplingDensityPercent, setSamplingDensityPercent] = usePersistedState<number>({
     storageKey: storageKeys.samplingDensityPercent,
-    initialValue: legacySamplingDensityPercent,
+    initialValue: defaultSamplingDensityPercent,
     parse: parsePersistedSamplingDensityPercent,
     serialize: String,
   });
@@ -876,7 +877,7 @@ export function ColorWorkbench() {
             samplingDensityPercent={
               baselineTarget.result?.samplingDensityPercent ??
               (samplingDensityPercent === legacySamplingDensityPercent
-                ? maximumSamplingDensityPercent
+                ? defaultSamplingDensityPercent
                 : samplingDensityPercent)
             }
             onHoverSampleChange={handlePreviewHover}

@@ -18,6 +18,7 @@ export const minimumUnit = 1;
 export const maximumSamplingDensityPercent = 100;
 export const minimumSamplingDensityPercent = 1;
 export const legacySamplingDensityPercent = 0;
+export const defaultSamplingDensityPercent = 40;
 export const minimumTargetSampleCount = 1_200;
 export const maximumTargetSampleCountBeforeFull = 100_000;
 export const luminanceBinCount = 20;
