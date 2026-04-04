@@ -8,7 +8,8 @@ import type {
   AnalysisWorkerResponse,
 } from "@/features/photo-analysis/photo-analysis-worker-contract";
 
-const analyses = new Map<string, PhotoAnalysisHandle>();
+let currentAnalysisId: string | null = null;
+let currentHandle: PhotoAnalysisHandle | null = null;
 
 const post = (message: AnalysisWorkerResponse): void => {
   self.postMessage(message);
@@ -20,7 +21,8 @@ self.onmessage = (event: MessageEvent<AnalysisWorkerRequest>) => {
   if (message.kind === "analyze-photo") {
     try {
       const handle = createPhotoAnalysisHandle({ imageData: message.imageData });
-      analyses.set(message.analysisId, handle);
+      currentAnalysisId = message.analysisId;
+      currentHandle = handle;
       post({
         kind: "success",
         requestId: message.requestId,
@@ -40,8 +42,7 @@ self.onmessage = (event: MessageEvent<AnalysisWorkerRequest>) => {
     return;
   }
 
-  const handle = analyses.get(message.analysisId);
-  if (!handle) {
+  if (currentAnalysisId !== message.analysisId || !currentHandle) {
     post({
       kind: "error",
       requestId: message.requestId,
@@ -53,7 +54,7 @@ self.onmessage = (event: MessageEvent<AnalysisWorkerRequest>) => {
 
   try {
     const derived = buildDerivedPhotoAnalysisFromHandle({
-      handle,
+      handle: currentHandle,
       selectionState: message.selectionState,
     });
     post({

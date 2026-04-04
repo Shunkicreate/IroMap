@@ -7,6 +7,8 @@ export type PerformanceTraceEntry = {
   detail?: Record<string, number | string | boolean | null | undefined>;
 };
 
+const maxEntries = 500;
+
 const storeEntry = (entry: PerformanceTraceEntry): void => {
   if (typeof window === "undefined") {
     return;
@@ -14,6 +16,9 @@ const storeEntry = (entry: PerformanceTraceEntry): void => {
 
   window.__IROMAP_PERF__ = window.__IROMAP_PERF__ ?? { entries: [] };
   window.__IROMAP_PERF__.entries.push(entry);
+  if (window.__IROMAP_PERF__.entries.length > maxEntries) {
+    window.__IROMAP_PERF__.entries.splice(0, window.__IROMAP_PERF__.entries.length - maxEntries);
+  }
 };
 
 export const recordPerformanceEntry = (
