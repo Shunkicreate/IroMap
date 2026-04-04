@@ -8,7 +8,6 @@ export const saturationBinCount = 20;
 export const topAreaCount = 5;
 export const quantizeBucketSize = 16;
 export const performanceSamplingThreshold = 100_000;
-export const maxCubePointCount = 3500;
 export const rgbaStride = 4;
 export const alphaChannelOffset = 3;
 export const noAlpha = 0;

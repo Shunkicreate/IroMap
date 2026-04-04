@@ -3,11 +3,7 @@ import {
   materializeSamples,
   samplePixelsToStore,
 } from "@/domain/photo-analysis/base/photo-analysis-base-store";
-import {
-  buildCubePointKernelResult,
-  registerCubePointKernelStore,
-  materializeCubePoints,
-} from "@/domain/photo-analysis/cube-point-kernel/cube-point-kernel";
+import { registerCubePointKernelStore } from "@/domain/photo-analysis/cube-point-kernel/cube-point-kernel";
 import {
   buildAreaLabel,
   createBins,
@@ -20,10 +16,8 @@ import {
 } from "@/domain/photo-analysis/shared/photo-analysis-color";
 import {
   highlightThreshold,
-  maxCubePointCount,
   minimumUnit,
   othersColorValue,
-  quantizeBucketSize,
   ratioPercent,
   ratioTolerance,
   topAreaCount,
@@ -158,25 +152,24 @@ export const calculateColorAreasFromStore = (store: PhotoSampleBufferStore): Col
   return top;
 };
 
-const buildRgbCubePointsCore = (samples: PhotoSample[], maxPoints: number): RgbCubePoint[] => {
-  const r = new Uint8Array(samples.length);
-  const g = new Uint8Array(samples.length);
-  const b = new Uint8Array(samples.length);
-  for (let index = 0; index < samples.length; index += 1) {
-    const sample = samples[index];
-    r[index] = sample?.color.r ?? 0;
-    g[index] = sample?.color.g ?? 0;
-    b[index] = sample?.color.b ?? 0;
+const buildRgbCubePointsCore = (samples: PhotoSample[]): RgbCubePoint[] => {
+  const bucketCounts = new Map<string, number>();
+  for (const sample of samples) {
+    const bucketColor = toRgbColor(sample.color.r, sample.color.g, sample.color.b);
+    const key = `${bucketColor.r}-${bucketColor.g}-${bucketColor.b}`;
+    bucketCounts.set(key, (bucketCounts.get(key) ?? 0) + 1);
   }
-  return materializeCubePoints(
-    buildCubePointKernelResult({
-      r,
-      g,
-      b,
-      bucketSize: quantizeBucketSize,
-      maxPoints,
-    })
-  );
+
+  const sorted = [...bucketCounts.entries()].sort((left, right) => right[1] - left[1]);
+  const total = samples.length || minimumUnit;
+  return sorted.map(([key, count]) => {
+    const [rText, gText, bText] = key.split("-");
+    return {
+      color: toRgbColor(Number(rText), Number(gText), Number(bText)),
+      count,
+      ratio: count / total,
+    };
+  });
 };
 
 export const buildCubePointsFromStore = (
@@ -184,17 +177,34 @@ export const buildCubePointsFromStore = (
   indexes?: readonly number[],
   registeredStoreId?: number | null
 ): RgbCubePoint[] => {
-  return materializeCubePoints(
-    buildCubePointKernelResult({
-      r: registeredStoreId ? undefined : store.r,
-      g: registeredStoreId ? undefined : store.g,
-      b: registeredStoreId ? undefined : store.b,
-      registeredStoreId,
-      indexes,
-      bucketSize: quantizeBucketSize,
-      maxPoints: maxCubePointCount,
-    })
-  );
+  void registeredStoreId;
+  const bucketCounts = new Map<string, number>();
+  const total = indexes?.length ?? store.count;
+  const accumulate = (index: number): void => {
+    const bucketColor = toRgbColor(store.r[index] ?? 0, store.g[index] ?? 0, store.b[index] ?? 0);
+    const key = `${bucketColor.r}-${bucketColor.g}-${bucketColor.b}`;
+    bucketCounts.set(key, (bucketCounts.get(key) ?? 0) + 1);
+  };
+
+  if (indexes) {
+    for (const index of indexes) {
+      accumulate(index);
+    }
+  } else {
+    for (let index = 0; index < store.count; index += 1) {
+      accumulate(index);
+    }
+  }
+
+  const sorted = [...bucketCounts.entries()].sort((left, right) => right[1] - left[1]);
+  return sorted.map(([key, count]) => {
+    const [rText, gText, bText] = key.split("-");
+    return {
+      color: toRgbColor(Number(rText), Number(gText), Number(bText)),
+      count,
+      ratio: count / (total || minimumUnit),
+    };
+  });
 };
 
 export const buildHistogramBinsFromStore = (
@@ -373,4 +383,4 @@ export const analyzePhoto = (
 ): PhotoAnalysisResult => createPhotoAnalysisHandle({ imageData, samplingDensityPercent }).result;
 
 export const buildCubePointsFromSamples = (samples: PhotoSample[]): RgbCubePoint[] =>
-  buildRgbCubePointsCore(samples, maxCubePointCount);
+  buildRgbCubePointsCore(samples);

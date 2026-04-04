@@ -7,17 +7,10 @@ import {
 } from "@/domain/photo-analysis/base/photo-analysis-base";
 import { materializeSamples } from "@/domain/photo-analysis/base/photo-analysis-base-store";
 import {
-  buildDerivedSelectionProjectionFromKernel,
-  buildDerivedSelectionKernelResult,
   disposeCubePointKernelIndexes,
   materializeSelectedSamplesFromKernel,
-  materializeCubePoints,
   registerCubePointKernelIndexes,
 } from "@/domain/photo-analysis/cube-point-kernel/cube-point-kernel";
-import {
-  maxCubePointCount,
-  quantizeBucketSize,
-} from "@/domain/photo-analysis/shared/photo-analysis-constants";
 import type {
   DerivedPhotoAnalysis,
   PhotoAnalysisHandle,
@@ -142,22 +135,12 @@ export const buildDerivedPhotoAnalysisFromHandle = ({
     handle.cubePointKernelSelectionId = selectionId;
   }
   const selectionRegistrationMs = now() - selectionRegistrationStartAt;
-  const selectionProjectionStartAt = now();
-  const derivedProjection = buildDerivedSelectionProjectionFromKernel({
-    registeredStoreId: handle.cubePointKernelStoreId,
-    registeredIndexesId: handle.cubePointKernelSelectionStoreId,
-    bucketSize: quantizeBucketSize,
-    maxPoints: maxCubePointCount,
-  });
-  const selectionProjectionMs = now() - selectionProjectionStartAt;
   const selectedSamplesStartAt = now();
   const selectedSamples =
-    derivedProjection?.selectedSamples ??
     materializeSelectedSamplesFromKernel({
       registeredStoreId: handle.cubePointKernelStoreId,
       registeredIndexesId: handle.cubePointKernelSelectionStoreId,
-    }) ??
-    materializeSamples(handle.store, selectedIndexes);
+    }) ?? materializeSamples(handle.store, selectedIndexes);
   const selectedSamplesMs = now() - selectedSamplesStartAt;
   const selectionMs = now() - selectionStartAt;
 
@@ -165,24 +148,12 @@ export const buildDerivedPhotoAnalysisFromHandle = ({
   const metricRows = replaceSelectionCoverageMetric({
     metricRows: handle.derivedBaseCache.metricRows,
     sampleCount: handle.store.count,
-    selectionCount: derivedProjection?.selectedCount ?? selectedIndexes.length,
+    selectionCount: selectedIndexes.length,
   });
   const metricsMs = now() - metricsStartAt;
 
   const cubePointsStartAt = now();
-  const selectionCubePoints =
-    derivedProjection?.selectionCubePoints ??
-    (() => {
-      const derivedSelection = buildDerivedSelectionKernelResult({
-        registeredStoreId: handle.cubePointKernelStoreId,
-        registeredIndexesId: handle.cubePointKernelSelectionStoreId,
-        bucketSize: quantizeBucketSize,
-        maxPoints: maxCubePointCount,
-      });
-      return derivedSelection
-        ? materializeCubePoints(derivedSelection)
-        : buildCubePointsFromStore(handle.store, selectedIndexes, handle.cubePointKernelStoreId);
-    })();
+  const selectionCubePoints = buildCubePointsFromStore(handle.store, selectedIndexes);
   const cubePointsMs = now() - cubePointsStartAt;
 
   return {
@@ -196,7 +167,7 @@ export const buildDerivedPhotoAnalysisFromHandle = ({
       totalMs: now() - startAt,
       selectionMs,
       selectionRegistrationMs,
-      selectionProjectionMs,
+      selectionProjectionMs: 0,
       selectedSamplesMs,
       metricsMs,
       luminanceHistogramMs: 0,

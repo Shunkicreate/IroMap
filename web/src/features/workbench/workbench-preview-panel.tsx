@@ -251,7 +251,7 @@ export function WorkbenchPreviewPanel(props: Props) {
     : 5;
   const samplingStep = target.result?.samplingStep ?? 1;
   const samplingGridStroke =
-    samplingGridColor === "white" ? "rgba(248, 250, 252, 0.72)" : "rgba(15, 23, 42, 0.58)";
+    samplingGridColor === "white" ? "rgba(248, 250, 252, 0.92)" : "rgba(15, 23, 42, 0.82)";
   const samplingGridPattern =
     target.result && isSamplingGridVisible ? (
       <pattern
@@ -264,7 +264,7 @@ export function WorkbenchPreviewPanel(props: Props) {
           d={`M ${samplingStep} 0 L 0 0 0 ${samplingStep}`}
           fill="none"
           stroke={samplingGridStroke}
-          strokeWidth="0.5"
+          strokeWidth="0.7"
         />
       </pattern>
     ) : null;
