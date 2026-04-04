@@ -12,6 +12,11 @@ import {
   findNearestSampleByCoordinate,
 } from "@/features/workbench/workbench-shared";
 
+type ActiveHoverSearchWorkerRequest = Exclude<
+  HoverSearchWorkerRequest,
+  { kind: "register-analysis" } | { kind: "unregister-analysis" }
+>;
+
 type RegisteredAnalysis = {
   result: PhotoAnalysisResult;
   buckets: Map<string, PhotoAnalysisResult["samples"]>;
@@ -39,66 +44,60 @@ self.onmessage = (event: MessageEvent<HoverSearchWorkerRequest>) => {
     return;
   }
 
-  const analysis = analyses.get(message.analysisId);
+  const activeRequest: ActiveHoverSearchWorkerRequest = message;
+  const analysis = analyses.get(activeRequest.analysisId);
   if (!analysis) {
     post({
       kind: "error",
-      requestId: message.requestId,
-      analysisId: message.analysisId,
+      requestId: activeRequest.requestId,
+      analysisId: activeRequest.analysisId,
       error: "analysis-not-found",
     });
     return;
   }
 
   try {
-    if (message.kind === "preview-hover") {
+    if (activeRequest.kind === "preview-hover") {
       post({
         kind: "preview-hover-result",
-        requestId: message.requestId,
-        analysisId: message.analysisId,
-        sample: findNearestSampleByCoordinate(analysis.result, message.x, message.y),
+        requestId: activeRequest.requestId,
+        analysisId: activeRequest.analysisId,
+        sample: findNearestSampleByCoordinate(analysis.result, activeRequest.x, activeRequest.y),
       });
       return;
     }
 
-    if (message.kind === "resolve-color-sample") {
+    if (activeRequest.kind === "resolve-color-sample") {
       post({
         kind: "resolve-color-sample-result",
-        requestId: message.requestId,
-        analysisId: message.analysisId,
-        sample: findNearestSampleByColor(analysis.result, analysis.buckets, message.color),
+        requestId: activeRequest.requestId,
+        analysisId: activeRequest.analysisId,
+        sample: findNearestSampleByColor(analysis.result, analysis.buckets, activeRequest.color),
       });
       return;
     }
 
-    if (message.kind === "slice-hover") {
+    if (activeRequest.kind === "slice-hover") {
       post({
         kind: "slice-hover-result",
-        requestId: message.requestId,
-        analysisId: message.analysisId,
+        requestId: activeRequest.requestId,
+        analysisId: activeRequest.analysisId,
         color: findNearestSliceHoverColor(
           analysis.result.samples,
-          message.axis,
-          message.value,
-          message.x,
-          message.y,
-          message.maxDistanceSquared
+          activeRequest.axis,
+          activeRequest.value,
+          activeRequest.x,
+          activeRequest.y,
+          activeRequest.maxDistanceSquared
         ),
       });
       return;
     }
-
-    post({
-      kind: "error",
-      requestId: message.requestId,
-      analysisId: message.analysisId,
-      error: "hover-search-failed",
-    });
   } catch {
     post({
       kind: "error",
-      requestId: message.requestId,
-      analysisId: message.analysisId,
+      requestId: activeRequest.requestId,
+      analysisId: activeRequest.analysisId,
       error: "hover-search-failed",
     });
   }
