@@ -875,10 +875,9 @@ export function ColorWorkbench() {
             isSamplingGridVisible={isPreviewSamplingGridVisible}
             samplingGridColor={previewSamplingGridColor}
             samplingDensityPercent={
-              baselineTarget.result?.samplingDensityPercent ??
-              (samplingDensityPercent === legacySamplingDensityPercent
-                ? defaultSamplingDensityPercent
-                : samplingDensityPercent)
+              samplingDensityPercent === legacySamplingDensityPercent
+                ? (baselineTarget.result?.samplingDensityPercent ?? defaultSamplingDensityPercent)
+                : samplingDensityPercent
             }
             onHoverSampleChange={handlePreviewHover}
             onSamplingGridVisibleChange={setIsPreviewSamplingGridVisible}

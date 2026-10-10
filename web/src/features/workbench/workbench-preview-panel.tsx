@@ -75,7 +75,16 @@ export function WorkbenchPreviewPanel(props: Props) {
   const patternId = useId();
   const [localHoverSample, setLocalHoverSample] = useState<PhotoSample | null>(null);
   const [isPointerInside, setIsPointerInside] = useState(false);
+  const [samplingDensityDraft, setSamplingDensityDraft] = useState<number | null>(null);
+  const displayedSamplingDensityPercent = samplingDensityDraft ?? samplingDensityPercent;
   const sharedHoverSample = useSharedHoverState((state) => state.sample);
+
+  const commitSamplingDensity = (value: number): void => {
+    setSamplingDensityDraft(null);
+    if (value !== samplingDensityPercent) {
+      onSamplingDensityPercentChange(value);
+    }
+  };
 
   const getPreviewBounds = (): DOMRect | null => {
     if (imageRef.current) {
@@ -359,7 +368,7 @@ export function WorkbenchPreviewPanel(props: Props) {
           </div>
           <label className={controlStyles.stackedLabel}>
             {t("previewSamplingDensityLabel", {
-              value: samplingDensityPercent,
+              value: displayedSamplingDensityPercent,
               sampleCount: sampledPixels.toLocaleString(),
             })}
             <input
@@ -368,11 +377,35 @@ export function WorkbenchPreviewPanel(props: Props) {
               min={1}
               max={100}
               step={1}
-              value={samplingDensityPercent}
-              onChange={(event) => onSamplingDensityPercentChange(Number(event.target.value))}
+              value={displayedSamplingDensityPercent}
+              onChange={(event) => setSamplingDensityDraft(Number(event.target.value))}
+              onPointerDown={(event) => event.currentTarget.setPointerCapture(event.pointerId)}
+              onPointerUp={(event) => commitSamplingDensity(Number(event.currentTarget.value))}
+              onPointerCancel={() => setSamplingDensityDraft(null)}
+              onKeyUp={(event) => {
+                if (
+                  [
+                    "ArrowLeft",
+                    "ArrowRight",
+                    "ArrowUp",
+                    "ArrowDown",
+                    "Home",
+                    "End",
+                    "PageUp",
+                    "PageDown",
+                  ].includes(event.key)
+                ) {
+                  commitSamplingDensity(Number(event.currentTarget.value));
+                }
+              }}
+              onBlur={(event) => {
+                if (samplingDensityDraft !== null) {
+                  commitSamplingDensity(Number(event.currentTarget.value));
+                }
+              }}
             />
           </label>
-          {samplingDensityPercent === 100 ? (
+          {displayedSamplingDensityPercent === 100 ? (
             <p className={`muted ${previewStyles.statusLine}`}>
               {t("previewSamplingDensityFullWarning")}
             </p>
