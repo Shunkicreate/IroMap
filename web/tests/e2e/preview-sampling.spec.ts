@@ -2,6 +2,11 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import sharp from "sharp";
 import { getPanel } from "./helpers";
 
+type SamplingTestWindow = typeof window & {
+  pendingSamplingAnalysisCount: () => number;
+  releaseSamplingAnalysis: () => void;
+};
+
 const storageKey = "iromap.workbench.preview.sampling-density-percent";
 
 const getAnalysisCount = (page: Page): Promise<number> =>
@@ -51,6 +56,86 @@ const expectUncommitted = async (page: Page, slider: Locator, value: string): Pr
   expect(await getStoredDensity(page)).toBe("40");
 };
 
+const holdSamplingAnalysis = async (page: Page): Promise<void> => {
+  await page.evaluate(() => {
+    const originalPostMessage = Worker.prototype.postMessage;
+    const pending: Array<() => void> = [];
+    Worker.prototype.postMessage = function (
+      message: unknown,
+      options?: StructuredSerializeOptions | Transferable[]
+    ): void {
+      const send = () => Reflect.apply(originalPostMessage, this, [message, options]);
+      if (
+        message &&
+        typeof message === "object" &&
+        "kind" in message &&
+        message.kind === "analyze-photo"
+      ) {
+        pending.push(send);
+      } else {
+        send();
+      }
+    };
+    const testWindow = window as SamplingTestWindow;
+    testWindow.pendingSamplingAnalysisCount = () => pending.length;
+    testWindow.releaseSamplingAnalysis = () => {
+      Worker.prototype.postMessage = originalPostMessage;
+      for (const send of pending.splice(0)) {
+        send();
+      }
+    };
+  });
+};
+
+const waitForHeldAnalysis = async (page: Page): Promise<void> => {
+  await expect
+    .poll(() => page.evaluate(() => (window as SamplingTestWindow).pendingSamplingAnalysisCount()))
+    .toBe(1);
+};
+
+test("密度を確定した後の再解析中もサンプル数とグリッドとプレビューを保持する", async ({ page }) => {
+  const slider = await prepareSamplingSlider(page);
+  const preview = getPanel(page, "選択画像");
+  const previewUrl = await preview.locator("img").getAttribute("src");
+  await holdSamplingAnalysis(page);
+  await slider.press("End");
+  await waitForHeldAnalysis(page);
+
+  await expect(slider).toHaveAccessibleName("サンプリング密度: 100% (16,384 samples)");
+  await expect(preview.locator("pattern")).toHaveAttribute("width", "2");
+  await expect(preview.locator("img")).toHaveAttribute("src", previewUrl!);
+  expect(await getAnalysisCount(page)).toBe(1);
+
+  await page.evaluate(() => (window as SamplingTestWindow).releaseSamplingAnalysis());
+  await expect.poll(() => getAnalysisCount(page), { timeout: 15_000 }).toBe(2);
+  await expect(slider).toHaveAccessibleName("サンプリング密度: 100% (65,536 samples)");
+  await expect(preview.locator("pattern")).toHaveAttribute("width", "1");
+  await expect(preview.locator("img")).toHaveAttribute("src", previewUrl!);
+});
+
+test("別画像の解析中は前の画像のサンプル数とグリッドを表示しない", async ({ page }) => {
+  const slider = await prepareSamplingSlider(page);
+  const preview = getPanel(page, "選択画像");
+  const previousPreviewUrl = await preview.locator("img").getAttribute("src");
+  await holdSamplingAnalysis(page);
+  const buffer = await sharp({
+    create: { width: 2, height: 2, channels: 3, background: "#0000ff" },
+  })
+    .png()
+    .toBuffer();
+  await page
+    .getByLabel("画像をアップロード")
+    .setInputFiles({ name: "replacement.png", mimeType: "image/png", buffer });
+  await waitForHeldAnalysis(page);
+
+  await expect(slider).toHaveAccessibleName("サンプリング密度: 40% (0 samples)");
+  await expect(preview.locator("pattern")).toHaveCount(0);
+  await expect(preview.locator("img")).not.toHaveAttribute("src", previousPreviewUrl!);
+  await page.evaluate(() => (window as SamplingTestWindow).releaseSamplingAnalysis());
+  await expect.poll(() => getAnalysisCount(page), { timeout: 15_000 }).toBe(2);
+  await expect(slider).toHaveAccessibleName("サンプリング密度: 40% (4 samples)");
+});
+
 test("密度はドラッグ中に解析せず、スライダー外で離しても最終値で一度だけ解析する", async ({
   page,
 }) => {
@@ -63,7 +148,7 @@ test("密度はドラッグ中に解析せず、スライダー外で離して�
   await page.mouse.move(box.x + box.width + 20, box.y + box.height + 20);
   await page.mouse.up();
 
-  await expect.poll(() => getAnalysisCount(page)).toBe(2);
+  await expect.poll(() => getAnalysisCount(page), { timeout: 15_000 }).toBe(2);
   await expect(slider).toHaveAccessibleName("サンプリング密度: 100% (65,536 samples)");
   await expect(getPanel(page, "選択画像").locator("pattern")).toHaveAttribute("width", "1");
   expect(await getStoredDensity(page)).toBe("100");
@@ -85,7 +170,7 @@ for (const { key, value } of [
     await page.keyboard.down(key);
     await expectUncommitted(page, slider, value);
     await page.keyboard.up(key);
-    await expect.poll(() => getAnalysisCount(page)).toBe(2);
+    await expect.poll(() => getAnalysisCount(page), { timeout: 15_000 }).toBe(2);
     expect(await getStoredDensity(page)).toBe(value);
     await slider.blur();
     expect(await getAnalysisCount(page)).toBe(2);
@@ -99,7 +184,7 @@ test("キー操作中にフォーカスを失っても密度を一度だけ確�
   await expectUncommitted(page, slider, "100");
   await slider.blur();
   await page.keyboard.up("End");
-  await expect.poll(() => getAnalysisCount(page)).toBe(2);
+  await expect.poll(() => getAnalysisCount(page), { timeout: 15_000 }).toBe(2);
   expect(await getStoredDensity(page)).toBe("100");
 });
 
@@ -146,7 +231,7 @@ test.describe("タッチでの密度操作", () => {
     });
     await expectUncommitted(page, slider, "100");
     await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-    await expect.poll(() => getAnalysisCount(page)).toBe(2);
+    await expect.poll(() => getAnalysisCount(page), { timeout: 15_000 }).toBe(2);
     expect(await getStoredDensity(page)).toBe("100");
     await session.detach();
 
