@@ -1054,6 +1054,7 @@ export function ColorWorkbench() {
             space={space}
             axis={sliceAxis}
             value={sliceValue}
+            selectedColor={selectedColor}
             displayOptionsStorageKey={storageKeys.sliceOptionsPanel}
             mappedSamples={sliceMappedSamples}
             selectedSamples={selectedSamples}
