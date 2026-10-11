@@ -122,6 +122,7 @@ test("T-109(ui-foundation): 写真分析の上部CTAと分析パネルが表示�
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
 
-  await expect(page.getByText("画像をアップロードして分析を始める")).toBeVisible();
+  await expect(page.getByText("選ぶ", { exact: true })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "画像のペースト入力欄" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "写真分析" })).toBeVisible();
 });
