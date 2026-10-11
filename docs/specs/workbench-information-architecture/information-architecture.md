@@ -31,7 +31,9 @@
 - スマホ: 正方形に近い3D図と断面図を縦に並べる。ラベルとスライダーは描画領域の外側で直近に置く。
 - 4K・ウルトラワイド: 余った幅で主領域間の距離を広げない。具体的な寸法・開閉容器は後続設計。
 - 補助画面: 主画面との関係ではP3でも、その画面内での主情報はP1と明記する。
-- 文言IDは既存辞書のキーを基準にする。変更後もキー名の「White」などを意味の定義として使わない。
+- 文言IDはui-copy.mdで定義する設計上のIDを参照する。実装の辞書キーやファイル構成とは独立させ、キー名の「White」などを意味の定義として使わない。
+- 実装への依存は持たない。既存コードの棚卸しはinformation-audit.md、実装側の対応はimplementation-map.mdで管理する。
+- 操作と状態はstate-transitions.mdで同じ要素IDに対応づける。この文書は情報の重要度と開示階層だけを扱う。
 
 ## W-00 作業画面の共通情報
 
@@ -43,7 +45,6 @@
   - 対象画面: /。
   - タイトル、説明、テーマ、現在の選択色。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/app/page.tsx`。
 
 ### W-01 画面タイトルと説明
 
@@ -56,7 +57,6 @@
   - 見出しと一文の説明。
   - 装飾的な大見出しは重要情報として扱わない。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/app/page.tsx`。
 - 文言ID: `heroTitle`、`heroDescription`。
 
 ### W-02 テーマ
@@ -71,7 +71,6 @@
   - 操作先のtitle・読み上げ文言。
   - 太陽／月のアイコンはボタンの装飾。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/components/theme-toggle.tsx`。
 - 補助文言ID: `proposal.themeAction`。
 - 文言ID: `workbenchThemeLabel`、`workbenchThemeLight`、`workbenchThemeDark`。
 
@@ -87,7 +86,6 @@
   - 未選択の短い案内。
   - 過去の色・基準色の比較枠は含めない。
 - 根拠区分: 設計提案・既存の選択色情報を主領域へ分ける。
-- 参照元: `web/src/features/inspector/color-inspector.tsx`。
 - 文言ID: `inspectorSelected`、`inspectorNoSelected`。
 
 ## P-00 写真
@@ -102,7 +100,6 @@
   - 表示設定。
   - 画像情報。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-preview-panel.tsx`。
 
 ### P-01 写真を選ぶ
 
@@ -115,7 +112,6 @@
   - 画像ファイル入力: image/\*。
   - OSの選択ダイアログはこの情報設計の対象外。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-preview-panel.tsx`。
 - 文言ID: `photoChooseAction`、`photoUploadLabel`。
 
 ### P-02 画像を貼り付ける入力欄
@@ -130,7 +126,6 @@
   - 入力欄の読み上げ名。
   - 長押し／Ctrl+V／⌘Vの補助文。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-preview-panel.tsx`。
 - 文言ID: `photoPasteAction`、`photoPasteActionHint`、`photoPasteInputLabel`。
 
 ### P-03 写真の参照入口
@@ -144,7 +139,6 @@
   - ファイル名と小さな写真の識別表示はこの入口にまとめる。
   - スマホの写真参照容器の形式は未決。
 - 根拠区分: 設計提案・入口の具体形は後続の配置設計。
-- 参照元: `web/src/features/workbench/workbench-preview-panel.tsx`。
 - 補助文言ID: `proposal.photoOpen`。
 
 #### P-04 写真の参照領域
@@ -158,7 +152,6 @@
   - 点・領域・カーソルの目印。
   - 写真を閉じる操作。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-preview-panel.tsx`。
 - 文言ID: `photoPreviewTitle`。
 
 ##### P-05 対象写真と代替情報
@@ -172,7 +165,6 @@
   - 代替テキスト: 分析対象画像とファイル名。
   - 画像がない場合のImageアイコンと案内。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-preview-panel.tsx`。
 - 文言ID: `photoPreviewAlt`、`photoPreviewEmpty`。
 
 ##### P-06 写真上の点の目印
@@ -187,7 +179,6 @@
   - 色だけに依存しない形・枠。
   - 内部のsampleIdは表示しない。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-preview-panel.tsx`。
 
 ##### P-07 写真上の領域の枠
 
@@ -200,7 +191,6 @@
   - 領域指定中の矩形。
   - 範囲は画像上の位置で表現。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-preview-panel.tsx`。
 
 ##### P-08 写真を閉じる操作
 
@@ -212,7 +202,6 @@
   - ラベル: 写真を閉じる。
   - 閉じるアイコンと読み上げ名。
 - 根拠区分: 設計提案・写真を補助領域にした場合の操作。
-- 参照元: `web/src/features/workbench/workbench-preview-panel.tsx`。
 - 補助文言ID: `proposal.photoClose`。
 
 ### P-09 写真の表示設定入口
@@ -225,7 +214,6 @@
   - 開閉の要約ラベル。
   - 開閉を表すマーカー。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-preview-panel.tsx`。
 - 文言ID: `workbenchDisplayOptionsDisclosure`。
 
 #### P-10 写真の表示設定
@@ -239,7 +227,6 @@
   - グリッド線の色。
   - サンプリング密度。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-preview-panel.tsx`。
 
 ##### P-11 サンプリンググリッド
 
@@ -251,7 +238,6 @@
   - グリッドを表示するチェックボックス。
   - 画像上の格子パターン。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-preview-panel.tsx`。
 - 文言ID: `previewShowSamplingGrid`。
 
 ##### P-12 グリッド線の色
@@ -264,7 +250,6 @@
   - ラベル: グリッド線の色。
   - 白／黒の選択肢。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-preview-panel.tsx`。
 - 文言ID: `previewSamplingGridColorLabel`、`previewSamplingGridColorWhite`、`previewSamplingGridColorBlack`。
 
 ##### P-13 サンプリング密度
@@ -280,7 +265,6 @@
   - 既存の初期値: 40%。
   - 100%の処理負荷についての注意。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-preview-panel.tsx`、`web/src/domain/photo-analysis/shared/photo-analysis-constants.ts`。
 - 文言ID: `previewSamplingDensityLabel`、`previewSamplingDensityFullWarning`。
 
 ### P-14 画像情報の入口
@@ -293,7 +277,6 @@
   - 画像情報の要約ラベル。
   - 開閉マーカー。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-preview-panel.tsx`。
 - 文言ID: `photoMetaSummary`。
 
 #### P-15 画像情報
@@ -305,7 +288,6 @@
 - 内容:
   - ファイルと解析情報。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-preview-panel.tsx`。
 
 ##### P-16 ファイルと解析情報の値
 
@@ -320,7 +302,6 @@
   - 処理時間、単位ms。
   - 各値の表示書式は既存を基準。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-preview-panel.tsx`、`web/src/features/workbench/color-workbench.tsx`。
 - 文言ID: `photoUploadSelected`、`photoSummary`。
 
 ## C-00 3Dキューブ
@@ -335,7 +316,6 @@
   - 図の補足情報。
   - 表示設定。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/color-workbench.tsx`、`web/src/features/rgb-cube/rgb-cube-canvas.tsx`。
 - 文言ID: `panelRgbCube`。
 
 ### C-01 3D図
@@ -355,7 +335,6 @@
   - キャンバスの読み上げ名。
   - スマホでは正方形に近い描画領域。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/rgb-cube/rgb-cube-canvas.tsx`。
 - 文言ID: `cubeCanvasAriaLabel`。
 
 ### C-02 3D図の短い説明
@@ -368,7 +347,6 @@
   - 位置と分布の確認という用途の説明。
   - 必要最小限のドラッグ操作の説明。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/color-workbench.tsx`。
 - 文言ID: `panelRgbCubeRequirements`。
 
 ### C-03 色空間
@@ -382,7 +360,6 @@
   - 既存の初期値RGBを継承。
   - Labは選択できる補助的な色空間。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/color-workbench.tsx`。
 - 文言ID: `spaceRgb`、`spaceHsl`、`spaceLab`。
 
 ### C-04 軸とスライス位置の文脈
@@ -393,11 +370,15 @@
 - 開示区分: 図の近傍・短く。
 - 内容:
   - 空間ごとの軸名。
-  - RGBはR/G/B、HSLはH/S/L、LabはL\*/a\*/b\*。
+  - RGBはR/G/B、HSLの3D横軸はS·cos(H)とS·sin(H)、縦軸はL。LabはL\*/a\*/b\*。
+  - RGBの目盛りは0、64、128、191、255。
+  - HSLの横軸成分は−100、−50、0、50、100%、縦軸Lは0、25、50、75、100%。横軸成分を色相角度や彩度そのものと混同しない。
+  - LabのL\*は0、25、50、75、100、a\*/b\*は−128、−64、0、64、128。
+  - 軸名と最大値、点群の回転とサイズに対応する数値位置。
+  - ラベルが重なる場合の省略。回転で確認できるよう縦軸・端点・中央の目盛りを優先する。
   - 現在の固定軸と値。
   - 3D内のスライス平面。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/rgb-cube/rgb-cube-canvas.tsx`、`web/src/features/rgb-cube/rgb-cube-guides.ts`。
 - 文言ID: `cubeSliceOverlay`。
 
 ### C-05 3Dの表示設定入口
@@ -410,7 +391,6 @@
   - 表示設定の要約ラベル。
   - 開閉マーカー。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/color-workbench.tsx`。
 - 文言ID: `workbenchDisplayOptionsDisclosure`。
 
 #### C-06 3Dの表示設定
@@ -425,7 +405,6 @@
   - 軸ガイド。
   - 図のサイズ。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/color-workbench.tsx`。
 
 ##### C-07 表示内容
 
@@ -439,7 +418,6 @@
   - 色空間の点と写真の点。
   - 既存の表示モード3種を継承。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/color-workbench.tsx`。
 - 文言ID: `cubeOverlayModeLabel`、`cubeOverlayModeGrid`、`cubeOverlayModeImage`、`cubeOverlayModeBoth`。
 
 ##### C-08 写真の点を表示
@@ -453,7 +431,6 @@
   - 写真全体に由来する点群。
   - 点の数・割合を反映する描画表現。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/color-workbench.tsx`、`web/src/features/rgb-cube/rgb-cube-canvas.tsx`。
 - 文言ID: `workbenchShowWhiteMappingCube`。
 
 ##### C-09 選択範囲の点を表示
@@ -466,7 +443,6 @@
   - チェックボックス。
   - 選択範囲の点群の強調表示。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/color-workbench.tsx`、`web/src/features/rgb-cube/rgb-cube-canvas.tsx`。
 - 文言ID: `workbenchShowSelectedMappingCube`。
 
 ##### C-10 軸ガイド
@@ -479,7 +455,6 @@
   - 軸ガイドの表示チェックボックス。
   - 線・ラベル・空間形状のガイド。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/color-workbench.tsx`、`web/src/features/rgb-cube/rgb-cube-guides.ts`。
 - 文言ID: `cubeShowAxisGuide`。
 
 ##### C-11 図のサイズ
@@ -494,7 +469,6 @@
   - 320〜900px、刻み10pxのスライダー。
   - 既存の初期値760px。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/color-workbench.tsx`。
 - 文言ID: `cubeShowSizeSlider`、`cubeSizeLabel`。
 
 ##### C-12 描画の補足情報
@@ -509,7 +483,6 @@
   - 写真の点の数。
   - 画像の解像度とは別の値。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/rgb-cube/rgb-cube-canvas.tsx`。
 - 文言ID: `cubeResolutionOverlay`、`cubeOverlayStatus`。
 
 ## S-00 スライス
@@ -525,7 +498,6 @@
   - 選択色の高さへの入口。
   - 表示設定。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/slice/slice-canvas.tsx`。
 - 文言ID: `panelSlice`。
 
 ### S-01 断面図
@@ -544,7 +516,6 @@
   - スマホでは正方形に近い図を3Dの下へ配置。
   - 方向別色プレビューは含めない。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/slice/slice-canvas.tsx`。
 - 文言ID: `sliceCanvasAriaLabel`。
 
 ### S-02 スライスの短い説明
@@ -556,7 +527,6 @@
 - 内容:
   - 一つの軸を固定した色の断面という説明。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/slice/slice-canvas.tsx`。
 - 文言ID: `panelSliceRequirements`。
 
 ### S-03 固定軸
@@ -571,7 +541,6 @@
   - HSL: H（色相）/S（彩度）/L（明るさ）。
   - Lab: L\*（明度）/a\*（緑↔赤）/b\*（青↔黄）。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/slice/slice-canvas.tsx`。
 - 文言ID: `sliceAxisLabel`、`sliceAxisR`、`sliceAxisG`、`sliceAxisB`、`sliceAxisH`、`sliceAxisS`、`sliceAxisL`、`sliceAxisLabL`、`sliceAxisLabA`、`sliceAxisLabB`。
 
 ### S-04 固定値とスライダー
@@ -588,7 +557,6 @@
   - 固定軸と現在値のバッジ。
   - 既存の範囲・刻みを継承。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/slice/slice-canvas.tsx`、`web/src/features/workbench/workbench-shared.ts`。
 - 文言ID: `sliceValueLabel`、`sliceFixedAxisLabel`。
 
 ### S-05 断面の縦横の軸
@@ -603,7 +571,6 @@
   - 軸に必要な単位。
   - 左右上下の数値目盛の追加は未確定。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/slice/slice-canvas.tsx`。
 - 文言ID: `sliceAxisXLabel`、`sliceAxisYLabel`。
 
 ### S-06 選択色の高さへ移動
@@ -617,7 +584,6 @@
   - 高さは固定軸の値を意味する。
   - 選択色の複数保存や比較操作は含めない。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/slice/slice-canvas.tsx`。
 - 文言ID: `sliceMoveToSelectedColor`。
 
 ### S-07 スライスの表示設定入口
@@ -630,7 +596,6 @@
   - 表示設定の要約ラベル。
   - 開閉マーカー。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/slice/slice-canvas.tsx`。
 - 文言ID: `workbenchDisplayOptionsDisclosure`。
 
 #### S-08 スライスの表示設定
@@ -643,7 +608,6 @@
   - 写真の点。
   - 選択範囲の点。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/slice/slice-canvas.tsx`。
 
 ##### S-09 写真の点を表示
 
@@ -655,7 +619,6 @@
   - チェックボックス。
   - 白色のサンプル点は既存描画の参考、固定デザイン色ではない。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/slice/slice-canvas.tsx`。
 - 文言ID: `workbenchShowWhiteMappingSlice`。
 
 ##### S-10 選択範囲の点を表示
@@ -668,7 +631,6 @@
   - チェックボックス。
   - 選択範囲由来の点群。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/slice/slice-canvas.tsx`。
 - 文言ID: `workbenchShowSelectedMappingSlice`。
 
 ## I-00 色の数値
@@ -682,7 +644,6 @@
   - 現在の選択色の数値。
   - 色の貼り付け。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/inspector/color-inspector.tsx`。
 - 文言ID: `panelInspector`。
 
 ### I-01 色の数値を開く入口
@@ -695,7 +656,6 @@
   - 要約ラベルと開閉マーカー。
   - 色コードを確認・コピーするという説明。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/inspector/color-inspector.tsx`。
 - 文言ID: `workbenchInspectorDisclosure`、`panelInspectorRequirements`。
 
 #### I-02 カーソル位置の色
@@ -708,7 +668,6 @@
   - 参照色の見出し。
   - 色の数値。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/inspector/color-inspector.tsx`。
 - 文言ID: `inspectorPreview`、`inspectorHoverLabel`。
 
 ##### I-03 カーソル位置の値と色見本
@@ -723,7 +682,6 @@
   - 対象がない場合の --。
   - コピー操作は既存にはない。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/inspector/color-inspector.tsx`。
 - 補助文言ID: `proposal.colorMissing`。
 
 #### I-04 選択色の数値
@@ -738,7 +696,6 @@
   - 形式ごとの値とコピー。
   - 貼り付け。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/inspector/color-inspector.tsx`。
 - 文言ID: `inspectorSelectedLabel`。
 
 ##### I-05 HEXの値とコピー
@@ -754,7 +711,6 @@
   - 形式を含むコピーの読み上げ名・title。
   - Copyアイコンはボタンの装飾。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/inspector/color-inspector.tsx`。
 - 補助文言ID: `proposal.copyColorFormat`、`proposal.colorMissing`。
 - 文言ID: `copyFormatHex`、`copyButton`。
 
@@ -771,7 +727,6 @@
   - 形式を含むコピーの読み上げ名・title。
   - Copyアイコンはボタンの装飾。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/inspector/color-inspector.tsx`。
 - 補助文言ID: `proposal.copyColorFormat`、`proposal.colorMissing`。
 - 文言ID: `copyFormatRgb`、`copyButton`。
 
@@ -788,7 +743,6 @@
   - 形式を含むコピーの読み上げ名・title。
   - Copyアイコンはボタンの装飾。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/inspector/color-inspector.tsx`。
 - 補助文言ID: `proposal.copyColorFormat`、`proposal.colorMissing`。
 - 文言ID: `copyFormatHsl`、`copyButton`。
 
@@ -804,7 +758,6 @@
   - ClipboardPasteアイコン。
   - 対応形式の案内: HEX / rgb() / hsl()。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/inspector/color-inspector.tsx`。
 - 文言ID: `inspectorPasteSection`、`copyPasteButton`、`inspectorPasteHint`。
 
 ## A-00 補助分析
@@ -818,7 +771,6 @@
   - 写真分析。
   - 既存のコピーと書式の入口。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-metrics-panel.tsx`、`web/src/features/workbench/workbench-analysis-panel.tsx`。
 
 ### A-01 分析表の入口
 
@@ -831,7 +783,6 @@
   - この表に含まれるものの説明。
   - 詳細の開示入口は配置設計の提案。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-metrics-panel.tsx`。
 - 補助文言ID: `proposal.metricsOpen`。
 - 文言ID: `panelMetrics`、`panelMetricsRequirements`。
 
@@ -848,7 +799,6 @@
   - 数値は小数2桁、欠測値はN/A。
   - 単位は該当する値に含める、独立した単位列・キー列は現在の画面にない。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-metrics-panel.tsx`。
 - 補助文言ID: `proposal.metricMissing`。
 - 文言ID: `workbenchTableGroup`、`workbenchTableMetric`、`workbenchTableValue`、`workbenchTableDescription`、`workbenchMetricHelpLabel`。
 
@@ -866,7 +816,6 @@
   - 説明アイコンの読み上げ名と補足ツールチップ。
   - 算出対象は全サンプル、選択範囲だけの指標として扱わない。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-metrics-panel.tsx`、`web/src/features/workbench/workbench-shared.ts`、`web/src/domain/photo-analysis/shared/photo-analysis-constants.ts`。
 - 補助文言ID: `proposal.metricGroupLightness`。
 - 文言ID: `workbenchMetricLabelLMean`、`workbenchMetricDescriptionLMean`、`workbenchMetricTooltipLMean`。
 
@@ -884,7 +833,6 @@
   - 説明アイコンの読み上げ名と補足ツールチップ。
   - 算出対象は全サンプル、選択範囲だけの指標として扱わない。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-metrics-panel.tsx`、`web/src/features/workbench/workbench-shared.ts`、`web/src/domain/photo-analysis/shared/photo-analysis-constants.ts`。
 - 補助文言ID: `proposal.metricGroupLightness`。
 - 文言ID: `workbenchMetricLabelLStddev`、`workbenchMetricDescriptionLStddev`、`workbenchMetricTooltipLStddev`。
 
@@ -902,7 +850,6 @@
   - 説明アイコンの読み上げ名と補足ツールチップ。
   - 算出対象は全サンプル、選択範囲だけの指標として扱わない。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-metrics-panel.tsx`、`web/src/features/workbench/workbench-shared.ts`、`web/src/domain/photo-analysis/shared/photo-analysis-constants.ts`。
 - 補助文言ID: `proposal.metricGroupLightness`。
 - 文言ID: `workbenchMetricLabelLP95`、`workbenchMetricDescriptionLP95`、`workbenchMetricTooltipLP95`。
 
@@ -920,7 +867,6 @@
   - 説明アイコンの読み上げ名と補足ツールチップ。
   - 算出対象は全サンプル、選択範囲だけの指標として扱わない。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-metrics-panel.tsx`、`web/src/features/workbench/workbench-shared.ts`、`web/src/domain/photo-analysis/shared/photo-analysis-constants.ts`。
 - 補助文言ID: `proposal.metricGroupColorBias`。
 - 文言ID: `workbenchMetricLabelAMean`、`workbenchMetricDescriptionAMean`、`workbenchMetricTooltipAMean`。
 
@@ -938,7 +884,6 @@
   - 説明アイコンの読み上げ名と補足ツールチップ。
   - 算出対象は全サンプル、選択範囲だけの指標として扱わない。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-metrics-panel.tsx`、`web/src/features/workbench/workbench-shared.ts`、`web/src/domain/photo-analysis/shared/photo-analysis-constants.ts`。
 - 補助文言ID: `proposal.metricGroupColorBias`。
 - 文言ID: `workbenchMetricLabelBMean`、`workbenchMetricDescriptionBMean`、`workbenchMetricTooltipBMean`。
 
@@ -956,7 +901,6 @@
   - 説明アイコンの読み上げ名と補足ツールチップ。
   - 算出対象は全サンプル、選択範囲だけの指標として扱わない。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-metrics-panel.tsx`、`web/src/features/workbench/workbench-shared.ts`、`web/src/domain/photo-analysis/shared/photo-analysis-constants.ts`。
 - 補助文言ID: `proposal.metricGroupChroma`。
 - 文言ID: `workbenchMetricLabelCMean`、`workbenchMetricDescriptionCMean`、`workbenchMetricTooltipCMean`。
 
@@ -974,7 +918,6 @@
   - 説明アイコンの読み上げ名と補足ツールチップ。
   - 算出対象は全サンプル、選択範囲だけの指標として扱わない。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-metrics-panel.tsx`、`web/src/features/workbench/workbench-shared.ts`、`web/src/domain/photo-analysis/shared/photo-analysis-constants.ts`。
 - 補助文言ID: `proposal.metricGroupChroma`。
 - 文言ID: `workbenchMetricLabelCP95`、`workbenchMetricDescriptionCP95`、`workbenchMetricTooltipCP95`。
 
@@ -992,7 +935,6 @@
   - 説明アイコンの読み上げ名と補足ツールチップ。
   - 算出対象は全サンプル、選択範囲だけの指標として扱わない。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-metrics-panel.tsx`、`web/src/features/workbench/workbench-shared.ts`、`web/src/domain/photo-analysis/shared/photo-analysis-constants.ts`。
 - 補助文言ID: `proposal.metricGroupNeutral`。
 - 文言ID: `workbenchMetricLabelNeutralDistanceMean`、`workbenchMetricDescriptionNeutralDistanceMean`、`workbenchMetricTooltipNeutralDistanceMean`。
 
@@ -1010,7 +952,6 @@
   - 説明アイコンの読み上げ名と補足ツールチップ。
   - 算出対象は全サンプル、選択範囲だけの指標として扱わない。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-metrics-panel.tsx`、`web/src/features/workbench/workbench-shared.ts`、`web/src/domain/photo-analysis/shared/photo-analysis-constants.ts`。
 - 補助文言ID: `proposal.metricGroupHighlight`。
 - 文言ID: `workbenchMetricLabelHighlightAMean`、`workbenchMetricDescriptionHighlightAMean`、`workbenchMetricTooltipHighlightAMean`。
 
@@ -1028,7 +969,6 @@
   - 説明アイコンの読み上げ名と補足ツールチップ。
   - 算出対象は全サンプル、選択範囲だけの指標として扱わない。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-metrics-panel.tsx`、`web/src/features/workbench/workbench-shared.ts`、`web/src/domain/photo-analysis/shared/photo-analysis-constants.ts`。
 - 補助文言ID: `proposal.metricGroupHighlight`。
 - 文言ID: `workbenchMetricLabelHighlightBMean`、`workbenchMetricDescriptionHighlightBMean`、`workbenchMetricTooltipHighlightBMean`。
 
@@ -1046,7 +986,6 @@
   - 説明アイコンの読み上げ名と補足ツールチップ。
   - 算出対象は全サンプル、選択範囲だけの指標として扱わない。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-metrics-panel.tsx`、`web/src/features/workbench/workbench-shared.ts`、`web/src/domain/photo-analysis/shared/photo-analysis-constants.ts`。
 - 補助文言ID: `proposal.metricGroupHighlight`。
 - 文言ID: `workbenchMetricLabelHighlightNeutralDistanceMean`、`workbenchMetricDescriptionHighlightNeutralDistanceMean`、`workbenchMetricTooltipHighlightNeutralDistanceMean`。
 
@@ -1060,7 +999,6 @@
   - 書式とコピー操作。
   - コピー対象・内容の再設計はスコープ外。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-metrics-panel.tsx`。
 
 ##### A-04 コピーの書式
 
@@ -1073,7 +1011,6 @@
   - Markdown／CSV／TSVの選択肢。
   - 既存の初期形式Markdown。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-metrics-panel.tsx`。
 - 補助文言ID: `workbenchTableKey`、`workbenchTableUnit`、`graphAxisBin`、`graphAxisStart`、`graphAxisEnd`、`graphAxisRatio`。
 - 文言ID: `workbenchCopyFormatWorkbenchLabel`、`workbenchExportMarkdown`、`workbenchExportCsv`、`workbenchExportTsv`。
 
@@ -1087,7 +1024,6 @@
   - 表をコピーするボタン。
   - 内容の変更は行わない。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-metrics-panel.tsx`。
 - 補助文言ID: `workbenchTableKey`、`workbenchTableUnit`、`graphAxisBin`、`graphAxisStart`、`graphAxisEnd`、`graphAxisRatio`。
 - 文言ID: `workbenchTableCopy`。
 
@@ -1102,7 +1038,6 @@
   - 分布と比率を確認できるという説明。
   - 詳細の開示入口は配置設計の提案。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-analysis-panel.tsx`。
 - 補助文言ID: `proposal.analysisOpen`。
 - 文言ID: `panelPhotoAnalysis`、`panelPhotoAnalysisRequirements`。
 
@@ -1117,7 +1052,6 @@
   - 彩度傾向。
   - 現実装のルールによる要約、現像提案やAIの評価ではない。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-analysis-panel.tsx`。
 - 文言ID: `photoInsightTitle`。
 
 ##### A-08 色相バランス
@@ -1131,7 +1065,6 @@
   - 分類: 多様／やや偏り／偏りが強い。
   - 分類閾値の再設計は含めない。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-analysis-panel.tsx`、`web/src/features/workbench/workbench-shared.ts`。
 - 文言ID: `photoInsightHue`、`photoInsightHueBalanced`、`photoInsightHueModerate`、`photoInsightHueNarrow`。
 
 ##### A-09 彩度傾向
@@ -1144,7 +1077,6 @@
   - 動的ラベル。
   - 分類: 高彩度寄り／中間／低彩度寄り。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-analysis-panel.tsx`、`web/src/features/workbench/workbench-shared.ts`。
 - 文言ID: `photoInsightSaturation`、`photoInsightSatHigh`、`photoInsightSatMid`、`photoInsightSatLow`。
 
 #### A-10 色面積比
@@ -1157,7 +1089,6 @@
   - 見出し。
   - 繰り返し表示される色の行。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-analysis-panel.tsx`。
 - 文言ID: `photoColorAreaRatio`。
 
 ##### A-11 色面積比の各行
@@ -1173,7 +1104,6 @@
   - 上位5色と必要な場合のその他。
   - その他の色見本は分類の代表で写真の一色とは限らない。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-analysis-panel.tsx`、`web/src/domain/photo-analysis/shared/photo-analysis-constants.ts`。
 - 文言ID: `photoOthers`。
 
 #### A-12 明度ヒストグラム
@@ -1186,7 +1116,6 @@
   - 見出し。
   - 棒グラフと軸。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-analysis-panel.tsx`。
 - 文言ID: `workbenchHistogramCardTitle`。
 
 ##### A-12-G 棒グラフと軸
@@ -1202,7 +1131,6 @@
   - 各棒のtitleは区間と件数。
   - 背景と枠はグラフの構成要素、独立した情報ではない。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-histogram-chart.tsx`、`web/src/features/workbench/workbench-analysis-panel.tsx`。
 - 補助文言ID: `proposal.histogramBar`。
 - 文言ID: `graphAxisLuminance`、`graphAxisCount`。
 
@@ -1216,7 +1144,6 @@
   - 見出し。
   - 棒グラフと軸。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-analysis-panel.tsx`。
 - 文言ID: `photoHueHistogram`。
 
 ##### A-14-G 棒グラフと軸
@@ -1232,7 +1159,6 @@
   - 各棒のtitleは区間と件数。
   - 背景と枠はグラフの構成要素、独立した情報ではない。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-histogram-chart.tsx`、`web/src/features/workbench/workbench-analysis-panel.tsx`。
 - 補助文言ID: `proposal.histogramBar`。
 - 文言ID: `graphAxisHue`、`graphAxisCount`。
 
@@ -1246,7 +1172,6 @@
   - 見出し。
   - 棒グラフと軸。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-analysis-panel.tsx`。
 - 文言ID: `photoSaturationHistogram`。
 
 ##### A-16-G 棒グラフと軸
@@ -1262,7 +1187,6 @@
   - 各棒のtitleは区間と件数。
   - 背景と枠はグラフの構成要素、独立した情報ではない。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-histogram-chart.tsx`、`web/src/features/workbench/workbench-analysis-panel.tsx`。
 - 補助文言ID: `proposal.histogramBar`。
 - 文言ID: `graphAxisSaturation`、`graphAxisCount`。
 
@@ -1276,7 +1200,6 @@
   - 見出し。
   - 散布図。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-analysis-panel.tsx`。
 - 文言ID: `photoLabScatter`。
 
 ##### A-19 散布図の点と軸
@@ -1292,7 +1215,6 @@
   - SVGの背景矩形は図の構成要素。
   - 図の読み上げ名は現実装で不足、後続実装の補完対象。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-analysis-panel.tsx`。
 - 補助文言ID: `proposal.scatterAria`。
 - 文言ID: `graphAxisLabA`、`graphAxisLabB`。
 
@@ -1305,7 +1227,6 @@
 - 内容:
   - コピー操作。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-analysis-panel.tsx`。
 
 ##### A-21 ヒストグラムをコピーする
 
@@ -1317,7 +1238,6 @@
   - 既存ボタン。
   - 書式の既存選択はA-04、内容は既存仕様を継承。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-analysis-panel.tsx`。
 - 補助文言ID: `workbenchTableKey`、`workbenchTableUnit`、`graphAxisBin`、`graphAxisStart`、`graphAxisEnd`、`graphAxisRatio`。
 - 文言ID: `workbenchHistogramCopy`。
 
@@ -1334,7 +1254,6 @@
   - 読み上げ通知。
   - 遷移条件・保持規則・イベントはここでは定義しない。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/color-workbench.tsx`、`web/src/features/inspector/color-inspector.tsx`。
 
 ### F-01 画像がないときの案内
 
@@ -1347,7 +1266,6 @@
   - 写真分析の空欄の案内。
   - 共通の空欄文言、領域ごとに不要な繰り返しは配置レビューで調整。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-preview-panel.tsx`、`web/src/features/workbench/workbench-analysis-panel.tsx`。
 - 文言ID: `photoPreviewEmpty`。
 
 ### F-02 画像処理の案内
@@ -1361,7 +1279,6 @@
   - 初回の画像読み取り・分析エラーの文言。
   - 画像差し替え失敗の追加表示は今回の定義に含めない。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-preview-panel.tsx`、`web/src/features/workbench/color-workbench.tsx`。
 - 文言ID: `photoAnalyzing`、`photoError`。
 
 ### F-03 画像貼り付けの案内
@@ -1376,7 +1293,6 @@
   - 画像貼り付け完了の文言。
   - role=statusによる通知。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/workbench-preview-panel.tsx`、`web/src/features/workbench/color-workbench.tsx`。
 - 文言ID: `photoPasteNoImage`、`photoPasteChooseRecovery`、`photoPasteApplied`。
 
 ### F-04 色のコピー・貼り付けの結果
@@ -1392,7 +1308,6 @@
   - クリップボード読取失敗。
   - 選択色がない案内。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/inspector/color-inspector.tsx`。
 - 文言ID: `copyCopied`、`copyFailed`、`copyPasteApplied`、`copyPasteUnsupported`、`copyPasteFailed`、`copyNeedSelection`。
 
 ### F-05 選択と分析コピーの短い通知
@@ -1407,7 +1322,6 @@
   - 分析表・ヒストグラムのコピー完了と形式。
   - aria-live=politeの短いメッセージ。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/features/workbench/color-workbench.tsx`。
 - 文言ID: `workbenchSelectionUpdated`、`workbenchSelectedColorUpdated`、`workbenchMetricTableCopied`、`workbenchHistogramCopied`。
 
 ### F-06 通知容器
@@ -1422,7 +1336,6 @@
   - アイコンは意味の補助、文字を省略しない。
   - 通知経路の重複整理は後続のUI設計で扱う。
 - 根拠区分: 既存要素・配置と開示の設計案。
-- 参照元: `web/src/components/ui/sonner.tsx`、`web/src/app/layout.tsx`。
 
 ## X-00 APIの分析確認画面
 
@@ -1434,7 +1347,6 @@
   - この画面内では入力・結果が主情報。
   - 主作業画面の常時要素には統合しない。
 - 根拠区分: 既存要素・補助画面として継承。
-- 参照元: `web/src/features/agent-api/agent-analyze-page.tsx`。
 
 ### X-01 API画面の題名と説明
 
@@ -1447,7 +1359,6 @@
   - h1 AI agent image analysis。
   - raw-body APIへの画像入力とJSON結果の説明。
 - 根拠区分: 既存要素・補助画面として継承。
-- 参照元: `web/src/features/agent-api/agent-analyze-page.tsx`。
 - 補助文言ID: `api.eyebrow`、`api.title`、`api.description`。
 
 ### X-02 入力の見出しと対応形式
@@ -1460,7 +1371,6 @@
   - Inputの見出し。
   - 対応形式一覧: image/jpeg、image/png、image/webp。
 - 根拠区分: 既存要素・補助画面として継承。
-- 参照元: `web/src/features/agent-api/agent-analyze-input-card.tsx`。
 - 補助文言ID: `api.input`、`api.supportedTypes`。
 
 ### X-02-F API確認用の画像入力
@@ -1475,7 +1385,6 @@
   - ネイティブ入力のボタン文言はブラウザの言語に依存。
   - 読み上げ用の入力名の追加は後続の補完対象。
 - 根拠区分: 既存要素・補助画面として継承。
-- 参照元: `web/src/features/agent-api/agent-analyze-input-card.tsx`。
 - 補助文言ID: `api.fileInput`。
 
 ### X-02-S API分析の実行ボタン
@@ -1488,7 +1397,6 @@
   - Analyze image。
   - Analyzing...の短い処理表示。
 - 根拠区分: 既存要素・補助画面として継承。
-- 参照元: `web/src/features/agent-api/agent-analyze-input-card.tsx`。
 - 補助文言ID: `api.submit`、`api.submitting`。
 
 ### X-02-I API確認用の写真プレビュー
@@ -1501,7 +1409,6 @@
   - 画像本体。
   - 代替テキスト: ファイル名／Uploaded preview。
 - 根拠区分: 既存要素・補助画面として継承。
-- 参照元: `web/src/features/agent-api/agent-analyze-input-card.tsx`。
 - 補助文言ID: `api.previewAlt`、`api.previewFallback`。
 
 ### X-03 結果カードの文脈
@@ -1516,7 +1423,6 @@
   - エラーコード。
   - エラーメッセージ。
 - 根拠区分: 既存要素・補助画面として継承。
-- 参照元: `web/src/features/agent-api/agent-analyze-result-card.tsx`。
 - 補助文言ID: `api.resultHeading`、`api.resultEmpty`、`api.error.IMAGE_DECODE_FAILED_DIMENSIONS`、`api.error.PIXEL_COUNT_EXCEEDED`、`api.error.ANALYSIS_TIMEOUT`、`api.error.RATE_CHECK_FAILED`、`api.error.UNSUPPORTED_CONTENT_TYPE`、`api.error.EMPTY_IMAGE`、`api.error.PAYLOAD_TOO_LARGE`、`api.error.IMAGE_DECODE_FAILED_BYTES`、`api.error.INTERNAL_ERROR`、`api.error.RATE_LIMITED`、`api.error.REQUEST_FAILED`。
 
 ### X-04 画像の大きさ
@@ -1529,7 +1435,6 @@
   - Size。
   - width × height、単位px。
 - 根拠区分: 既存要素・補助画面として継承。
-- 参照元: `web/src/features/agent-api/agent-analyze-result-card.tsx`。
 - 補助文言ID: `api.size`。
 
 ### X-05 画像の色空間
@@ -1542,7 +1447,6 @@
   - Color space。
   - input.colorSpace。
 - 根拠区分: 既存要素・補助画面として継承。
-- 参照元: `web/src/features/agent-api/agent-analyze-result-card.tsx`。
 - 補助文言ID: `api.colorSpace`。
 
 ### X-06 明るさの平均
@@ -1555,7 +1459,6 @@
   - Brightness: avgBrightness。
   - brightnessは各画素のRGB平均から得る0〜100の値、Lab L\*ではない。
 - 根拠区分: 既存要素・補助画面として継承。
-- 参照元: `web/src/features/agent-api/agent-analyze-result-card.tsx`、`web/src/domain/photo-analysis/agent-api-presentation.ts`。
 - 補助文言ID: `api.brightness`。
 
 ### X-06-S 彩度の平均
@@ -1568,7 +1471,6 @@
   - Saturation: avgSaturation。
   - HSLの彩度の平均を0〜100で表示。
 - 根拠区分: 既存要素・補助画面として継承。
-- 参照元: `web/src/features/agent-api/agent-analyze-result-card.tsx`、`web/src/domain/photo-analysis/agent-api-presentation.ts`。
 - 補助文言ID: `api.saturation`。
 
 ### X-07 説明文
@@ -1581,7 +1483,6 @@
   - Description。
   - summary.descriptionの動的な本文。
 - 根拠区分: 既存要素・補助画面として継承。
-- 参照元: `web/src/features/agent-api/agent-analyze-result-card.tsx`。
 - 補助文言ID: `api.summaryDescription`。
 
 ### X-08 主要色の各項目
@@ -1596,7 +1497,6 @@
   - ratioを%にした小数1桁の値。
   - 繰り返し項目の同じ構成。
 - 根拠区分: 既存要素・補助画面として継承。
-- 参照元: `web/src/features/agent-api/agent-analyze-result-card.tsx`。
 
 ### X-09 可視化の説明
 
@@ -1609,7 +1509,6 @@
   - 説明項目の見出し・説明・所見。
   - この補助画面は既存の展開表示を継承し、無条件に折りたたまない。
 - 根拠区分: 既存要素・補助画面として継承。
-- 参照元: `web/src/features/agent-api/agent-analyze-explanations.tsx`。
 - 補助文言ID: `api.explanations`。
 
 ### X-10 説明の各項目
@@ -1624,7 +1523,6 @@
   - hue-histogram: Hue Histogram、色相の偏りの説明、有効区間数の所見。
   - idとcolorSpaceとaxesは現在の説明カードに直接表示しない。
 - 根拠区分: 既存要素・補助画面として継承。
-- 参照元: `web/src/features/agent-api/agent-analyze-explanations.tsx`、`web/src/domain/photo-analysis/agent-api-presentation.ts`。
 - 補助文言ID: `api.explanationSummary`、`api.explanationSummaryDescription`、`api.explanationCube`、`api.explanationCubeDescription`、`api.explanationCubeFindings`、`api.explanationCubeEmpty`、`api.explanationHue`、`api.explanationHueDescription`、`api.explanationHueFindings`。
 
 ## D-00 APIの説明画面
@@ -1637,7 +1535,6 @@
   - この画面内では仕様情報が主情報。
   - サーバーの値は参照コミット時点の値。
 - 根拠区分: 既存要素・補助画面として継承。
-- 参照元: `web/src/app/docs/agent-api/page.tsx`。
 
 ### D-01 APIの題名と説明
 
@@ -1650,7 +1547,6 @@
   - raw image bytesとstructured JSONの説明。
   - 呼び出し元IPによるVercel Rate Limitingの説明。
 - 根拠区分: 既存要素・補助画面として継承。
-- 参照元: `web/src/app/docs/agent-api/page.tsx`。
 - 補助文言ID: `docs.title`、`docs.intro`。
 
 ### D-02 エンドポイント
@@ -1663,7 +1559,6 @@
   - Endpoint。
   - POST /api/analyze。
 - 根拠区分: 既存要素・補助画面として継承。
-- 参照元: `web/src/app/docs/agent-api/page.tsx`。
 - 補助文言ID: `docs.endpoint`、`docs.endpointValue`。
 
 ### D-03 リクエストの条件
@@ -1679,7 +1574,6 @@
   - Maximum pixel count: 12,000,000。
   - 値はサーバーの設定を正本とする。
 - 根拠区分: 既存要素・補助画面として継承。
-- 参照元: `web/src/app/docs/agent-api/page.tsx`、`web/src/lib/agent-analyze.ts`。
 - 補助文言ID: `docs.request`、`docs.types`、`docs.bodySize`、`docs.pixels`。
 
 ### D-04 リクエストの例
@@ -1697,7 +1591,6 @@
   - 画像バイナリ: @photo.jpg。
   - このMarkdownでは例の構成を箇条書きで定義、コードブロックは使わない。
 - 根拠区分: 既存要素・補助画面として継承。
-- 参照元: `web/src/app/docs/agent-api/page.tsx`。
 - 補助文言ID: `docs.request`。
 
 ### D-05 レスポンスの説明
@@ -1711,7 +1604,6 @@
   - 200 OK。
   - input／summary／analysis／visualization／explanationsの説明。
 - 根拠区分: 既存要素・補助画面として継承。
-- 参照元: `web/src/app/docs/agent-api/page.tsx`。
 - 補助文言ID: `docs.response`、`docs.responseDescription`。
 
 ### D-06 レスポンスの例
@@ -1726,7 +1618,6 @@
   - summary: avgBrightness、avgSaturation、description。
   - 例に実際にある項目のみを定義し、完全なAPI契約の代用とはしない。
 - 根拠区分: 既存要素・補助画面として継承。
-- 参照元: `web/src/app/docs/agent-api/page.tsx`。
 - 補助文言ID: `docs.response`。
 
 ### D-07 エラーコードの説明
@@ -1744,7 +1635,6 @@
   - 408: analysis timeout。
   - 既存説明に500の記載はない。追加はAPI仕様変更時の検討対象。
 - 根拠区分: 既存要素・補助画面として継承。
-- 参照元: `web/src/app/docs/agent-api/page.tsx`。
 - 補助文言ID: `docs.errors`、`docs.error400`、`docs.error413`、`docs.error422`、`docs.error429`、`docs.error408`。
 
 ### D-08 アクセス回数の制限
@@ -1758,7 +1648,6 @@
   - IPあたり1分10リクエスト。
   - 初回公開時の制限方針の説明。
 - 根拠区分: 既存要素・補助画面として継承。
-- 参照元: `web/src/app/docs/agent-api/page.tsx`、`web/src/lib/agent-analyze.ts`。
 - 補助文言ID: `docs.rate`、`docs.ratePolicy`。
 
 ## R-00 APIのHTML結果
@@ -1771,7 +1660,6 @@
   - 静的なHTMLの結果。
   - 対話用の新しい操作は追加しない。
 - 根拠区分: 既存要素・補助画面として継承。
-- 参照元: `web/src/lib/agent-analyze.ts`。
 
 ### R-01 結果の題名
 
@@ -1783,7 +1671,6 @@
   - IroMap image analysis result。
   - Analysis summary。
 - 根拠区分: 既存要素・補助画面として継承。
-- 参照元: `web/src/lib/agent-analyze.ts`。
 - 補助文言ID: `html.title`、`html.summary`。
 
 ### R-02 解析概要の項目
@@ -1800,7 +1687,6 @@
   - Average saturation: avgSaturation。
   - Description: summary.description。
 - 根拠区分: 既存要素・補助画面として継承。
-- 参照元: `web/src/lib/agent-analyze.ts`。
 - 補助文言ID: `html.imageSize`、`html.colorSpace`、`html.dominantColors`、`html.avgBrightness`、`html.avgSaturation`、`html.description`。
 
 ### R-03 分析の説明と所見
@@ -1814,7 +1700,6 @@
   - 各項目のtitle、description、findings。
   - 見出しと二つの文章。
 - 根拠区分: 既存要素・補助画面として継承。
-- 参照元: `web/src/lib/agent-analyze.ts`、`web/src/domain/photo-analysis/agent-api-presentation.ts`。
 - 補助文言ID: `api.explanationSummary`、`api.explanationSummaryDescription`、`api.explanationCube`、`api.explanationCubeDescription`、`api.explanationCubeFindings`、`api.explanationCubeEmpty`、`api.explanationHue`、`api.explanationHueDescription`、`api.explanationHueFindings`。
 
 ## B-00 表示を支える共通要素
@@ -1829,7 +1714,6 @@
   - アイコン。
   - ブラウザタブ名。
 - 根拠区分: 既存要素・補助画面として継承。
-- 参照元: `web/src/app/layout.tsx`。
 
 ### B-01 読み上げとフォーカスの情報
 
@@ -1843,7 +1727,6 @@
   - フォーカス枠は対象の識別に付随。
   - 読み上げ文言はui-copy.mdの同じ要素に集約。
 - 根拠区分: 既存要素・補助画面として継承。
-- 参照元: `web/src/features/rgb-cube/rgb-cube-canvas.tsx`、`web/src/features/slice/slice-canvas.tsx`、`web/src/features/inspector/color-inspector.tsx`、`web/src/features/workbench/workbench-preview-panel.tsx`、`web/src/components/theme-toggle.tsx`。
 
 ### B-02 図と情報の容器
 
@@ -1861,7 +1744,6 @@
   - InfoTooltip: 説明を示すアイコン、読み上げ名、補足文章。
   - 罫線・背景・余白・アイコンの色は後続デザインシステムで定義。
 - 根拠区分: 既存要素・補助画面として継承。
-- 参照元: `web/src/components/workbench/panel-header.tsx`、`web/src/components/graph/graph-frame.tsx`、`web/src/components/workbench/persisted-disclosure.tsx`、`web/src/components/workbench/color-swatch.tsx`、`web/src/components/workbench/info-tooltip.tsx`。
 
 ### B-03 ブラウザタブの名前と説明
 
@@ -1874,5 +1756,4 @@
   - description: Understand the color structure of your photos。
   - 現行の共通メタデータを基準。
 - 根拠区分: 既存要素・補助画面として継承。
-- 参照元: `web/src/app/layout.tsx`。
 - 補助文言ID: `metadata.title`、`metadata.description`。

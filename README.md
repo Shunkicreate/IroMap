@@ -28,6 +28,7 @@ docs/
 - [デザインの上位方針](docs/product/design-foundation.md)
 - [情報の重要度と開示階層](docs/specs/workbench-information-architecture/information-architecture.md)
 - [共通用語集](docs/specs/workbench-information-architecture/glossary.md) / [標準表示文言](docs/specs/workbench-information-architecture/ui-copy.md)
+- [情報単位ごとの操作と状態](docs/specs/workbench-information-architecture/state-transitions.md)
 - `docs/architecture/overview.md`
 - `docs/adr/`
 - `docs/specs/`
@@ -40,6 +41,7 @@ docs/
 - 検討中事項は `notes.md` に残し、確定後に関連ドキュメントへ反映する
 - 日付別のspec管理は行わず、機能名で同じ仕様を更新する
 - 設計を先に変更する期間の実装差分は許容し、文書の整合検査と実装照合を分ける
+- 用語と表示文言の正本に実装が従う。情報要素ごとの操作・状態も設計の正本に定義する
 
 ## 現在の優先順位
 

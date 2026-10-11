@@ -7,7 +7,7 @@ const defaultRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const specName = "workbench-information-architecture";
 const elementPattern = /^[A-Z]-[A-Z0-9]+(?:-[A-Z0-9]+)*$/;
 const copyPattern = /^[a-zA-Z][a-zA-Z0-9_.]*$/;
-const requiredFields = ["目的", "背景", "重要度", "開示区分", "内容", "根拠区分", "参照元"];
+const requiredFields = ["目的", "背景", "重要度", "開示区分", "内容", "根拠区分"];
 
 const normalize = (text) => text.replace(/\\([*_`])/g, "$1").trim();
 const placeholders = (text) =>
@@ -97,12 +97,16 @@ export function checkDesign(root = defaultRoot) {
   const diagnostics = [];
   const folder = `docs/specs/${specName}`;
   const files = Object.fromEntries(
-    ["information-architecture.md", "ui-copy.md", "glossary.md", "information-audit.md"].map(
-      (name) => [name, read(root, `${folder}/${name}`, diagnostics)]
-    )
+    [
+      "information-architecture.md",
+      "ui-copy.md",
+      "glossary.md",
+      "information-audit.md",
+      "state-transitions.md",
+    ].map((name) => [name, read(root, `${folder}/${name}`, diagnostics)])
   );
   for (const [name, text] of Object.entries(files)) {
-    checkFormat(name, text, diagnostics);
+    if (name !== "state-transitions.md") checkFormat(name, text, diagnostics);
     for (const match of text.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)) {
       const target = match[1].split("#")[0];
       if (!target || /^[a-z]+:/i.test(target)) continue;
@@ -124,23 +128,13 @@ export function checkDesign(root = defaultRoot) {
     if (!section.lines.some((line) => line === "- 内容:")) {
       diagnostics.push({ code: "missing-field", message: `${id}: 内容がない` });
     }
-    const sources = codes(field(section, "参照元"));
     if (!/^P[123][。.]?$/.test(field(section, "重要度"))) {
       diagnostics.push({ code: "importance", message: `${id}: 重要度はP1/P2/P3で指定する` });
-    }
-    if (!sources.length) {
-      diagnostics.push({ code: "source-reference", message: `${id}: 参照元がない` });
-    }
-    for (const source of sources) {
-      if (isAbsolute(source) || !insideRoot(root, resolve(root, source))) {
-        diagnostics.push({ code: "source-reference", message: `${id}: 不正な参照元 ${source}` });
-      }
     }
     addUnique(
       elements,
       id,
       {
-        sources,
         keys: codes(field(section, "文言ID")),
         extraKeys: codes(field(section, "補助文言ID")),
       },
@@ -155,16 +149,7 @@ export function checkDesign(root = defaultRoot) {
     const targets = elementIds(field(section, "対応要素"));
     const ja = field(section, "標準 ja") || field(section, "保管値 ja");
     const en = field(section, "標準 en") || field(section, "保管値 en");
-    const isMessage = !id.includes(".");
     const isActive = field(section, "区分") === "画面表示の標準案。";
-    const recordedSources = codes(field(section, "参照元"));
-    const sources = recordedSources;
-    if (
-      !sources.length ||
-      sources.some((source) => isAbsolute(source) || !insideRoot(root, resolve(root, source)))
-    ) {
-      diagnostics.push({ code: "source-reference", message: `${id}: 参照元が未定義または範囲外` });
-    }
     if (!field(section, "目的") || (!field(section, "背景") && !field(section, "背景・根拠"))) {
       diagnostics.push({ code: "copy-purpose", message: `${id}: 目的または背景がない` });
     }
@@ -183,16 +168,10 @@ export function checkDesign(root = defaultRoot) {
     if (placeholders(ja) !== variables) {
       diagnostics.push({ code: "placeholder", message: `${id}: jaと変数定義が一致しない` });
     }
-    if (isMessage && placeholders(en) !== variables) {
+    if (en && placeholders(en) !== variables) {
       diagnostics.push({ code: "placeholder", message: `${id}: enと変数定義が一致しない` });
     }
-    addUnique(
-      copy,
-      id,
-      { targets, ja, en, isMessage, isActive, sources },
-      diagnostics,
-      "duplicate-copy"
-    );
+    addUnique(copy, id, { targets, ja, en, isActive }, diagnostics, "duplicate-copy");
   }
   if (!elements.size || !copy.size) {
     diagnostics.push({ code: "empty-definition", message: "要素または文言の定義がない" });
@@ -220,7 +199,74 @@ export function checkDesign(root = defaultRoot) {
       diagnostics.push({ code: "dated-spec", message: `日付付きspecディレクトリ: ${entry.name}` });
     }
   }
-  return { diagnostics, elements, copy };
+  const glossary = new Map();
+  for (const section of sections(files["glossary.md"])) {
+    const id = section.title.split(" ")[0];
+    if (!/^T-\d+$/.test(id)) continue;
+    const targets = elementIds(field(section, "対応する情報要素"));
+    for (const name of ["定義", "目的", "背景"]) {
+      if (!field(section, name))
+        diagnostics.push({ code: "term-definition", message: `${id}: ${name}がない` });
+    }
+    for (const target of targets) {
+      if (!elements.has(target))
+        diagnostics.push({ code: "term-target", message: `${id}: 未定義の要素 ${target}` });
+    }
+    addUnique(glossary, id, { targets }, diagnostics, "duplicate-term");
+  }
+  const operations = new Map();
+  const covered = new Set();
+  for (const section of sections(files["state-transitions.md"])) {
+    const id = section.title.split(" ")[0];
+    if (!/^OP-[A-Z0-9-]+$/.test(id)) continue;
+    const targets = elementIds(field(section, "対象要素"));
+    for (const name of ["操作", "前提", "変更", "保持", "結果", "判断区分"]) {
+      if (!field(section, name))
+        diagnostics.push({ code: "operation-field", message: `${id}: ${name}がない` });
+    }
+    if (!targets.length)
+      diagnostics.push({ code: "operation-target", message: `${id}: 対象要素がない` });
+    for (const target of targets) {
+      if (!elements.has(target))
+        diagnostics.push({ code: "operation-target", message: `${id}: 未定義の要素 ${target}` });
+      covered.add(target);
+    }
+    addUnique(operations, id, { targets }, diagnostics, "duplicate-operation");
+  }
+  for (const id of elements.keys()) {
+    if (!covered.has(id))
+      diagnostics.push({
+        code: "operation-coverage",
+        message: `${id}: 操作または表示のみの分類がない`,
+      });
+  }
+  const indexed = new Set();
+  for (const line of files["state-transitions.md"].split(/\r?\n/)) {
+    const row = line.split("|").map((cell) => cell.trim());
+    if (row.length !== 5 || !elementPattern.test(row[1])) continue;
+    const id = row[1];
+    const ids = [...row[3].matchAll(/OP-[A-Z0-9-]+/g)].map((match) => match[0]);
+    if (indexed.has(id))
+      diagnostics.push({ code: "operation-index", message: `${id}: 操作一覧の行が重複` });
+    indexed.add(id);
+    const expected = [...operations]
+      .filter(([, operation]) => operation.targets.includes(id))
+      .map(([key]) => key)
+      .sort();
+    if (!elements.has(id) || ids.sort().join(",") !== expected.join(",")) {
+      diagnostics.push({
+        code: "operation-index",
+        message: `${id}: 操作一覧と操作定義の対象が一致しない`,
+      });
+    }
+  }
+  for (const id of elements.keys()) {
+    if (!indexed.has(id))
+      diagnostics.push({ code: "operation-index", message: `${id}: 操作一覧に行がない` });
+  }
+  if (!glossary.size || !operations.size)
+    diagnostics.push({ code: "empty-definition", message: "用語または操作の定義がない" });
+  return { diagnostics, elements, copy, glossary, operations };
 }
 
 function loadTypescript() {
@@ -301,6 +347,36 @@ export function readMessages(text, typescript = loadTypescript()) {
 
 export function checkImplementation(root = defaultRoot, design = checkDesign(root)) {
   const diagnostics = [];
+  const mapping = new Map();
+  const mapText = read(root, `docs/specs/${specName}/implementation-map.md`, diagnostics);
+  for (const section of sections(mapText)) {
+    if (section.level !== 3) continue;
+    const id = section.title;
+    if (!design.elements.has(id) && !design.copy.has(id)) {
+      diagnostics.push({
+        code: "mapping-target",
+        message: `実装対応が未定義の設計IDを指す: ${id}`,
+      });
+      continue;
+    }
+    const sources = codes(field(section, "参照元"));
+    if (
+      !sources.length ||
+      sources.some((path) => isAbsolute(path) || !insideRoot(root, resolve(root, path)))
+    ) {
+      diagnostics.push({
+        code: "source-reference",
+        message: `${id}: 実装対応の参照元が未定義または範囲外`,
+      });
+    }
+    addUnique(
+      mapping,
+      id,
+      { sources, keys: codes(field(section, "実装キー")) },
+      diagnostics,
+      "duplicate-mapping"
+    );
+  }
   const typescript = loadTypescript();
   const messages = readMessages(
     readFileSync(resolve(root, "web/src/i18n/messages.ts"), "utf8"),
@@ -319,44 +395,55 @@ export function checkImplementation(root = defaultRoot, design = checkDesign(roo
     }
     return cache.get(path);
   }
-  for (const [id, element] of design.elements) {
-    const references = element.sources.flatMap((source) => [...keys(source)]);
-    for (const key of element.keys) {
-      if (!references.includes(key)) {
+  for (const id of design.elements.keys()) {
+    const binding = mapping.get(id);
+    if (!binding)
+      diagnostics.push({ code: "missing-mapping", message: `${id}: 情報要素の実装対応がない` });
+    else binding.sources.forEach(keys);
+  }
+  const knownKeys = new Set();
+  for (const [key, record] of design.copy) {
+    const binding = mapping.get(key);
+    if (!binding) {
+      diagnostics.push({ code: "missing-mapping", message: `${key}: 文言の実装対応がない` });
+      continue;
+    }
+    const references = binding.sources.flatMap((source) => [...keys(source)]);
+    if (!binding.keys.length) {
+      if (record.isActive)
+        diagnostics.push({
+          code: "missing-mapping",
+          message: `${key}: 標準文言の実装キーが未対応`,
+        });
+      continue;
+    }
+    for (const implementationKey of binding.keys) {
+      knownKeys.add(implementationKey);
+      if (record.targets.length && !references.includes(implementationKey)) {
         diagnostics.push({
           code: "source-key",
-          message: `${id}: ${key}が参照元の実行コードにない (${element.sources.join(", ")})`,
+          message: `${key}: 実装キー${implementationKey}が対応先コードにない (${binding.sources.join(", ")})`,
         });
       }
-    }
-  }
-  for (const [key, record] of design.copy) {
-    const references = record.sources.flatMap((source) => [...keys(source)]);
-    if (!record.isMessage) continue;
-    if (record.targets.length && !references.includes(key)) {
-      diagnostics.push({
-        code: "source-key",
-        message: `${key}: 文言定義の参照元にキーがない (${record.sources.join(", ")})`,
-      });
-    }
-    for (const locale of ["ja", "en"]) {
-      const actual = messages.get(locale).get(key);
-      if (actual === undefined) {
-        diagnostics.push({ code: "missing-message", message: `${key}: ${locale}辞書にない` });
-      } else if (record.isActive && actual !== record[locale]) {
-        diagnostics.push({
-          code: "copy-drift",
-          message: `${key}: ${locale}の表示文言が設計と異なる`,
-        });
+      for (const locale of ["ja", "en"]) {
+        const actual = messages.get(locale).get(implementationKey);
+        if (actual === undefined) {
+          diagnostics.push({ code: "missing-message", message: `${key}: ${locale}辞書にない` });
+        } else if (record.isActive && actual !== record[locale]) {
+          diagnostics.push({
+            code: "copy-drift",
+            message: `${key}: ${locale}の表示文言が設計と異なる`,
+          });
+        }
       }
     }
   }
   for (const [locale, values] of messages) {
     for (const key of values.keys()) {
-      if (!design.copy.has(key)) {
+      if (!knownKeys.has(key)) {
         diagnostics.push({
           code: "unlisted-message",
-          message: `${key}: ${locale}辞書のキーが文言定義にない`,
+          message: `${key}: ${locale}辞書のキーに設計に従う実装対応がない`,
         });
       }
     }
@@ -388,6 +475,8 @@ export function run(args = process.argv.slice(2)) {
         mode: args.includes("--implementation") ? "implementation" : "design",
         elements: design.elements.size,
         copy: design.copy.size,
+        glossary: design.glossary.size,
+        operations: design.operations.size,
         differences: diagnostics.length,
         counts,
         diagnostics,

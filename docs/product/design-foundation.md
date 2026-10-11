@@ -3,7 +3,7 @@
 状態: Draft / 方向性のレビュー用。ビジュアル承認・実装承認は未実施。
 関連: [Issue #99](https://github.com/Shunkicreate/IroMap/issues/99)
 
-具体化した情報・状態設計: [ワークベンチ情報設計](../specs/workbench-information-architecture/design.md)
+具体化した設計: [作業と情報の関係](../specs/workbench-information-architecture/design.md)、[情報単位ごとの操作と状態](../specs/workbench-information-architecture/state-transitions.md)
 
 2026-10-11の本人の作業説明を反映。写真は対象選択時、3D・断面は反復探索時に中心となる。
 以下の大きさ・優先度は作業段階で判断し、画像を常に最も大きく表示する方針にはしない。
@@ -156,7 +156,7 @@ Labを初期値にしない。再解析時は対象維持不要、差し替え�
 - モバイルを縮小したデスクトップ画面として扱わない。タッチで選択・解除・入力に到達できる。
 - ブレークポイントは領域の最小可読幅から決める。具体的な値はワイヤーフレームで検証する。
 - 4K・ウルトラワイドでも主作業を画面両端へ引き離さない。物理解像度とブラウザの利用可能幅を区別する。
-- 具体的な状態・保持規則・比較候補は [情報設計](../specs/workbench-information-architecture/design.md) を正本とする。
+- 具体的な操作・状態・保持規則は [情報単位ごとの操作と状態](../specs/workbench-information-architecture/state-transitions.md) を正本とする。配置の比較候補は [作業と情報の関係](../specs/workbench-information-architecture/design.md) に置く。
 
 ## 7. 基礎表現の設計契約（提案）
 
