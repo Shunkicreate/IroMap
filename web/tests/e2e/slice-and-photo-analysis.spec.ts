@@ -93,7 +93,7 @@ test("T-204(photo-analysis): 選択画像を表示できる", async ({ page }) =
 
   await expect(previewImage).toBeVisible();
   await expect(previewImage).toHaveAttribute("alt", "分析対象画像: red.png");
-  await expect(panel.getByText("red.png", { exact: true }).first()).toBeVisible();
+  await expect(panel.getByText("red.png", { exact: true })).toHaveCount(0);
 });
 
 test("T-205(photo-analysis): 入力欄以外からの画面全体ペーストで結果表示できる", async ({

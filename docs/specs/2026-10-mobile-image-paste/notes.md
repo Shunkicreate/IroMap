@@ -45,4 +45,5 @@ WebKit テスト: `pnpm --dir web exec playwright test --config=playwright.mobil
 - 通常表示は横並びの「選ぶ」「貼り付け」と画像プレビューに集約。表示設定・画像情報はプレビューの下に置く。
 - 貼り付けはボタン風の contenteditable と標準 paste に統一し、失敗した Async Clipboard API 経路を削除。
 - フォーカス中だけ操作案内を表示する。案内なしで OS の操作を発見できるかは実機確認が必要。
-- 更新済み E2E はブラウザ操作の URL ポリシー制限で未実行。PR のプレビューへはまだ反映していない。
+- ユーザーの確認は今回以降も Vercel の最新プレビューを基本とする。localhost は開発と自動テスト用に使い、確認の引き渡しには Ready の Vercel URL を渡す。
+- ブラウザ操作の URL ポリシー制限による手動画面確認の制約と、push 前の自動テストを区別する。ローカルサーバーを再起動し、自動チェックを実行して Vercel へ反映する。
