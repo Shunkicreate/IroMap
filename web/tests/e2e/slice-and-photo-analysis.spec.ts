@@ -93,17 +93,16 @@ test("T-204(photo-analysis): 選択画像を表示できる", async ({ page }) =
 
   await expect(previewImage).toBeVisible();
   await expect(previewImage).toHaveAttribute("alt", "分析対象画像: red.png");
-  await expect(panel.getByText("red.png", { exact: true }).first()).toBeVisible();
+  await expect(panel.getByText("red.png", { exact: true })).toHaveCount(0);
 });
 
-test("T-205(photo-analysis): 画像入力を閉じても画面全体ペーストで結果表示できる", async ({
+test("T-205(photo-analysis): 入力欄以外からの画面全体ペーストで結果表示できる", async ({
   page,
 }) => {
   await page.goto("/");
 
   const previewPanel = getPanel(page, "選択画像");
-  await previewPanel.getByRole("button", { name: "アップロードとプレビュー" }).click();
-  await expect(previewPanel.getByText("画像をアップロードして分析を始める")).toHaveCount(0);
+  await page.getByRole("heading", { name: "写真分析", exact: true }).click();
 
   await pasteRedPngGlobally(page);
 

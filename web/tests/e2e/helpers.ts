@@ -65,7 +65,7 @@ export const pasteRedPngGlobally = async (page: Page): Promise<void> => {
 };
 
 export const pasteRedJpegToPhotoAnalysis = async (page: Page): Promise<void> => {
-  const pasteZone = page.getByRole("button", { name: "画像貼り付けエリア" });
+  const pasteZone = page.getByRole("textbox", { name: "画像のペースト入力欄" });
   await expect(pasteZone).toBeVisible();
   await pasteZone.focus();
 
@@ -110,7 +110,7 @@ export const pasteRedJpegToPhotoAnalysis = async (page: Page): Promise<void> => 
 
       target.dispatchEvent(pasteEvent);
     },
-    { targetLabel: "画像貼り付けエリア" }
+    { targetLabel: "画像のペースト入力欄" }
   );
 };
 
@@ -118,12 +118,12 @@ const pasteImageToPhotoAnalysis = async (
   page: Page,
   payload: { fileName: string; mimeType: string; base64: string }
 ): Promise<void> => {
-  const pasteZone = page.getByRole("button", { name: "画像貼り付けエリア" });
+  const pasteZone = page.getByRole("textbox", { name: "画像のペースト入力欄" });
   await expect(pasteZone).toBeVisible();
   await pasteZone.focus();
 
   await pasteImageToTarget(page, {
-    targetLabel: "画像貼り付けエリア",
+    targetLabel: "画像のペースト入力欄",
     ...payload,
   });
 };

@@ -53,74 +53,81 @@
 
 .uploadCta {
   display: grid;
-  gap: 0.875rem;
-  margin-bottom: 0.75rem;
-  padding: 0.875rem 1rem;
-  border: 0.0625rem solid #355078;
-  border-radius: 0.875rem;
-  background:
-    radial-gradient(circle at top left, #244870 0%, transparent 42%),
-    linear-gradient(135deg, #0f2238, #162b44);
+  gap: 0.5rem;
 }
 
-.uploadCta:focus-within {
-  outline: 0.125rem solid #91f0bf;
-  outline-offset: 0.1875rem;
-}
-
-.uploadCtaCopy {
+.imageActions {
   display: grid;
-  gap: 0.25rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.625rem;
 }
 
-.uploadCtaCopy strong {
-  font-size: 1rem;
-}
-
-.uploadCtaCopy p,
-.uploadCtaStatus {
-  margin: 0;
-  color: var(--workbench-muted);
-  font-size: 0.9rem;
-}
-
-.pasteZone {
-  align-content: start;
-}
-
-.pasteShortcutHint {
-  margin: 0;
-}
-
-.pasteButton {
-  display: none;
-}
-
-.previewPanel .pasteButton {
+.previewPanel .uploadButton,
+.pasteInput {
+  display: flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
   inline-size: 100%;
   min-inline-size: 0;
   min-block-size: 3rem;
-  padding: 0 1rem;
-  border: 0.0625rem solid #66d3a0;
-  border-radius: 62.4375rem;
-  background: linear-gradient(180deg, #51e1a4, #2fbc78);
-  color: #04110b;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow:
-    inset 0 0.0625rem 0 #fff6,
-    0 0.75rem 1.5rem #05131f33;
+  padding: 0.75rem;
+  border: 0.0625rem solid var(--workbench-surface-border);
+  border-radius: 0.5rem;
+  background: var(--workbench-surface);
+  color: var(--workbench-text);
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.5;
+  text-align: center;
+  overflow-wrap: anywhere;
+  box-shadow: none;
 }
 
-.previewPanel .pasteButton:hover {
-  filter: brightness(1.03);
+.previewPanel .uploadCta .uploadButton {
+  color: var(--workbench-text);
+  font-size: 1rem;
 }
 
-.previewPanel .pasteButton:focus-visible {
-  outline: 0.125rem solid #91f0bf;
-  outline-offset: 0.1875rem;
+.previewPanel .uploadButton:hover,
+.pasteInput:hover {
+  border-color: var(--workbench-muted);
+  filter: none;
+}
+
+.previewPanel .uploadButton:focus-within,
+.pasteInput:focus {
+  border-color: var(--workbench-accent);
+  outline: 0.125rem solid color-mix(in oklab, var(--workbench-accent) 30%, transparent);
+  outline-offset: 0.125rem;
+}
+
+.pasteInput:empty::before {
+  content: attr(data-placeholder);
+  pointer-events: none;
+}
+
+.pasteHint {
+  margin: 0;
+  color: var(--workbench-muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.pasteRecovery {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  border-inline-start: 0.125rem solid var(--workbench-muted);
+  border-radius: 0.25rem;
+  background: color-mix(in oklab, var(--workbench-muted) 8%, transparent);
+}
+
+.pasteRecovery p {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .imageStage {
@@ -203,22 +210,4 @@
 
 .metaDetails[open] summary::before {
   transform: rotate(90deg);
-}
-
-@media (max-width: 47.9375em) {
-  .pasteShortcutHint {
-    display: none;
-  }
-}
-
-@media (max-width: 39.9375em) {
-  .uploadCta {
-    align-items: stretch;
-  }
-}
-
-@media (max-width: 96em) {
-  .pasteButton {
-    display: inline-flex;
-  }
 }
