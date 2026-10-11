@@ -28,9 +28,22 @@ jobs:
             pnpm-lock.yaml
             web/pnpm-lock.yaml
 
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Read pinned Rust toolchain
+        id: rust-toolchain
+        run: |
+          python3 - <<'PY'
+          import os
+          import tomllib
+
+          with open("rust-toolchain.toml", "rb") as config:
+              channel = tomllib.load(config)["toolchain"]["channel"]
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"toolchain={channel}\n")
+          PY
+
+      - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: 1.94.1
+          toolchain: ${{ steps.rust-toolchain.outputs.toolchain }}
           targets: wasm32-unknown-unknown
 
       - name: Install root dependencies

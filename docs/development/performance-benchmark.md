@@ -74,7 +74,7 @@ IROMAP_PERF_ITERATIONS=100 IROMAP_PERF_SIZES=2048x1536,3840x2160 IROMAP_PERF_REL
 
 `quality-gate` の `performance` ジョブで production build を起動し、
 Playwright Chromium で `512x512` と `3840x2160` の画像を計測する。
-WASM の再生成に使う Rust は `rust-toolchain.toml` と CI で `1.94.1` に固定する。
+WASM の再生成に使う Rust は `rust-toolchain.toml` で `1.99.0` に固定し、CI も同じ設定を読む。
 Rust の更新時は生成物を再生成し、バイト一致と動作を検証する。
 各サイズは 2 回のウォームアップ後に 10 回計測し、各回ページを再読み込みする。
 viewport は `1440x1000`、新しいブラウザコンテキストの初期設定で実行する。
