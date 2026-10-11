@@ -70,6 +70,8 @@ import {
 import { setSharedHoverState as setSharedHoverStateStore } from "@/features/workbench/shared-hover-store";
 import { t } from "@/i18n/translate";
 
+const emptyCubePoints: NonNullable<WorkbenchTarget["result"]>["cubePoints"] = [];
+
 const parseColorSpace3d = (rawValue: string): ColorSpace3d | null =>
   rawValue === "rgb" || rawValue === "hsl" || rawValue === "lab" ? rawValue : null;
 
@@ -1024,7 +1026,7 @@ export function ColorWorkbench() {
               axisGuideMode={isAxisGuideVisible ? "visible" : "hidden"}
               sliceAxis={sliceAxis}
               sliceValue={sliceValue}
-              imageCubePoints={baselineTarget.result?.cubePoints ?? []}
+              imageCubePoints={baselineTarget.result?.cubePoints ?? emptyCubePoints}
               selectionCubePoints={selectionCubePoints}
               isimageMappingVisible={isCubeImageMappingVisible}
               isselectionMappingVisible={isCubeSelectionMappingVisible}

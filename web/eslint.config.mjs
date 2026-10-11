@@ -2,6 +2,7 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import tsEslintPlugin from "@typescript-eslint/eslint-plugin";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
+import reactPerf from "eslint-plugin-react-perf";
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -155,6 +156,28 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+  {
+    files: [
+      "src/features/workbench/**/*.tsx",
+      "src/features/rgb-cube/**/*.tsx",
+      "src/features/slice/**/*.tsx",
+    ],
+    plugins: { "react-perf": reactPerf },
+    rules: {
+      "react-perf/jsx-no-new-object-as-prop": ["error", { nativeAllowList: "all" }],
+      "react-perf/jsx-no-new-array-as-prop": ["error", { nativeAllowList: "all" }],
+    },
+  },
+  {
+    files: [
+      "src/features/rgb-cube/**/*.tsx",
+      "src/features/workbench/workbench-scatter-panel.tsx",
+      "src/features/workbench/workbench-histogram-chart.tsx",
+    ],
+    rules: {
+      "react-perf/jsx-no-new-function-as-prop": ["error", { nativeAllowList: "all" }],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:
@@ -164,6 +187,7 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "playwright-report/**",
     "test-results/**",
+    "performance-results/**",
   ]),
 ]);
 

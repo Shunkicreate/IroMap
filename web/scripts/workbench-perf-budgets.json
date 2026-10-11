@@ -1,0 +1,14 @@
+{
+  "512x512": {
+    "photoTotalMs": 1000,
+    "derivedTotalMs": 500,
+    "pointDerivedTotalMs": 500,
+    "rectDerivedTotalMs": 500
+  },
+  "3840x2160": {
+    "photoTotalMs": 2000,
+    "derivedTotalMs": 1000,
+    "pointDerivedTotalMs": 750,
+    "rectDerivedTotalMs": 750
+  }
+}
