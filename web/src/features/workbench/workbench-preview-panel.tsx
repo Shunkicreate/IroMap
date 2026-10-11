@@ -41,6 +41,8 @@ type Props = {
   onSourceFileSelected: (file: File | null) => void;
   onPaste: (event: React.ClipboardEvent<HTMLDivElement>) => void;
   onPasteButtonClick: () => Promise<void>;
+  pasteRecoveryMessage: string | null;
+  isPasteReading: boolean;
 };
 
 const areSameSample = (
@@ -69,9 +71,12 @@ export function WorkbenchPreviewPanel(props: Props) {
     onSourceFileSelected,
     onPaste,
     onPasteButtonClick,
+    pasteRecoveryMessage,
+    isPasteReading,
   } = props;
   const imageWrapRef = useRef<HTMLDivElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
+  const pasteInputRef = useRef<HTMLDivElement | null>(null);
   const patternId = useId();
   const [localHoverSample, setLocalHoverSample] = useState<PhotoSample | null>(null);
   const [isPointerInside, setIsPointerInside] = useState(false);
@@ -317,13 +322,42 @@ export function WorkbenchPreviewPanel(props: Props) {
             <strong>{t("photoPasteZoneTitle")}</strong>
             <p>{t("photoPasteZoneDescription")}</p>
             <p className={previewStyles.pasteShortcutHint}>{t("photoPasteZoneShortcut")}</p>
+            <div
+              ref={pasteInputRef}
+              contentEditable
+              suppressContentEditableWarning
+              role="textbox"
+              aria-label={t("photoPasteInputLabel")}
+              data-placeholder={t("photoPasteInputHint")}
+              className={previewStyles.pasteInput}
+              onInput={(event) => {
+                event.currentTarget.textContent = "";
+              }}
+            />
             <button
               type="button"
               className={`photoUploadButton ${previewStyles.pasteButton}`}
               onClick={() => void onPasteButtonClick()}
+              disabled={isPasteReading}
             >
               {t("photoPasteButton")}
             </button>
+            {pasteRecoveryMessage ? (
+              <div className={previewStyles.pasteRecovery} role="status">
+                <p>{pasteRecoveryMessage}</p>
+                <p>{t("photoPasteRecoveryHint")}</p>
+                <button
+                  type="button"
+                  className="photoUploadButton"
+                  onClick={() => {
+                    pasteInputRef.current?.focus();
+                    pasteInputRef.current?.scrollIntoView({ block: "center" });
+                  }}
+                >
+                  {t("photoPasteFocusInput")}
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
       </PersistedDisclosure>

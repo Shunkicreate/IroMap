@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  ClipboardImageReadError,
+  getClipboardImageFile,
+  getClipboardImageFileFromItems,
+} from "@/features/workbench/clipboard-image";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { PersistedDisclosure } from "@/components/workbench/persisted-disclosure";
@@ -251,6 +257,8 @@ export function ColorWorkbench() {
     serialize: String,
   });
   const [liveMessage, setLiveMessage] = useState<string>("");
+  const [photoPasteRecoveryMessage, setPhotoPasteRecoveryMessage] = useState<string | null>(null);
+  const [isPhotoPasteReading, setIsPhotoPasteReading] = useState(false);
   const [selectionDraft, setSelectionDraft] = useState<SelectionDraft>(null);
   const [derivedAnalysis, setDerivedAnalysis] = useState(() =>
     buildDerivedPhotoAnalysis({
@@ -705,6 +713,7 @@ export function ColorWorkbench() {
   };
 
   const handleSourceFileSelected = (file: File | null): void => {
+    setPhotoPasteRecoveryMessage(null);
     const previewUrl = file ? URL.createObjectURL(file) : "";
     const previousPreviewUrl = previewUrlRef.current;
     previewUrlRef.current = previewUrl;
@@ -721,12 +730,6 @@ export function ColorWorkbench() {
     setSharedHoverStateStore({ targetId: "baseline", sample: null, source: "preview" });
   };
 
-  const getClipboardImageFile = (clipboardData: DataTransfer | null | undefined): File | null => {
-    const items = Array.from(clipboardData?.items ?? []);
-    const imageItem = items.find((item) => item.kind === "file" && item.type.startsWith("image/"));
-    return imageItem?.getAsFile() ?? null;
-  };
-
   const applyPastedImageFile = (file: File): void => {
     const pastedFile = new File([file], file.name || clipboardImageFileName, {
       type: file.type || "image/png",
@@ -738,30 +741,9 @@ export function ColorWorkbench() {
     handleSourceFileSelected(pastedFile);
   };
 
-  const getClipboardImageFileFromItems = async (): Promise<File | null> => {
-    if (!navigator.clipboard?.read) {
-      throw new Error("clipboard-read-unsupported");
-    }
-
-    const clipboardItems = await navigator.clipboard.read();
-    for (const item of clipboardItems) {
-      const imageType = item.types.find((type) => type.startsWith("image/"));
-      if (!imageType) {
-        continue;
-      }
-
-      const blob = await item.getType(imageType);
-      const extension = imageType.split("/")[1] || "png";
-      return new File([blob], `clipboard-image.${extension}`, {
-        type: imageType,
-        lastModified: Date.now(),
-      });
-    }
-
-    return null;
-  };
-
   const handlePhotoPaste = (event: React.ClipboardEvent<HTMLDivElement>): void => {
+    event.preventDefault();
+    event.stopPropagation();
     const file = getClipboardImageFile(event.clipboardData);
     if (!file) {
       const message = t("photoPasteNoImage");
@@ -769,16 +751,18 @@ export function ColorWorkbench() {
       toast.error(message);
       return;
     }
-    event.preventDefault();
     applyPastedImageFile(file);
   };
 
   const handlePhotoPasteButtonClick = async (): Promise<void> => {
+    setIsPhotoPasteReading(true);
+    setPhotoPasteRecoveryMessage(null);
     try {
       const file = await getClipboardImageFileFromItems();
       if (!file) {
         const message = t("photoPasteNoImage");
         setLiveMessage(message);
+        setPhotoPasteRecoveryMessage(message);
         toast.error(message);
         return;
       }
@@ -786,13 +770,23 @@ export function ColorWorkbench() {
       applyPastedImageFile(file);
     } catch (error) {
       const message =
-        error instanceof Error && error.message === "clipboard-read-unsupported"
+        error instanceof ClipboardImageReadError && error.stage === "unsupported"
           ? t("photoPasteUnsupported")
-          : error instanceof DOMException && error.name === "NotAllowedError"
-            ? t("photoPastePermissionDenied")
+          : error instanceof ClipboardImageReadError && error.stage === "clipboard-read"
+            ? t("photoPasteAccessFailed")
             : t("photoPasteReadFailed");
+      console.warn("Photo clipboard read failed", {
+        stage: error instanceof ClipboardImageReadError ? error.stage : "unknown",
+        errorName:
+          error instanceof ClipboardImageReadError && error.originalError instanceof Error
+            ? error.originalError.name
+            : "unknown",
+      });
       setLiveMessage(message);
+      setPhotoPasteRecoveryMessage(message);
       toast.error(message);
+    } finally {
+      setIsPhotoPasteReading(false);
     }
   };
 
@@ -806,11 +800,8 @@ export function ColorWorkbench() {
 
   useEffect(() => {
     const handleWindowPaste = (event: ClipboardEvent): void => {
-      const items = Array.from(event.clipboardData?.items ?? []);
-      const imageItem = items.find(
-        (item) => item.kind === "file" && item.type.startsWith("image/")
-      );
-      const file = imageItem?.getAsFile();
+      if (event.defaultPrevented) return;
+      const file = getClipboardImageFile(event.clipboardData);
       if (!file) {
         return;
       }
@@ -901,6 +892,8 @@ export function ColorWorkbench() {
             onSourceFileSelected={handleSourceFileSelected}
             onPaste={handlePhotoPaste}
             onPasteButtonClick={handlePhotoPasteButtonClick}
+            pasteRecoveryMessage={photoPasteRecoveryMessage}
+            isPasteReading={isPhotoPasteReading}
           />
         </div>
 
