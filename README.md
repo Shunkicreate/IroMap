@@ -26,6 +26,7 @@ docs/
 
 - `docs/product/vision.md`
 - [デザインの上位方針](docs/product/design-foundation.md)
+- [ライト／ダークの色ルール](docs/specs/theme-color-system/design.md) / [文字の基礎ルール](docs/specs/theme-color-system/typography.md) / [配色・文字見本](docs/specs/theme-color-system/preview.html)
 - [情報の重要度と開示階層](docs/specs/workbench-information-architecture/information-architecture.md)
 - [共通用語集](docs/specs/workbench-information-architecture/glossary.md) / [標準表示文言](docs/specs/workbench-information-architecture/ui-copy.md)
 - [情報単位ごとの操作と状態](docs/specs/workbench-information-architecture/state-transitions.md)
