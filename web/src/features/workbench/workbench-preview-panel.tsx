@@ -1,9 +1,9 @@
 "use client";
 
 import NextImage from "next/image";
+import { ImageIcon } from "lucide-react";
 import { useId, useRef, useState } from "react";
 import { PersistedDisclosure } from "@/components/workbench/persisted-disclosure";
-import { PanelHeader } from "@/components/workbench/panel-header";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { PhotoSample, TargetSelectionState } from "@/domain/photo-analysis/photo-analysis";
@@ -26,7 +26,6 @@ type Props = {
   selectedSamples: PhotoSample[];
   selectionState: TargetSelectionState;
   selectionDraft: SelectionDraft;
-  uploadDisclosureStorageKey: string;
   optionsDisclosureStorageKey: string;
   isSamplingGridVisible: boolean;
   samplingGridColor: PreviewSamplingGridColor;
@@ -40,9 +39,7 @@ type Props = {
   onSampleSelect: (sample: PhotoSample) => void;
   onSourceFileSelected: (file: File | null) => void;
   onPaste: (event: React.ClipboardEvent<HTMLDivElement>) => void;
-  onPasteButtonClick: () => Promise<void>;
   pasteRecoveryMessage: string | null;
-  isPasteReading: boolean;
 };
 
 const areSameSample = (
@@ -56,7 +53,6 @@ export function WorkbenchPreviewPanel(props: Props) {
     selectedSamples,
     selectionState,
     selectionDraft,
-    uploadDisclosureStorageKey,
     optionsDisclosureStorageKey,
     isSamplingGridVisible,
     samplingGridColor,
@@ -70,13 +66,13 @@ export function WorkbenchPreviewPanel(props: Props) {
     onSampleSelect,
     onSourceFileSelected,
     onPaste,
-    onPasteButtonClick,
     pasteRecoveryMessage,
-    isPasteReading,
   } = props;
   const imageWrapRef = useRef<HTMLDivElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const pasteInputRef = useRef<HTMLDivElement | null>(null);
+  const pasteHintId = useId();
+  const [isPasteHintVisible, setIsPasteHintVisible] = useState(false);
   const patternId = useId();
   const [localHoverSample, setLocalHoverSample] = useState<PhotoSample | null>(null);
   const [isPointerInside, setIsPointerInside] = useState(false);
@@ -286,30 +282,11 @@ export function WorkbenchPreviewPanel(props: Props) {
 
   return (
     <section className={`panel ${previewStyles.previewPanel}`}>
-      <PanelHeader titleKey="photoPreviewTitle" requirementsKey="panelPhotoAnalysisRequirements" />
-      <PersistedDisclosure
-        storageKey={uploadDisclosureStorageKey}
-        defaultOpen={true}
-        summary={t("workbenchUploadDisclosure")}
-        className={controlStyles.inlineDisclosure}
-        contentClassName={controlStyles.inlineDisclosureContent}
-      >
-        <div
-          className={previewStyles.uploadCta}
-          onPaste={onPaste}
-          tabIndex={0}
-          role="button"
-          aria-label={t("photoPasteZoneLabel")}
-        >
-          <div className={previewStyles.uploadCtaCopy}>
-            <strong>{t("photoUploadCtaTitle")}</strong>
-            <p>{t("photoUploadCtaDescription")}</p>
-            {target.file ? (
-              <p className={previewStyles.uploadCtaStatus}>{target.file.name}</p>
-            ) : null}
-          </div>
-          <label className="photoUploadButton">
-            <span>{t("photoUploadButton")}</span>
+      <h2 className="srOnly">{t("photoPreviewTitle")}</h2>
+      <div className={previewStyles.uploadCta}>
+        <div className={previewStyles.imageActions}>
+          <label className={`photoUploadButton ${previewStyles.uploadButton}`}>
+            <span>{t("photoChooseAction")}</span>
             <input
               type="file"
               accept="image/*"
@@ -318,49 +295,115 @@ export function WorkbenchPreviewPanel(props: Props) {
               onChange={(event) => onSourceFileSelected(event.target.files?.[0] ?? null)}
             />
           </label>
-          <div className={`photoPasteZone ${previewStyles.pasteZone}`}>
-            <strong>{t("photoPasteZoneTitle")}</strong>
-            <p>{t("photoPasteZoneDescription")}</p>
-            <p className={previewStyles.pasteShortcutHint}>{t("photoPasteZoneShortcut")}</p>
-            <div
-              ref={pasteInputRef}
-              contentEditable
-              suppressContentEditableWarning
-              role="textbox"
-              aria-label={t("photoPasteInputLabel")}
-              data-placeholder={t("photoPasteInputHint")}
-              className={previewStyles.pasteInput}
-              onInput={(event) => {
-                event.currentTarget.textContent = "";
-              }}
-            />
-            <button
-              type="button"
-              className={`photoUploadButton ${previewStyles.pasteButton}`}
-              onClick={() => void onPasteButtonClick()}
-              disabled={isPasteReading}
-            >
-              {t("photoPasteButton")}
-            </button>
-            {pasteRecoveryMessage ? (
-              <div className={previewStyles.pasteRecovery} role="status">
-                <p>{pasteRecoveryMessage}</p>
-                <p>{t("photoPasteRecoveryHint")}</p>
-                <button
-                  type="button"
-                  className="photoUploadButton"
-                  onClick={() => {
-                    pasteInputRef.current?.focus();
-                    pasteInputRef.current?.scrollIntoView({ block: "center" });
-                  }}
-                >
-                  {t("photoPasteFocusInput")}
-                </button>
-              </div>
-            ) : null}
-          </div>
+          <div
+            ref={pasteInputRef}
+            contentEditable
+            suppressContentEditableWarning
+            role="textbox"
+            aria-label={t("photoPasteInputLabel")}
+            aria-describedby={isPasteHintVisible ? pasteHintId : undefined}
+            data-placeholder={t("photoPasteAction")}
+            className={previewStyles.pasteInput}
+            onPaste={(event) => {
+              setIsPasteHintVisible(false);
+              onPaste(event);
+            }}
+            onFocus={() => setIsPasteHintVisible(true)}
+            onBlur={() => setIsPasteHintVisible(false)}
+            onInput={(event) => {
+              event.currentTarget.textContent = "";
+            }}
+          />
         </div>
-      </PersistedDisclosure>
+        {isPasteHintVisible ? (
+          <p id={pasteHintId} className={previewStyles.pasteHint}>
+            {t("photoPasteActionHint")}
+          </p>
+        ) : null}
+        {pasteRecoveryMessage ? (
+          <div className={previewStyles.pasteRecovery} role="status">
+            <p>{pasteRecoveryMessage}</p>
+            <p>{t("photoPasteChooseRecovery")}</p>
+          </div>
+        ) : null}
+      </div>
+
+      <div
+        ref={imageWrapRef}
+        className={previewStyles.imageStage}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={commitDraft}
+        onPointerLeave={() => {
+          setIsPointerInside(false);
+          hoverPipeline.clearNow(null);
+          sharedHoverPipeline.clearNow(null);
+          onSelectionDraftChange(null);
+        }}
+      >
+        {target.previewUrl ? (
+          <NextImage
+            src={target.previewUrl}
+            alt={t("photoPreviewAlt", { fileName: target.file?.name ?? t("photoUploadLabel") })}
+            className={previewStyles.previewImage}
+            ref={imageRef}
+            width={640}
+            height={480}
+            priority
+            unoptimized
+          />
+        ) : (
+          <div className={previewStyles.previewEmpty} aria-label={t("photoPreviewEmpty")}>
+            <ImageIcon aria-hidden="true" size={32} strokeWidth={1.5} />
+          </div>
+        )}
+        <svg
+          viewBox={`0 0 ${target.result?.width ?? 100} ${target.result?.height ?? 100}`}
+          className={previewStyles.overlay}
+          aria-hidden="true"
+        >
+          <defs>{samplingGridPattern}</defs>
+          {samplingGridPattern && target.result ? (
+            <rect
+              className={previewStyles.samplingGrid}
+              x="0"
+              y="0"
+              width={target.result.width}
+              height={target.result.height}
+              fill={`url(#${patternId})`}
+            />
+          ) : null}
+          {selectionBox}
+          {draftRect ? (
+            <rect
+              className={previewStyles.selectionDraft}
+              x={draftRect.x}
+              y={draftRect.y}
+              width={draftRect.width}
+              height={draftRect.height}
+              rx="4"
+              ry="4"
+            />
+          ) : null}
+          {hoverMarker ? (
+            <circle
+              className={previewStyles.hoverMarker}
+              cx={hoverMarker.x}
+              cy={hoverMarker.y}
+              r={markerRadius * 0.75}
+            />
+          ) : null}
+          {selectedMarkers.map((marker) => (
+            <circle
+              key={marker.sampleId}
+              className={previewStyles.selectedMarker}
+              cx={marker.x}
+              cy={marker.y}
+              r={markerRadius}
+            />
+          ))}
+        </svg>
+      </div>
 
       <PersistedDisclosure
         storageKey={optionsDisclosureStorageKey}
@@ -446,81 +489,6 @@ export function WorkbenchPreviewPanel(props: Props) {
           ) : null}
         </div>
       </PersistedDisclosure>
-
-      <div
-        ref={imageWrapRef}
-        className={previewStyles.imageStage}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={commitDraft}
-        onPointerLeave={() => {
-          setIsPointerInside(false);
-          hoverPipeline.clearNow(null);
-          sharedHoverPipeline.clearNow(null);
-          onSelectionDraftChange(null);
-        }}
-      >
-        {target.previewUrl ? (
-          <NextImage
-            src={target.previewUrl}
-            alt={t("photoPreviewAlt", { fileName: target.file?.name ?? t("photoUploadLabel") })}
-            className={previewStyles.previewImage}
-            ref={imageRef}
-            width={640}
-            height={480}
-            priority
-            unoptimized
-          />
-        ) : (
-          <div className={previewStyles.previewEmpty}>{t("photoPreviewEmpty")}</div>
-        )}
-        <svg
-          viewBox={`0 0 ${target.result?.width ?? 100} ${target.result?.height ?? 100}`}
-          className={previewStyles.overlay}
-          aria-hidden="true"
-        >
-          <defs>{samplingGridPattern}</defs>
-          {samplingGridPattern && target.result ? (
-            <rect
-              className={previewStyles.samplingGrid}
-              x="0"
-              y="0"
-              width={target.result.width}
-              height={target.result.height}
-              fill={`url(#${patternId})`}
-            />
-          ) : null}
-          {selectionBox}
-          {draftRect ? (
-            <rect
-              className={previewStyles.selectionDraft}
-              x={draftRect.x}
-              y={draftRect.y}
-              width={draftRect.width}
-              height={draftRect.height}
-              rx="4"
-              ry="4"
-            />
-          ) : null}
-          {hoverMarker ? (
-            <circle
-              className={previewStyles.hoverMarker}
-              cx={hoverMarker.x}
-              cy={hoverMarker.y}
-              r={markerRadius * 0.75}
-            />
-          ) : null}
-          {selectedMarkers.map((marker) => (
-            <circle
-              key={marker.sampleId}
-              className={previewStyles.selectedMarker}
-              cx={marker.x}
-              cy={marker.y}
-              r={markerRadius}
-            />
-          ))}
-        </svg>
-      </div>
 
       <details className={previewStyles.metaDetails}>
         <summary>{t("photoMetaSummary")}</summary>

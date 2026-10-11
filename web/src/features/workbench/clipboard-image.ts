@@ -12,18 +12,6 @@ const imageMimeTypes: Record<string, string> = {
   bmp: "image/bmp",
 };
 
-export type ClipboardImageReadStage = "unsupported" | "clipboard-read" | "image-data";
-
-export class ClipboardImageReadError extends Error {
-  constructor(
-    readonly stage: ClipboardImageReadStage,
-    readonly originalError?: unknown
-  ) {
-    super(`clipboard-image-${stage}`);
-    this.name = "ClipboardImageReadError";
-  }
-}
-
 const asImageFile = (file: File | null): File | null => {
   if (!file) return null;
   if (file.type.startsWith("image/")) return file;
@@ -45,42 +33,5 @@ export const getClipboardImageFile = (
     const file = asImageFile(candidate);
     if (file) return file;
   }
-  return null;
-};
-
-export const getClipboardImageFileFromItems = async (): Promise<File | null> => {
-  if (!navigator.clipboard?.read) throw new ClipboardImageReadError("unsupported");
-  // Start reading inside the button's user gesture, before any asynchronous work.
-  let clipboardItems: ClipboardItem[];
-  try {
-    clipboardItems = await navigator.clipboard.read();
-  } catch (error) {
-    throw new ClipboardImageReadError("clipboard-read", error);
-  }
-  let lastError: unknown;
-  let hasImageReadError = false;
-  for (const item of clipboardItems) {
-    const types = item.types.filter((type) => type.startsWith("image/"));
-    const orderedTypes = types.includes("image/png")
-      ? ["image/png", ...types.filter((type) => type !== "image/png")]
-      : types;
-    for (const type of orderedTypes) {
-      try {
-        const blob = await item.getType(type);
-        return new File(
-          [blob],
-          `clipboard-image.${type === "image/jpeg" ? "jpg" : type.split("/")[1]}`,
-          {
-            type,
-            lastModified: Date.now(),
-          }
-        );
-      } catch (error) {
-        lastError = error;
-        hasImageReadError = true;
-      }
-    }
-  }
-  if (hasImageReadError) throw new ClipboardImageReadError("image-data", lastError);
   return null;
 };

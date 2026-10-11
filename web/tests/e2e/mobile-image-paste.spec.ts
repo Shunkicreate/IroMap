@@ -61,125 +61,47 @@ test("paste input rejects URL-only and HTML-only content without requesting it",
     page.locator("[data-sonner-toast]").filter({ hasText: "クリップボード内に画像がありません" })
   ).toHaveCount(1);
   expect(externalRequests).toBe(0);
-});
-
-test("paste button tries another image representation after getType fails", async ({ page }) => {
-  await page.addInitScript(() => {
-    Object.defineProperty(navigator, "clipboard", {
-      configurable: true,
-      value: {
-        read: async () => [
-          {
-            types: ["image/jpeg", "image/png"],
-            getType: async (type: string) => {
-              if (type === "image/png")
-                throw new DOMException("Unavailable representation", "NotAllowedError");
-              const canvas = document.createElement("canvas");
-              canvas.width = canvas.height = 2;
-              const context = canvas.getContext("2d")!;
-              context.fillStyle = "red";
-              context.fillRect(0, 0, 2, 2);
-              return new Promise<Blob>((resolve) =>
-                canvas.toBlob((blob) => resolve(blob!), "image/jpeg")
-              );
-            },
-          },
-        ],
-      },
-    });
-  });
-  await page.goto("/");
-  await page.getByRole("button", { name: "画像を貼り付け", exact: true }).click();
+  const recovery = page
+    .getByRole("status")
+    .filter({ hasText: "クリップボード内に画像がありません" });
+  await expect(recovery).toBeVisible();
+  await pasteRedJpegToPhotoAnalysis(page);
   await expect(
     getPanel(page, "選択画像").getByRole("img", { name: "分析対象画像: clipboard-image.jpg" })
   ).toBeVisible();
+  await expect(recovery).toHaveCount(0);
 });
 
-test("paste button reports image retrieval errors and supports native paste afterwards", async ({
-  page,
-}) => {
+test("single paste control uses native paste without clipboard.read", async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(navigator, "clipboard", {
       configurable: true,
       value: {
-        read: async () => [
-          {
-            types: ["image/png"],
-            getType: async () => {
-              throw new DOMException("Cannot read image", "NotFoundError");
-            },
-          },
-        ],
+        read: () => {
+          document.documentElement.dataset.clipboardReadCalled = "true";
+          throw new Error("Direct clipboard reading must not be used");
+        },
       },
     });
   });
   await page.goto("/");
-  await page.getByRole("button", { name: "画像を貼り付け", exact: true }).click();
+  const input = page.getByRole("textbox", { name: "画像のペースト入力欄" });
+  await expect(input).toHaveAttribute("data-placeholder", "貼り付け");
   await expect(
-    page
-      .locator("[data-sonner-toast]")
-      .filter({ hasText: "クリップボードの画像データを取得できませんでした" })
+    page.getByText("長押ししてペースト。PC は Ctrl+V / ⌘V。", { exact: true })
+  ).toHaveCount(0);
+  await input.click();
+  await expect(input).toBeFocused();
+  await expect(
+    page.getByText("長押ししてペースト。PC は Ctrl+V / ⌘V。", { exact: true })
   ).toBeVisible();
+  await expect(page.locator("html")).not.toHaveAttribute("data-clipboard-read-called", "true");
+  await expect(page.getByRole("button", { name: "画像を貼り付け", exact: true })).toHaveCount(0);
   await pasteRedJpegToPhotoAnalysis(page);
   await expect(
     getPanel(page, "選択画像").getByRole("img", { name: "分析対象画像: clipboard-image.jpg" })
   ).toBeVisible();
 });
-
-for (const scenario of [
-  { stage: "clipboard-read", message: "クリップボードへのアクセスが完了しませんでした" },
-  { stage: "image-data", message: "クリップボードの画像データを取得できませんでした" },
-  {
-    stage: "unsupported",
-    message: "このブラウザではクリップボード画像の直接読み取りに対応していません",
-  },
-  { stage: "no-image", message: "クリップボード内に画像がありません" },
-]) {
-  test(`paste recovery distinguishes ${scenario.stage} and restores native paste`, async ({
-    page,
-  }) => {
-    await page.addInitScript(({ stage }) => {
-      Object.defineProperty(navigator, "clipboard", {
-        configurable: true,
-        value:
-          stage === "unsupported"
-            ? {}
-            : {
-                read: async () => {
-                  // Model the asynchronous return from an OS permission prompt.
-                  await new Promise((resolve) => setTimeout(resolve, 0));
-                  if (stage === "clipboard-read")
-                    throw new DOMException("Access failed after prompt", "NotAllowedError");
-                  return [
-                    {
-                      types: stage === "no-image" ? ["text/plain"] : ["image/png"],
-                      getType: async () => {
-                        throw new DOMException("Image data unavailable", "NotAllowedError");
-                      },
-                    },
-                  ];
-                },
-              },
-      });
-    }, scenario);
-    await page.goto("/");
-    const button = page.getByRole("button", { name: "画像を貼り付け", exact: true });
-    await button.click();
-    const recovery = page.getByRole("status").filter({ hasText: scenario.message });
-    await expect(recovery).toBeVisible();
-    await expect(recovery).toContainText(
-      "許可した後でも、ブラウザが画像を読み取れないことがあります。"
-    );
-    await expect(button).toBeEnabled();
-    await recovery.getByRole("button", { name: "ペースト入力欄へ移動" }).click();
-    await expect(page.getByRole("textbox", { name: "画像のペースト入力欄" })).toBeFocused();
-    await pasteRedJpegToPhotoAnalysis(page);
-    await expect(
-      getPanel(page, "選択画像").getByRole("img", { name: "分析対象画像: clipboard-image.jpg" })
-    ).toBeVisible();
-    await expect(recovery).toHaveCount(0);
-  });
-}
 
 test("paste input fits supported viewport widths", async ({ page }) => {
   await page.goto("/");
@@ -188,6 +110,13 @@ test("paste input fits supported viewport widths", async ({ page }) => {
     await page.setViewportSize({ width, height: 812 });
     await expect(input).toBeVisible();
     const bounds = await input.boundingBox();
+    const choose = await page
+      .locator("label")
+      .filter({ has: page.locator("input[type=file]") })
+      .boundingBox();
+    expect(choose).not.toBeNull();
+    expect(Math.abs(choose!.y - bounds!.y)).toBeLessThan(1);
+    expect(Math.abs(choose!.width - bounds!.width)).toBeLessThan(1);
     expect(bounds!.x).toBeGreaterThanOrEqual(0);
     expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
