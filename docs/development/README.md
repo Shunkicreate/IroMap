@@ -15,11 +15,12 @@
 
 ## 2. 基本原則
 
-- 1 機能 = 1 ディレクトリ（`docs/specs/YYYY-MM-feature-name/`）
+- 1 機能 = 1 ディレクトリ（`docs/specs/<feature-name>/`）
 - 要求（What）と設計（How）を分離する
 - `spec -> design -> tasks -> test-cases` の整合を維持する
 - タスク、テスト、実装は要求 ID（`FR-x`）に紐づける
 - 未決事項は `spec.md` の「未決事項」または `notes.md` に残す
+- 用語・表示文言・情報・状態設計を正本とし、実装が従う。実装の改名・未作成によって設計定義を変更しない。
 
 ## 3. 実装開始までの流れ
 
@@ -34,6 +35,10 @@
 - 実装と同じタイミングでテストを更新する
 - 設計判断が発生したら ADR を作成し、`design.md` から参照する
 - 仕様変更が発生したら、実装より先に `spec/design/tasks/test-cases` を更新する
+- 設計を先に確定する変更では、設計と実装の一時的な不一致を許容する。文書同士の整合は維持する。
+- 情報設計は `pnpm run check:information` と `pnpm run test:information` を必須とし、`pnpm run check:information:implementation` の差分をPRに記載する。
+- 実装照合の終了コード2は設計先行期間の差分。CIでは参考情報として残す。実装完了時は担当範囲の差分を解消する。
+- 設計検査はコードを必要としない。実装対応のパス・キーは下流の資料へ分離し、照合時にだけ読み込む。
 
 ## 5. コミットと PR
 
@@ -84,12 +89,12 @@
 
 ## 8. 作業場所
 
-- すべての作業（コード変更・docs変更を含む）は `.worktree` 配下の作業ツリーで行う
+- すべての作業（コード変更・docs変更を含む）はGit worktreeで行う。`.worktree` 配下またはCodexアプリの管理worktreeを使用できる
 - 機能ごとに作業ディレクトリを分け、並行作業時の衝突を避ける
 - リポジトリルート（`/Users/shunki.tada/VSCode/IroMap`）での直接修正は禁止する
 - `main` ブランチでの修正（commit/push）は禁止する
 
-worktree の作成と `pnpm` セットアップは、必ず以下のコマンドで実行する。
+通常のworktreeの作成と `pnpm` セットアップは、以下のコマンドで実行する。Codexアプリの管理worktreeを作成した場合は、依存関係をルートとwebでそれぞれインストールする。
 
 ```bash
 pnpm run worktree:add feature/<task-name>

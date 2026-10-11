@@ -52,9 +52,37 @@ jobs:
       - name: Markdown lint
         run: pnpm run lint:md
 
+      - name: Validate information design
+        run: pnpm run check:information
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
         working-directory: web
+
+      - name: Test information validation
+        run: pnpm run test:information
+
+      - name: Report design and implementation differences
+        id: information-implementation
+        run: |
+          set +e
+          pnpm run check:information:implementation
+          result=$?
+          set -e
+          echo "exit-code=$result" >> "$GITHUB_OUTPUT"
+          if [ "$result" -eq 2 ]; then
+            echo "::warning::Information design differs from implementation; review the diagnostic report."
+          else
+            exit "$result"
+          fi
+
+      - name: Summarize information validation
+        if: always()
+        env:
+          IMPLEMENTATION_EXIT_CODE: ${{ steps.information-implementation.outputs.exit-code }}
+        run: |
+          echo "Information implementation check exit code: $IMPLEMENTATION_EXIT_CODE (0: matching, 1: invalid/unavailable, 2: implementation differences)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Design-first changes may temporarily differ from implementation. Exit code 2 is advisory; invalid documents and unavailable checks still fail." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build cube-point WASM artifact
         run: pnpm run build:wasm:cube-points

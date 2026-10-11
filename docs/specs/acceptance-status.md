@@ -1,6 +1,10 @@
-# Acceptance Status (2026-03-09)
+# Acceptance Status
 
 基礎実装後の `spec.md` 受け入れ条件に対する到達状況を整理する。
+
+以下は既存の受け入れ記録。今回の情報設計では全機能の到達判定を更新していない。
+新しい `workbench-information-architecture` は設計草案であり、この記録の「達成」を引き継がない。
+仕様の管理単位は機能名とし、確認の根拠は各機能の `test-cases.md` に置く。
 
 判定基準:
 
@@ -8,7 +12,7 @@
 - 一部達成: 実装はあるが、条件の一部が未実装または確認不足
 - 未達: 受け入れ条件を満たす実装がない
 
-## 2026-03-ui-foundation
+## ui-foundation
 
 - FR-1: `達成`
   - 根拠: `Button/Card/Input/Select/Tabs/Separator/Skeleton/Tooltip/Toast` が `web/src/components/ui/` に実装済み
@@ -30,7 +34,7 @@
 - FR-9: `達成`
   - 根拠: コンパクトなトップバーへ再設計し、ファーストビュー占有を削減
 
-## 2026-03-rgb-cube
+## rgb-cube
 
 - FR-1: `達成`
 - FR-2: `達成`
@@ -38,7 +42,7 @@
 - FR-4: `達成`
   - 根拠: RGBキューブとSliceを近接レイアウトで配置
 
-## 2026-03-color-space-3d
+## color-space-3d
 
 - FR-1: `達成`
 - FR-2: `達成`
@@ -51,7 +55,7 @@
 - FR-9: `達成`
 - FR-10: `達成`
 
-## 2026-03-slice
+## slice
 
 - FR-1: `達成`
 - FR-2: `達成`
@@ -59,7 +63,7 @@
 - FR-4: `達成`
   - 根拠: Slice操作UIとキューブを同一可視化エリア内で往復可能
 
-## 2026-03-inspector
+## inspector
 
 - FR-1: `達成`
 - FR-2: `達成`
@@ -69,7 +73,7 @@
 - FR-5: `達成`
   - 根拠: 選択色のコピー/貼り付けをインスペクタ内へ統合し、表示右側にコピー操作を配置
 
-## 2026-03-color-copy
+## color-copy
 
 - FR-1: `達成`
 - FR-2: `達成`
@@ -78,7 +82,7 @@
   - 根拠: 貼り付け文字列から選択色を復元可能
   - 根拠: コピー機能をインスペクタへ統合しつつ、探索導線を圧迫しない配置へ更新
 
-## 2026-03-photo-analysis-mvp
+## photo-analysis-mvp
 
 - FR-1: `達成`
 - FR-2: `達成`
