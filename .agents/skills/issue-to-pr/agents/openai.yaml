@@ -1,0 +1,4 @@
+interface:
+  display_name: "IssueからPRまで相談して進める"
+  short_description: "Issue候補の選定からworktreeでの実装、PRと動作確認コメントまで"
+  default_prompt: "$issue-to-pr を使って、このリポジトリのIssue候補を出し、一緒に選んで実装とPR作成を進めてください。"
