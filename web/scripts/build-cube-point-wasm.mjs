@@ -27,6 +27,7 @@ const buildWithCargoOnPath = () =>
     "cargo",
     [
       "build",
+      "--locked",
       "--manifest-path",
       cargoManifestPath,
       "--target",
@@ -40,7 +41,7 @@ const buildWithCargoOnPath = () =>
   );
 
 const buildWithCargoEnv = () => {
-  const cargoCommand = `. "${cargoEnv}" && cargo build --manifest-path "${cargoManifestPath}" --target wasm32-unknown-unknown --release`;
+  const cargoCommand = `. "${cargoEnv}" && cargo build --locked --manifest-path "${cargoManifestPath}" --target wasm32-unknown-unknown --release`;
   return spawnSync("/bin/zsh", ["-lc", cargoCommand], {
     cwd: repoRoot,
     stdio: "inherit",

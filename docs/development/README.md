@@ -120,6 +120,28 @@ pnpm run setup:hooks:check
 
 `wasm/cube-point-kernel/` を変更した push では、`pre-push` が自動で `pnpm --dir web run build:wasm:cube-points` を実行し、[`cube-point-kernel-wasm-bytes.ts`](/Users/shunki.tada/VSCode/IroMap/.worktree/feature/wasm-cube-points-poc/web/src/domain/photo-analysis/cube-point-kernel/generated/cube-point-kernel-wasm-bytes.ts) の更新漏れを検知する。
 
+### WASM の Rust ツールチェーン
+
+Rust のバージョンはリポジトリ直下の `rust-toolchain.toml` を正とし、現在は `1.99.0` を使用する。
+rustup はこのファイルからバージョンと `wasm32-unknown-unknown` ターゲットを選択し、CI も同じファイルからバージョンを読み込む。
+生成物のバイト列にはコンパイラの差が現れるため、常に最新を指す `stable` を生成物チェックには使わない。
+
+Rust を更新するときは、`rust-toolchain.toml` の変更と WASM 再生成を同じ PR に含める。
+依存関係は追跡済みの `Cargo.lock` に固定し、生成スクリプトは `cargo build --locked` を使用する。
+
+```bash
+rustc --version
+pnpm --dir web run build:wasm:cube-points
+```
+
+生成された `cube-point-kernel-wasm-bytes.ts` をコミットした後に、もう一度ビルドして次のチェックが成功することを確認する。
+
+```bash
+pnpm --dir web run build:wasm:cube-points
+git diff --exit-code -- web/src/domain/photo-analysis/cube-point-kernel/generated/cube-point-kernel-wasm-bytes.ts
+pnpm --dir web run test:e2e
+```
+
 ## 10. UI E2E テスト（Playwright）
 
 `web/` では Playwright による E2E テストを利用できる。
