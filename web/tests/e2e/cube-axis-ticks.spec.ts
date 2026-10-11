@@ -82,8 +82,9 @@ for (const width of [320, 375, 768, 1024, 1440]) {
     for (const space of ["RGB", "HSL", "Lab"]) {
       await panel.getByRole("tab", { name: space, exact: true }).click();
       await expect.poll(async () => (await readLabels(page)).length).toBeGreaterThan(0);
-      const labels = await readLabels(page);
       await getCubeCanvas(page).screenshot({ path: test.info().outputPath(`${space}.png`) });
+      // Screenshot waits for the resized canvas to settle before reading this frame's labels.
+      const labels = await readLabels(page);
       const box = await getCubeCanvas(page).boundingBox();
       expect(box).not.toBeNull();
       for (const label of labels) {
