@@ -135,6 +135,7 @@ pnpm --dir web run build:wasm:cube-points
 ```
 
 生成された `cube-point-kernel-wasm-bytes.ts` をコミットした後に、もう一度ビルドして次のチェックが成功することを確認する。
+`cube-point-wasm.spec.ts` は生成物を直接実行し、JS フォールバックを使わず色・件数・比率を取得できることを検証する。
 
 ```bash
 pnpm --dir web run build:wasm:cube-points
