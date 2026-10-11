@@ -232,9 +232,6 @@ export function RgbCubeCanvas({
       const objectScale = cubeSize / defaultCubeSize;
 
       drawGuide(context, space, rotationToDraw, width, height, objectScale);
-      if (axisGuideMode === "visible") {
-        drawAxisGuide(context, space, rotationToDraw, width, height, objectScale);
-      }
       drawSlicePlane(
         context,
         space,
@@ -335,6 +332,10 @@ export function RgbCubeCanvas({
           fullCircleRadians
         );
         context.fill();
+      }
+
+      if (axisGuideMode === "visible") {
+        drawAxisGuide(context, space, rotationToDraw, width, height, objectScale);
       }
 
       context.fillStyle = `rgba(255, 255, 255, ${textAlpha})`;
