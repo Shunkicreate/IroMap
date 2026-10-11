@@ -70,6 +70,8 @@ import {
 import { setSharedHoverState as setSharedHoverStateStore } from "@/features/workbench/shared-hover-store";
 import { t } from "@/i18n/translate";
 
+const emptyCubePoints: NonNullable<WorkbenchTarget["result"]>["cubePoints"] = [];
+
 const parseColorSpace3d = (rawValue: string): ColorSpace3d | null =>
   rawValue === "rgb" || rawValue === "hsl" || rawValue === "lab" ? rawValue : null;
 
@@ -175,6 +177,8 @@ export function ColorWorkbench() {
   const [baselineTarget, setBaselineTarget] = useState<WorkbenchTarget>(() =>
     emptyTarget("baseline", "Baseline")
   );
+  const analyzedFileRef = useRef<File | null>(null);
+  const previewUrlRef = useRef("");
   const [selectionStateByTarget, setSelectionStateByTarget] = useState<
     Record<string, TargetSelectionState>
   >({
@@ -311,11 +315,19 @@ export function ColorWorkbench() {
   }, [baselineTarget.analysisId, baselineTarget.result]);
 
   useEffect(() => {
+    return () => {
+      if (previewUrlRef.current) {
+        URL.revokeObjectURL(previewUrlRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     const file = baselineTarget.file;
-    let objectUrl = "";
     let isStale = false;
     const loadTarget = async (): Promise<void> => {
       if (!file) {
+        analyzedFileRef.current = null;
         setBaselineTarget((current) => ({ ...emptyTarget("baseline", current.label), file: null }));
         setDerivedAnalysis(
           buildDerivedPhotoAnalysis({
@@ -345,16 +357,15 @@ export function ColorWorkbench() {
         return;
       }
 
-      objectUrl = URL.createObjectURL(file);
+      const canKeepPreviousResult = analyzedFileRef.current === file;
       setBaselineTarget((current) => ({
         ...current,
         file,
-        previewUrl: objectUrl,
         isAnalyzing: true,
         statusMessage: t("photoAnalyzing"),
         error: "",
-        analysisId: null,
-        result: null,
+        analysisId: canKeepPreviousResult ? current.analysisId : null,
+        result: canKeepPreviousResult ? current.result : null,
       }));
 
       try {
@@ -372,6 +383,7 @@ export function ColorWorkbench() {
         if (isStale) {
           return;
         }
+        analyzedFileRef.current = file;
         recordPerformanceEntry("workbench.photo-analysis.total", startedAt, {
           fileName: file.name,
           decodeMs,
@@ -392,7 +404,6 @@ export function ColorWorkbench() {
           ...current,
           file,
           analysisId,
-          previewUrl: objectUrl,
           result,
           isAnalyzing: false,
           statusMessage: success,
@@ -405,8 +416,6 @@ export function ColorWorkbench() {
         setBaselineTarget((current) => ({
           ...current,
           file,
-          previewUrl: objectUrl,
-          result: null,
           isAnalyzing: false,
           statusMessage: t("photoError"),
           error: t("photoError"),
@@ -417,9 +426,6 @@ export function ColorWorkbench() {
     void loadTarget();
     return () => {
       isStale = true;
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
-      }
     };
   }, [baselineTarget.file, samplingDensityPercent]);
 
@@ -699,7 +705,13 @@ export function ColorWorkbench() {
   };
 
   const handleSourceFileSelected = (file: File | null): void => {
-    setBaselineTarget((current) => ({ ...current, file }));
+    const previewUrl = file ? URL.createObjectURL(file) : "";
+    const previousPreviewUrl = previewUrlRef.current;
+    previewUrlRef.current = previewUrl;
+    setBaselineTarget((current) => ({ ...current, file, previewUrl }));
+    if (previousPreviewUrl) {
+      URL.revokeObjectURL(previousPreviewUrl);
+    }
     setSelectedColor(null);
     pendingSharedHoverRef.current = null;
     if (sharedHoverFrameRef.current != null) {
@@ -875,10 +887,9 @@ export function ColorWorkbench() {
             isSamplingGridVisible={isPreviewSamplingGridVisible}
             samplingGridColor={previewSamplingGridColor}
             samplingDensityPercent={
-              baselineTarget.result?.samplingDensityPercent ??
-              (samplingDensityPercent === legacySamplingDensityPercent
-                ? defaultSamplingDensityPercent
-                : samplingDensityPercent)
+              samplingDensityPercent === legacySamplingDensityPercent
+                ? (baselineTarget.result?.samplingDensityPercent ?? defaultSamplingDensityPercent)
+                : samplingDensityPercent
             }
             onHoverSampleChange={handlePreviewHover}
             onSamplingGridVisibleChange={setIsPreviewSamplingGridVisible}
@@ -1024,7 +1035,7 @@ export function ColorWorkbench() {
               axisGuideMode={isAxisGuideVisible ? "visible" : "hidden"}
               sliceAxis={sliceAxis}
               sliceValue={sliceValue}
-              imageCubePoints={baselineTarget.result?.cubePoints ?? []}
+              imageCubePoints={baselineTarget.result?.cubePoints ?? emptyCubePoints}
               selectionCubePoints={selectionCubePoints}
               isimageMappingVisible={isCubeImageMappingVisible}
               isselectionMappingVisible={isCubeSelectionMappingVisible}
