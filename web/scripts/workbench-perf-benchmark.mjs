@@ -1,13 +1,28 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { chromium } from "@playwright/test";
 import sharp from "sharp";
+import { checkBudgets, parseInteger, summarize } from "./workbench-perf-budget.mjs";
 
 const appUrl = process.env.IROMAP_APP_URL ?? "http://127.0.0.1:3000/";
 const outputDir = join(tmpdir(), "iromap-workbench-perf-images");
-const iterations = Number.parseInt(process.env.IROMAP_PERF_ITERATIONS ?? "100", 10);
-const reloadEvery = Number.parseInt(process.env.IROMAP_PERF_RELOAD_EVERY ?? "10", 10);
+const iterations = parseInteger(
+  "IROMAP_PERF_ITERATIONS",
+  process.env.IROMAP_PERF_ITERATIONS ?? "100"
+);
+const reloadEvery = parseInteger(
+  "IROMAP_PERF_RELOAD_EVERY",
+  process.env.IROMAP_PERF_RELOAD_EVERY ?? "10"
+);
+const warmupIterations = parseInteger(
+  "IROMAP_PERF_WARMUP",
+  process.env.IROMAP_PERF_WARMUP ?? "2",
+  0
+);
+const reportPath = process.env.IROMAP_PERF_REPORT;
+const budgetPath = process.env.IROMAP_PERF_BUDGETS;
+const budgets = budgetPath ? JSON.parse(await readFile(budgetPath, "utf8")) : null;
 const allSizes = [
   { name: "512x512", width: 512, height: 512 },
   { name: "1024x1024", width: 1024, height: 1024 },
@@ -22,6 +37,12 @@ const sizes =
   selectedSizeNames.length > 0
     ? allSizes.filter((size) => selectedSizeNames.includes(size.name))
     : allSizes;
+if (
+  sizes.length === 0 ||
+  selectedSizeNames.some((name) => !allSizes.some((size) => size.name === name))
+) {
+  throw new Error(`Unknown IROMAP_PERF_SIZES: ${selectedSizeNames.join(",")}`);
+}
 const debugPerf = process.env.IROMAP_PERF_DEBUG === "1";
 
 const createGradientPng = async (width, height) => {
@@ -73,16 +94,6 @@ const waitForPerfEntry = async (page, name, selectionSource) => {
             (entry.detail?.selectionSource ?? "none") === targetSelectionSource)
       ),
     { targetName: name, targetSelectionSource: selectionSource },
-    { timeout: 30000 }
-  );
-};
-
-const waitForPerfEntryCount = async (page, name, count = 1) => {
-  await page.waitForFunction(
-    ({ targetName, targetCount }) =>
-      (window.__IROMAP_PERF__?.entries ?? []).filter((entry) => entry.name === targetName).length >=
-      targetCount,
-    { targetName: name, targetCount: count },
     { timeout: 30000 }
   );
 };
@@ -167,32 +178,6 @@ const runPreviewRectangleSelection = async (page) => {
   });
 };
 
-const summarize = (values) => {
-  const finiteValues = values.filter((value) => Number.isFinite(value));
-  if (finiteValues.length === 0) {
-    return {
-      avg: Number.NaN,
-      min: Number.NaN,
-      median: Number.NaN,
-      max: Number.NaN,
-    };
-  }
-  const sorted = [...finiteValues].sort((left, right) => left - right);
-  const total = finiteValues.reduce((sum, value) => sum + value, 0);
-  const middle = Math.floor(sorted.length / 2);
-  const median =
-    sorted.length % 2 === 0
-      ? (sorted[middle - 1] + sorted[middle]) / 2
-      : (sorted[middle] ?? Number.NaN);
-
-  return {
-    avg: total / finiteValues.length,
-    min: sorted[0] ?? Number.NaN,
-    median,
-    max: sorted.at(-1) ?? Number.NaN,
-  };
-};
-
 const printTable = (rows) => {
   console.table(
     rows.map((row) => ({
@@ -229,7 +214,7 @@ await mkdir(outputDir, { recursive: true });
 const browser = await chromium.launch({ headless: true });
 
 try {
-  const page = await browser.newPage();
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   const results = [];
   for (const size of sizes) {
     const { buffer, filePath } = await saveFixture(size);
@@ -257,7 +242,7 @@ try {
       rectCubePointsMs: [],
     };
 
-    for (let index = 0; index < iterations; index += 1) {
+    for (let index = 0; index < iterations + warmupIterations; index += 1) {
       if (index === 0 || index % reloadEvery === 0) {
         await page.goto(appUrl);
       }
@@ -271,11 +256,11 @@ try {
       });
 
       await waitForPerfEntry(page, "workbench.photo-analysis.total");
-      await waitForPerfEntry(page, "workbench.derived-analysis.total");
+      await waitForPerfEntry(page, "workbench.derived-analysis.total", "none");
 
       const entries = await readPerfEntries(page);
       const photo = findPerfEntry(entries, "workbench.photo-analysis.total");
-      const derived = entries.find((entry) => entry.name === "workbench.derived-analysis.total");
+      const derived = findPerfEntry(entries, "workbench.derived-analysis.total", "none");
 
       if (!photo || !derived) {
         throw new Error(`Missing perf entries for ${size.name} at iteration ${index + 1}`);
@@ -291,12 +276,14 @@ try {
 
       await clearPerfEntries(page);
       await runPreviewPointSelection(page);
-      await waitForPerfEntryCount(page, "workbench.derived-analysis.total", 1);
+      await waitForPerfEntry(page, "workbench.derived-analysis.total", "image-point");
       const pointEntries = await readPerfEntries(page);
       debugEntries(`point:${size.name}:${index + 1}`, pointEntries);
-      const pointDerived =
-        findPerfEntry(pointEntries, "workbench.derived-analysis.total", "image-point") ??
-        pointEntries.filter((entry) => entry.name === "workbench.derived-analysis.total").at(-1);
+      const pointDerived = findPerfEntry(
+        pointEntries,
+        "workbench.derived-analysis.total",
+        "image-point"
+      );
       if (!pointDerived) {
         throw new Error(
           `Missing point selection perf entry for ${size.name} at iteration ${index + 1}`
@@ -318,12 +305,14 @@ try {
 
       await clearPerfEntries(page);
       await runPreviewRectangleSelection(page);
-      await waitForPerfEntryCount(page, "workbench.derived-analysis.total", 1);
+      await waitForPerfEntry(page, "workbench.derived-analysis.total", "image-rect");
       const rectEntries = await readPerfEntries(page);
       debugEntries(`rect:${size.name}:${index + 1}`, rectEntries);
-      const rectDerived =
-        findPerfEntry(rectEntries, "workbench.derived-analysis.total", "image-rect") ??
-        rectEntries.filter((entry) => entry.name === "workbench.derived-analysis.total").at(-1);
+      const rectDerived = findPerfEntry(
+        rectEntries,
+        "workbench.derived-analysis.total",
+        "image-rect"
+      );
       if (!rectDerived) {
         throw new Error(
           `Missing rectangle selection perf entry for ${size.name} at iteration ${index + 1}`
@@ -342,6 +331,11 @@ try {
         Number(rectDerived.detail?.selectedSamplesMs ?? Number.NaN)
       );
       samples.rectCubePointsMs.push(Number(rectDerived.detail?.cubePointsMs ?? Number.NaN));
+      if (index < warmupIterations) {
+        for (const values of Object.values(samples)) {
+          values.length = 0;
+        }
+      }
     }
 
     results.push({
@@ -381,6 +375,21 @@ try {
 
   printTable(results);
   console.log(JSON.stringify(results, null, 2));
+  const failures = budgets ? checkBudgets(results, budgets) : [];
+  if (reportPath) {
+    await mkdir(dirname(reportPath), { recursive: true });
+    await writeFile(
+      reportPath,
+      JSON.stringify(
+        { appUrl, iterations, warmupIterations, reloadEvery, budgets, results, failures },
+        null,
+        2
+      )
+    );
+  }
+  if (failures.length > 0) {
+    throw new Error(`Performance budgets failed:\n${failures.join("\n")}`);
+  }
 } finally {
   await browser.close();
 }
