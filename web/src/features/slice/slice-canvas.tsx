@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { PanelHeader } from "@/components/workbench/panel-header";
 import { PersistedDisclosure } from "@/components/workbench/persisted-disclosure";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import {
   toHueDegree,
   toPercentage,
@@ -32,6 +33,7 @@ type Props = {
   space: ColorSpace3d;
   axis: SliceAxis;
   value: number;
+  selectedColor: RgbColor | null;
   displayOptionsStorageKey: string;
   mappedSamples?: PhotoSample[];
   selectedSamples?: PhotoSample[];
@@ -91,6 +93,20 @@ const getAxisRange = (axis: SliceAxis): { min: number; max: number } => {
     return { min: -128, max: 127 };
   }
   return { min: colorChannelMin, max: colorChannelMax };
+};
+
+const getColorAxisValue = (color: RgbColor, axis: SliceAxis): number => {
+  if (axis === "r" || axis === "g" || axis === "b") {
+    return color[axis];
+  }
+  if (axis === "h" || axis === "s" || axis === "l") {
+    return rgbToHsl(color)[axis];
+  }
+  const lab = rgbToLab(color);
+  if (axis === "lab-l") {
+    return lab.l;
+  }
+  return axis === "lab-a" ? lab.a : lab.b;
 };
 
 const buildColorFromPixel = (axis: SliceAxis, value: number, x: number, y: number): RgbColor => {
@@ -370,6 +386,7 @@ export function SliceCanvas({
   space,
   axis,
   value,
+  selectedColor,
   displayOptionsStorageKey,
   mappedSamples = [],
   selectedSamples = [],
@@ -654,6 +671,25 @@ export function SliceCanvas({
             onChange={(event) => onValueChange(Number(event.target.value))}
           />
         </label>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={!selectedColor}
+          onClick={() => {
+            if (selectedColor) {
+              onValueChange(
+                clamp(
+                  Math.round(getColorAxisValue(selectedColor, axis)),
+                  axisRange.min,
+                  axisRange.max
+                )
+              );
+            }
+          }}
+        >
+          {t("sliceMoveToSelectedColor")}
+        </Button>
       </div>
       <PersistedDisclosure
         storageKey={displayOptionsStorageKey}
