@@ -1,7 +1,9 @@
 ## Summary
-- 
+
+-
 
 ## Related Docs
+
 - [ ] `docs/specs/*/spec.md`
 - [ ] `docs/specs/*/design.md`
 - [ ] `docs/specs/*/tasks.md`
@@ -9,11 +11,15 @@
 - [ ] ADR (if needed)
 
 ## Branch Rules
+
 - [ ] Source branch follows `feature/*`
 - [ ] Target branch is `main`
 
 ## Local Quality Gate
+
 - [ ] `git hooks` are enabled (`git config core.hooksPath .githooks`)
 - [ ] `pnpm run lint:md` passed
+- [ ] `pnpm run check:information` / `pnpm run test:information` passed
+- [ ] `pnpm run check:information:implementation` was reviewed (design-first differences may remain; describe them below)
 - [ ] `pnpm --dir web run lint` passed
 - [ ] `pnpm --dir web run format:check` passed

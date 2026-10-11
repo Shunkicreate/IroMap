@@ -25,16 +25,21 @@ docs/
 詳細は以下を参照してください。
 
 - `docs/product/vision.md`
+- [デザインの上位方針](docs/product/design-foundation.md)
+- [情報の重要度と開示階層](docs/specs/workbench-information-architecture/information-architecture.md)
+- [共通用語集](docs/specs/workbench-information-architecture/glossary.md) / [標準表示文言](docs/specs/workbench-information-architecture/ui-copy.md)
 - `docs/architecture/overview.md`
 - `docs/adr/`
 - `docs/specs/`
 
 ## SDD 運用ルール（要約）
 
-- 機能追加時は `docs/specs/YYYY-MM-feature-name/` を作成する
+- 機能追加時は `docs/specs/<feature-name>/` を作成する
 - `spec.md` で要求を定義し、`design.md` で設計に落とす
 - `tasks.md` と `test-cases.md` を更新して実装と受け入れを同期する
 - 検討中事項は `notes.md` に残し、確定後に関連ドキュメントへ反映する
+- 日付別のspec管理は行わず、機能名で同じ仕様を更新する
+- 設計を先に変更する期間の実装差分は許容し、文書の整合検査と実装照合を分ける
 
 ## 現在の優先順位
 

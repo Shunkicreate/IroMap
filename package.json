@@ -2,6 +2,9 @@
   "name": "iromap",
   "private": true,
   "scripts": {
+    "check:information": "node web/scripts/check-information-architecture.mjs",
+    "check:information:implementation": "node web/scripts/check-information-architecture.mjs --implementation",
+    "test:information": "node --test web/scripts/check-information-architecture.test.mjs",
     "lint:md": "markdownlint \"**/*.md\" --ignore node_modules --ignore web/node_modules --ignore .worktree --ignore .pnpm-store",
     "lint:md:fix": "pnpm run lint:md --fix",
     "dev": "pnpm --dir web run dev",

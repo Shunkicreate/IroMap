@@ -5,9 +5,9 @@ require_worktree_checkout() {
   local toplevel
   toplevel="$(git rev-parse --show-toplevel)"
 
-  if [[ "$toplevel" != *"/.worktree/"* ]]; then
-    echo "ERROR: 作業は .worktree 配下でのみ許可されています: $toplevel" >&2
-    echo "ERROR: .worktree/feature-* に移動して実行してください。" >&2
+  if [[ ! -f "$toplevel/.git" ]]; then
+    echo "ERROR: commit/push は Git worktree でのみ許可されています: $toplevel" >&2
+    echo "ERROR: feature/* の worktree に移動して実行してください。" >&2
     exit 1
   fi
 }

@@ -1,6 +1,6 @@
 # Notes: Photo Analysis Workbench
 
-- この spec は `2026-03-photo-analysis-mvp` の後続段階として扱う
+- この spec は `photo-analysis-mvp` の後続段階として扱う
 - 今回の実装対象は `相互参照 / 局所選択 / 指標表コピー / L* histogram` に置く
 - 複数画像比較は優先度を下げ、設計メモだけを残して今回の実装から外す
 - `Lab a-b scatter` は優先度を下げ、今回の実装から削除する
