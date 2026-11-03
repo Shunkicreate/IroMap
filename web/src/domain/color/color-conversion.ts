@@ -55,6 +55,10 @@ const blueFromXyzX = 0.0557;
 const blueFromXyzY = -0.204;
 const blueFromXyzZ = 1.057;
 const xyzLinearRgbThreshold = 0.0031308;
+// The existing four-decimal conversion matrices introduce small boundary errors.
+const srgbGamutTolerance = 0.0001;
+
+type LinearRgb = { r: number; g: number; b: number };
 
 const srgbPivot = (value: number): number => {
   const normalized = value / colorChannelMax;
@@ -195,7 +199,7 @@ export const rgbToLab = (color: RgbColor): LabColor => {
   };
 };
 
-export const labToRgb = (lab: LabColor): RgbColor => {
+const labToLinearRgb = (lab: LabColor): LinearRgb => {
   const fy = (lab.l + labLightnessOffset) / labLightnessScale;
   const fx = fy + lab.a / labAChannelScale;
   const fz = fy - lab.b / labBChannelScale;
@@ -204,14 +208,31 @@ export const labToRgb = (lab: LabColor): RgbColor => {
   const y = xyzWhitePointY * xyzInversePivot(fy);
   const z = xyzWhitePointZ * xyzInversePivot(fz);
 
-  const linearR = x * rgbFromXyzX + y * rgbFromXyzY + z * rgbFromXyzZ;
-  const linearG = x * greenFromXyzX + y * greenFromXyzY + z * greenFromXyzZ;
-  const linearB = x * blueFromXyzX + y * blueFromXyzY + z * blueFromXyzZ;
+  return {
+    r: x * rgbFromXyzX + y * rgbFromXyzY + z * rgbFromXyzZ,
+    g: x * greenFromXyzX + y * greenFromXyzY + z * greenFromXyzZ,
+    b: x * blueFromXyzX + y * blueFromXyzY + z * blueFromXyzZ,
+  };
+};
 
+const isLinearChannelInGamut = (channel: number): boolean =>
+  Number.isFinite(channel) && channel >= -srgbGamutTolerance && channel <= 1 + srgbGamutTolerance;
+
+export const isLabInSrgbGamut = (lab: LabColor): boolean => {
+  const linear = labToLinearRgb(lab);
+  return (
+    isLinearChannelInGamut(linear.r) &&
+    isLinearChannelInGamut(linear.g) &&
+    isLinearChannelInGamut(linear.b)
+  );
+};
+
+export const labToRgb = (lab: LabColor): RgbColor => {
+  const linear = labToLinearRgb(lab);
   return toRgbColor(
-    clamp01(linearToSrgb(linearR)) * colorChannelMax,
-    clamp01(linearToSrgb(linearG)) * colorChannelMax,
-    clamp01(linearToSrgb(linearB)) * colorChannelMax
+    clamp01(linearToSrgb(linear.r)) * colorChannelMax,
+    clamp01(linearToSrgb(linear.g)) * colorChannelMax,
+    clamp01(linearToSrgb(linear.b)) * colorChannelMax
   );
 };
 
