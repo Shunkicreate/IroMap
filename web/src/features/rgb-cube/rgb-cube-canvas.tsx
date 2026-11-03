@@ -322,7 +322,8 @@ export function RgbCubeCanvas({
 
       context.font = "0.75rem " + getComputedStyle(canvas).fontFamily;
       context.fillStyle = colors.surface;
-      context.fillRect(8, 5, Math.min(width - 16, 360), 60);
+      // Keep the full header clear, including the strip above the first label.
+      context.fillRect(0, 0, width, 65);
       context.fillStyle = colors.text;
       context.fillText(
         t("cubeResolutionOverlay", { levels: rgbCubeColorCount }),

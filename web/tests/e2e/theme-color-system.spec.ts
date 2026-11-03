@@ -71,6 +71,23 @@ test("FR-2/FR-6: both themes apply approved roles and survive reload without hyd
         })
       )
       .toBe(toCss(tokens["observation.surface"]));
+    const cube = getCubeCanvas(page);
+    const bounds = (await cube.boundingBox())!;
+    await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(bounds.x + bounds.width / 2 + 100, bounds.y + 80, { steps: 10 });
+    await page.mouse.up();
+    await expect
+      .poll(() =>
+        cube.evaluate((element) => {
+          const canvas = element as HTMLCanvasElement;
+          const ctx = canvas.getContext("2d")!;
+          const expected = ctx.getImageData(0, 0, 1, 1).data;
+          const strip = ctx.getImageData(0, 0, canvas.width, 5).data;
+          return strip.every((channel, index) => channel === expected[index % 4]);
+        })
+      )
+      .toBe(true);
     await page.getByRole("tab", { name: "RGB", exact: true }).focus();
     await page.keyboard.press("ArrowRight");
     await expect(page.getByRole("tab", { name: "HSL", exact: true })).toBeFocused();
