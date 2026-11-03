@@ -969,6 +969,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
+  border-color: transparent;
 }
 
 .sliceCanvasWrap {
@@ -1580,8 +1581,8 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .observationPanel .cubeCanvas,
-.observationPanel .sliceCanvas {
-  border-color: transparent;
+.observationPanel .sliceCanvas:not(.sliceCanvasOverlay) {
+  border-color: var(--observation-guide);
 }
 
 .observationPanel .spaceTabsList {

@@ -135,6 +135,7 @@
   position: relative;
   display: grid;
   overflow: clip;
+  border: 0.0625rem solid var(--observation-guide);
   border-radius: 0.625rem;
   background: var(--observation-surface);
 }

@@ -30,6 +30,14 @@ test("FR-2/FR-6: both themes apply approved roles and survive reload without hyd
     );
     for (const overlay of await page.locator(".sliceCanvasOverlay").all())
       await expect(overlay).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    for (const canvas of [getCubeCanvas(page), getSliceCanvas(page)]) {
+      await expect(canvas).toHaveCSS("border-top-width", "1px");
+      await expect(canvas).toHaveCSS("border-top-color", toCss(tokens["observation.guide"]));
+    }
+    await expect(page.locator('[class*="imageStage"]').first()).toHaveCSS(
+      "border-top-color",
+      toCss(tokens["observation.guide"])
+    );
     for (const title of ["3Dキューブ", "スライス"])
       await expect(getPanel(page, title)).toHaveCSS(
         "background-color",
