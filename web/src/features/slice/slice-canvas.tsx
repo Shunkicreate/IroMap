@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { selectionMarker } from "@/lib/observation-colors";
 import { PanelHeader } from "@/components/workbench/panel-header";
 import { PersistedDisclosure } from "@/components/workbench/persisted-disclosure";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -494,11 +495,14 @@ export function SliceCanvas({
     context.clearRect(0, 0, colorChannelLevels, colorChannelLevels);
 
     if (ismappedSamplesVisible) {
-      context.fillStyle = "rgba(248, 250, 252, 0.42)";
       for (const projected of projectedMappedSamples) {
+        context.fillStyle = `rgb(${projected.sample.color.r}, ${projected.sample.color.g}, ${projected.sample.color.b})`;
+        context.strokeStyle = selectionMarker.outer;
+        context.lineWidth = 0.7;
         context.beginPath();
         context.arc(projected.point.x, projected.point.y, 1.8, 0, Math.PI * 2);
         context.fill();
+        context.stroke();
       }
     }
 
@@ -515,10 +519,12 @@ export function SliceCanvas({
 
         const planePoint = projectSampleToSlicePlane(sample, axis);
         const crossSectionRadius = Math.sqrt(sphereRadius ** 2 - axisDistance ** 2);
-        const opacity = Math.max(0, 1 - axisDistance / sphereRadius);
         context.beginPath();
         context.arc(planePoint.x, planePoint.y, Math.max(crossSectionRadius, 1.2), 0, Math.PI * 2);
-        context.strokeStyle = `rgba(249, 115, 22, ${opacity})`;
+        context.strokeStyle = selectionMarker.outer;
+        context.lineWidth = 3;
+        context.stroke();
+        context.strokeStyle = selectionMarker.inner;
         context.lineWidth = 1.2;
         context.stroke();
       }
@@ -544,7 +550,7 @@ export function SliceCanvas({
     }
 
     context.clearRect(0, 0, colorChannelLevels, colorChannelLevels);
-    const drawMarker = (color: RgbColor | null, strokeStyle: string, radius: number): void => {
+    const drawMarker = (color: RgbColor | null, radius: number, isselected: boolean): void => {
       if (!color) {
         return;
       }
@@ -584,14 +590,20 @@ export function SliceCanvas({
         }
       }
 
-      context.strokeStyle = strokeStyle;
-      context.lineWidth = 3;
+      context.strokeStyle = selectionMarker.outer;
+      context.lineWidth = 5;
+      context.setLineDash(isselected ? [] : [4, 3]);
       context.beginPath();
       context.arc(x, y, radius, 0, Math.PI * 2);
       context.stroke();
+      context.strokeStyle = selectionMarker.inner;
+      context.lineWidth = 2;
+      context.stroke();
+      context.setLineDash([]);
     };
-    drawMarker(displayHoverColor, "#ffffff", 7);
-  }, [axis, displayHoverColor]);
+    drawMarker(selectedColor, 9, true);
+    drawMarker(displayHoverColor, 7, false);
+  }, [axis, displayHoverColor, selectedColor]);
 
   const mapPointerToCanvasPoint = (
     event: React.PointerEvent<HTMLCanvasElement> | React.MouseEvent<HTMLCanvasElement>

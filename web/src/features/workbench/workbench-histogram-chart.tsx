@@ -43,8 +43,7 @@ export function WorkbenchHistogramChart({ bins, className = "" }: Props) {
             y={histogramChartViewboxHeight - height}
             width={Math.max(barWidth * 0.8, 1)}
             height={height}
-            fill="#7bf0b8"
-            opacity={0.85}
+            fill="var(--observation-guide)"
             rx="0.5"
             ry="0.5"
           >

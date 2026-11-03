@@ -213,16 +213,26 @@ export function WorkbenchPreviewPanel(props: Props) {
   const selection = selectionState.activeSelection;
   const selectionBox =
     selection?.bounds && target.result ? (
-      <rect
-        key={selection.selectionId}
-        className={`${previewStyles.selectionBox} ${previewStyles.selectionBoxActive}`}
-        x={selection.bounds.x}
-        y={selection.bounds.y}
-        width={selection.bounds.width}
-        height={selection.bounds.height}
-        rx="4"
-        ry="4"
-      />
+      <g key={selection.selectionId}>
+        <rect
+          className={previewStyles.markerOuter}
+          x={selection.bounds.x}
+          y={selection.bounds.y}
+          width={selection.bounds.width}
+          height={selection.bounds.height}
+          rx="4"
+          ry="4"
+        />
+        <rect
+          className={`${previewStyles.selectionBox} ${previewStyles.selectionBoxActive}`}
+          x={selection.bounds.x}
+          y={selection.bounds.y}
+          width={selection.bounds.width}
+          height={selection.bounds.height}
+          rx="4"
+          ry="4"
+        />
+      </g>
     ) : null;
 
   const draftRect =
@@ -394,13 +404,20 @@ export function WorkbenchPreviewPanel(props: Props) {
             />
           ) : null}
           {selectedMarkers.map((marker) => (
-            <circle
-              key={marker.sampleId}
-              className={previewStyles.selectedMarker}
-              cx={marker.x}
-              cy={marker.y}
-              r={markerRadius}
-            />
+            <g key={marker.sampleId}>
+              <circle
+                className={previewStyles.markerOuter}
+                cx={marker.x}
+                cy={marker.y}
+                r={markerRadius}
+              />
+              <circle
+                className={previewStyles.selectedMarker}
+                cx={marker.x}
+                cy={marker.y}
+                r={markerRadius}
+              />
+            </g>
           ))}
         </svg>
       </div>

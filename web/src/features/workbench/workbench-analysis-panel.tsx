@@ -154,7 +154,7 @@ export function WorkbenchAnalysisPanel({
                     y="0"
                     width={scatterViewboxSize}
                     height={scatterViewboxSize}
-                    fill="#0f172a"
+                    fill="var(--observation-surface)"
                   />
                   {result.samples.map((sample) => (
                     <circle

@@ -442,7 +442,7 @@ export function PhotoAnalysisPanel({
                     y="0"
                     width={scatterViewboxSize}
                     height={scatterViewboxSize}
-                    fill="#0f172a"
+                    fill="var(--observation-surface)"
                   />
                   {analysis.result.samples.map((sample) => (
                     <circle

@@ -20,10 +20,7 @@ test.beforeEach(async ({ page }) => {
       clearRect.apply(this, args);
     };
     CanvasRenderingContext2D.prototype.fillText = function (text, x, y, maxWidth) {
-      if (
-        this.canvas.classList.contains("cubeCanvas") &&
-        ["#ff8080", "#89ebad", "#9cceff"].includes(String(this.fillStyle))
-      ) {
+      if (this.canvas.classList.contains("cubeCanvas") && this.textAlign === "center") {
         state.cubeAxisLabels.push({ text, x, y, width: this.measureText(text).width });
       }
       if (maxWidth === undefined) {

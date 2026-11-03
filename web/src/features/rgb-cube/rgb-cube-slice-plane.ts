@@ -1,3 +1,4 @@
+import { observationColors, type ObservationColors } from "@/lib/observation-colors";
 import { colorChannelMax, colorChannelMin } from "@/domain/color/color-constants";
 import {
   isHslSliceAxis,
@@ -12,14 +13,11 @@ import {
   fullCircleRadians,
   labAxisRange,
   projectSpacePoint,
-  rgbaFromGray,
   toSpacePoint,
   type Rotation,
   type SpacePoint,
 } from "@/features/rgb-cube/rgb-cube-projection";
 
-const planeFillAlpha = 0.05;
-const planeStrokeAlpha = 0.45;
 const sliceSurfaceSegments = 24;
 
 const drawLine = (
@@ -35,7 +33,8 @@ const drawLine = (
 
 const drawProjectedPolygon = (
   context: CanvasRenderingContext2D,
-  projected: Array<{ x: number; y: number }>
+  projected: Array<{ x: number; y: number }>,
+  colors: ObservationColors
 ): void => {
   if (projected.length < 3) {
     return;
@@ -46,8 +45,8 @@ const drawProjectedPolygon = (
     context.lineTo(projected[index].x, projected[index].y);
   }
   context.closePath();
-  context.fillStyle = rgbaFromGray(colorChannelMax, planeFillAlpha);
-  context.strokeStyle = rgbaFromGray(colorChannelMax, planeStrokeAlpha);
+  context.fillStyle = colors.guide + "16";
+  context.strokeStyle = colors.guide;
   context.lineWidth = 1.5;
   context.fill();
   context.stroke();
@@ -102,13 +101,14 @@ export const drawSlicePlane = (
   height: number,
   axis: SliceAxis,
   value: number,
-  objectScale = 1
+  objectScale = 1,
+  colors: ObservationColors = observationColors.dark
 ): void => {
   if (space === "rgb" && isRgbSliceAxis(axis)) {
     const planeCorners = getRgbPlaneCorners(axis, value).map((point) =>
       projectSpacePoint(point, rotation, width, height, objectScale)
     );
-    drawProjectedPolygon(context, planeCorners);
+    drawProjectedPolygon(context, planeCorners, colors);
     return;
   }
 
@@ -126,7 +126,7 @@ export const drawSlicePlane = (
       const projected = corners.map((point) =>
         projectSpacePoint(point, rotation, width, height, objectScale)
       );
-      drawProjectedPolygon(context, projected);
+      drawProjectedPolygon(context, projected, colors);
       return;
     }
 
@@ -140,7 +140,7 @@ export const drawSlicePlane = (
       const projected = ring.map((point) =>
         projectSpacePoint(point, rotation, width, height, objectScale)
       );
-      drawProjectedPolygon(context, projected);
+      drawProjectedPolygon(context, projected, colors);
       return;
     }
 
@@ -148,7 +148,7 @@ export const drawSlicePlane = (
     if (radius <= 0) {
       const bottom = projectSpacePoint({ x: 0, y: -1, z: 0 }, rotation, width, height, objectScale);
       const top = projectSpacePoint({ x: 0, y: 1, z: 0 }, rotation, width, height, objectScale);
-      context.strokeStyle = rgbaFromGray(colorChannelMax, planeStrokeAlpha);
+      context.strokeStyle = colors.guide;
       context.lineWidth = 1.5;
       drawLine(context, bottom, top);
       return;
@@ -165,7 +165,7 @@ export const drawSlicePlane = (
       const projected = quad.map((point) =>
         projectSpacePoint(point, rotation, width, height, objectScale)
       );
-      drawProjectedPolygon(context, projected);
+      drawProjectedPolygon(context, projected, colors);
     }
     return;
   }
@@ -196,6 +196,6 @@ export const drawSlicePlane = (
     const projected = corners.map((point) =>
       projectSpacePoint(point, rotation, width, height, objectScale)
     );
-    drawProjectedPolygon(context, projected);
+    drawProjectedPolygon(context, projected, colors);
   }
 };
