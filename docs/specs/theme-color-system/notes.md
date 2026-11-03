@@ -36,6 +36,6 @@
 ## 実画面レビューによる再検討
 
 - キューブ等の観察面と周囲のUIの相性についてユーザーから差し戻し。配色見本の承認を、実画面の承認とは扱わない。
-- 再検討の背景・比較案・採否基準を[color-reassessment.md](color-reassessment.md)へ整理する。新しい色値は未確定。
+- 再検討の背景・比較案・採否基準を[color-reassessment.md](color-reassessment.md)へ整理する。採用値はtokens.jsonとdesign.mdへ反映済み。
 
-- A案を実装。作業領域を同じ無彩色で連続させ、装飾枠を除いた。tokens.jsonのstatusはreview-pending。ユーザーの明示的な実画面承認があるまで完了にしない。
+- A案を実装。作業領域を同じ無彩色で連続させ、カードの多重枠を除き、表示領域は細い線で囲った。描画情報の表示切替と上端の修正を含む仕上がりについてユーザーが明示的に承認。tokens.jsonのstatusをapprovedとする。

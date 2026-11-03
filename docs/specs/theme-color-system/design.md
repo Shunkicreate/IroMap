@@ -5,7 +5,7 @@
 - ライトは#FDD9D9よりさらに淡く、上品な桜。背景も桜色を感じられる明度にし、白に寄せすぎない。「操作と選択」の淡い色を基準に背景の彩度を抑える。
 - ダークは提供された夕景写真の上部の紺を起点に、青みを保ちながらベースの明度を下げる。
 - アクセントは主操作より控えめにする。色の関係は「桜と抹茶」「青い夕暮れと金星」を手がかりにする。
-- 以前の配色見本は承認済みだったが、実画面レビューで再検討となった。現在の色値は修正提案であり、実画面の承認待ち。アプリ本体への適用は[実装対応](implementation.md)に従う。実画面の視覚承認はプレビューで別に行う。
+- 実画面レビューを受けて観察面と周囲の配色を修正し、細い表示枠・描画情報の表示切替を含む仕上がりをユーザーが承認済み。アプリ本体への適用は[実装対応](implementation.md)に従う。
 - [文字の基礎設計](typography.md)ではNoto Sans JPと本文・説明文の字間0.04emをユーザー承認済み。その他の文字組は未確定。[残るUI基礎の検討項目](foundation-review.md)は未確定。
 - 正本: 本文の意味・制約と[tokens.json](tokens.json)のsRGB HEX値。測定表とプレビューは生成資料。
 - 上位方針: [デザインの土台](../../product/design-foundation.md)。情報の優先度と操作は既存の[情報設計](../workbench-information-architecture/information-architecture.md)・[状態設計](../workbench-information-architecture/state-transitions.md)に従う。
