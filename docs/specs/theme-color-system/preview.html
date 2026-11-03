@@ -1,0 +1,875 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>IroMap · 桜と夕紺の配色案</title>
+    <style>
+      [data-mode="light"] {
+        --surface-canvas: #f6eff0;
+        --surface-panel: #fff8f8;
+        --surface-raised: #f8e4e7;
+        --surface-hover: #f6e3e6;
+        --text-primary: #382e31;
+        --text-secondary: #715e64;
+        --border-subtle: #e7ccd2;
+        --border-control: #917983;
+        --action-primary: #fce6e8;
+        --action-primary-hover: #f9dcdf;
+        --action-primary-pressed: #f3cdd3;
+        --action-onPrimary: #55383d;
+        --selection-surface: #fce6e8;
+        --selection-text: #74424e;
+        --selection-border: #915e6a;
+        --focus-ring: #915363;
+        --attention-accent: #e7eddf;
+        --attention-accent-hover: #dfe7d5;
+        --attention-accent-pressed: #d6dfc9;
+        --attention-onAccent: #445139;
+        --attention-surface: #f0f3eb;
+        --disabled-surface: #f0e6e8;
+        --disabled-text: #715e64;
+        --feedback-success: #32684c;
+        --feedback-success-surface: #e8f3ec;
+        --feedback-warning: #96551f;
+        --feedback-warning-surface: #fff0e2;
+        --feedback-error: #b32f45;
+        --feedback-error-surface: #fcecf0;
+        --feedback-info: #315f80;
+        --feedback-info-surface: #e9f1f8;
+        --observation-surface: #e6e6e6;
+        --observation-text: #303030;
+        --observation-secondary: #595959;
+        --observation-guide: #808080;
+        --observation-selection: #915363;
+        --action-border: #915e6a;
+        --attention-text: #526044;
+        --attention-border: #6c785b;
+      }
+      [data-mode="dark"] {
+        --surface-canvas: #041a35;
+        --surface-panel: #061d38;
+        --surface-raised: #092542;
+        --surface-hover: #0d2c4b;
+        --text-primary: #eff4fc;
+        --text-secondary: #b6c8df;
+        --border-subtle: #355780;
+        --border-control: #8ba7c8;
+        --action-primary: #a6c8f0;
+        --action-primary-hover: #cddef5;
+        --action-primary-pressed: #8db3e1;
+        --action-onPrimary: #071e3c;
+        --selection-surface: #183d6d;
+        --selection-text: #cddef5;
+        --selection-border: #a6c8f0;
+        --focus-ring: #a6c8f0;
+        --attention-accent: #eae1c4;
+        --attention-accent-hover: #f2ecd9;
+        --attention-accent-pressed: #d8cfb3;
+        --attention-onAccent: #23334a;
+        --attention-surface: #263950;
+        --disabled-surface: #1c3a60;
+        --disabled-text: #b6c8df;
+        --feedback-success: #91cda8;
+        --feedback-success-surface: #173d30;
+        --feedback-warning: #f1b17b;
+        --feedback-warning-surface: #3c3024;
+        --feedback-error: #ff99a6;
+        --feedback-error-surface: #482936;
+        --feedback-info: #a6c8f0;
+        --feedback-info-surface: #183d6d;
+        --observation-surface: #242424;
+        --observation-text: #f0f0f0;
+        --observation-secondary: #b8b8b8;
+        --observation-guide: #858585;
+        --observation-selection: #a6c8f0;
+        --action-border: #a6c8f0;
+        --attention-text: #eae1c4;
+        --attention-border: #eae1c4;
+      }
+      .roles {
+        grid-template-columns: 1fr 1fr 0.65fr !important;
+      }
+      .role-accent {
+        align-self: end;
+      }
+      .role-accent .swatch {
+        height: 24px;
+      }
+      .reference {
+        grid-column: 1/-1;
+        min-height: 24px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        font-size: 13px;
+        color: var(--text-secondary);
+      }
+      .reference span {
+        display: inline-block;
+        width: 36px;
+        height: 24px;
+        border: 1px solid var(--border-control);
+        border-radius: 3px;
+      }
+      .accent-note {
+        background: var(--attention-surface);
+        color: var(--attention-text);
+        font-weight: 400;
+        padding: 4px 10px;
+        min-height: 32px;
+      }
+      .accent-note:before {
+        content: "";
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--attention-text);
+        margin-right: 7px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #ececec;
+        color: #282828;
+        font-family: system-ui, "Yu Gothic", sans-serif;
+        font-size: 15px;
+        line-height: 1.6;
+      }
+      .intro {
+        max-width: 1400px;
+        margin: auto;
+        padding: 36px 32px 22px;
+      }
+      .intro h1 {
+        font-size: 24px;
+        margin: 0 0 8px;
+      }
+      .intro p {
+        margin: 0;
+      }
+      .compare {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 24px;
+        padding: 0 32px 32px;
+        max-width: 1400px;
+        margin: auto;
+      }
+      .sheet {
+        background: var(--surface-canvas);
+        color: var(--text-primary);
+        padding: 28px;
+        border-radius: 12px;
+        min-width: 0;
+      }
+      header {
+        padding-bottom: 22px;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+      h2 {
+        font-size: 30px;
+        letter-spacing: 0.04em;
+        margin: 2px 0 8px;
+      }
+      h3 {
+        font-size: 16px;
+        margin: 0 0 10px;
+      }
+      p {
+        margin: 0 0 12px;
+      }
+      .eyebrow {
+        font-size: 12px;
+        letter-spacing: 0.15em;
+        color: var(--text-secondary);
+        margin: 0;
+      }
+      header p:last-child,
+      .secondary {
+        color: var(--text-secondary);
+      }
+      .roles {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        padding: 24px 0;
+      }
+      .swatch {
+        height: 72px;
+        border: 1px solid var(--border-control);
+        border-radius: 6px;
+        margin-bottom: 10px;
+      }
+      .roles h3 {
+        margin: 0;
+        font-size: 14px;
+      }
+      code {
+        font-size: 13px;
+        font-family: ui-monospace, monospace;
+      }
+      .panel {
+        background: var(--surface-panel);
+        padding: 20px;
+        margin-top: 16px;
+        border: 1px solid var(--border-subtle);
+        border-radius: 8px;
+      }
+      .samples {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin: 16px 0;
+      }
+      .sample {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        padding: 8px 14px;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 14px;
+      }
+      .primary {
+        background: var(--action-primary);
+        color: var(--action-onPrimary);
+        border-color: var(--action-border);
+      }
+      .primary.hover {
+        background: var(--action-primary-hover);
+      }
+      .primary.pressed {
+        background: var(--action-primary-pressed);
+      }
+      .primary.focus {
+        outline: 2px solid var(--focus-ring);
+        outline-offset: 2px;
+      }
+      .secondary-button {
+        border-color: var(--border-control);
+      }
+      .selected {
+        background: var(--selection-surface);
+        color: var(--selection-text);
+        border: 2px solid var(--selection-border);
+      }
+      .disabled {
+        background: var(--disabled-surface);
+        color: var(--disabled-text);
+      }
+      .accent {
+        background: var(--attention-accent);
+        color: var(--attention-onAccent);
+      }
+      .field {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+      }
+      .field input {
+        background: var(--surface-panel);
+        color: var(--text-primary);
+        border: 1px solid var(--border-control);
+        border-radius: 4px;
+        padding: 10px;
+        max-width: 110px;
+        font: inherit;
+      }
+      .field input:focus-visible {
+        outline: 2px solid var(--focus-ring);
+        outline-offset: 2px;
+      }
+      .slider {
+        height: 8px;
+        background: var(--border-control);
+        border-radius: 4px;
+        position: relative;
+        margin: 26px 6px 8px;
+      }
+      .slider div {
+        width: 50%;
+        height: 100%;
+        background: var(--selection-border);
+        border-radius: 4px;
+      }
+      .slider span {
+        position: absolute;
+        left: 50%;
+        top: -7px;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: var(--action-primary);
+        border: 3px solid var(--surface-panel);
+        outline: 1px solid var(--action-border);
+      }
+      .observation {
+        padding: 18px;
+        background: var(--observation-surface);
+        color: var(--observation-text);
+        border-radius: 4px;
+      }
+      .data {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        height: 68px;
+      }
+      .data span {
+        position: relative;
+      }
+      .marker {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 18px;
+        height: 18px;
+        transform: translate(-50%, -50%);
+        border: 3px solid #ffffff;
+        outline: 2px solid #171717;
+        border-radius: 50%;
+      }
+      .observation-note {
+        color: var(--observation-secondary);
+        font-size: 13px;
+        margin: 12px 0;
+      }
+      .guide {
+        border-bottom: 1px solid var(--observation-guide);
+      }
+      .feedbacks {
+        display: grid;
+        gap: 8px;
+      }
+      .feedbacks div {
+        padding: 10px 12px;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+      footer {
+        color: var(--text-secondary);
+        font-size: 12px;
+        padding-top: 20px;
+      }
+      @media (max-width: 850px) {
+        .compare {
+          grid-template-columns: 1fr;
+          padding: 0 16px 24px;
+        }
+        .intro {
+          padding: 24px 16px 16px;
+        }
+        .sheet {
+          padding: 20px;
+        }
+        .roles {
+          gap: 10px;
+        }
+      }
+    </style>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+JP:wght@400;500;700&amp;family=Noto+Serif+JP:wght@400;500;700&amp;family=Zen+Kaku+Gothic+New:wght@400;500;700&amp;display=swap&amp;text=%20%23%25%2C.%2F0123456789ABCDEFGHIJKLMNOPRSTZabcefhiklmnoprstuw%C2%B0%C2%B7%E2%86%92%E2%88%92%E2%9C%93%E3%80%80%E3%80%81%E3%80%82%E3%81%82%E3%81%84%E3%81%88%E3%81%8B%E3%81%8C%E3%81%8D%E3%81%91%E3%81%95%E3%81%97%E3%81%98%E3%81%99%E3%81%9B%E3%81%9F%E3%81%A0%E3%81%A7%E3%81%A8%E3%81%AA%E3%81%AB%E3%81%AE%E3%81%AF%E3%81%B3%E3%81%B8%E3%81%B9%E3%81%BE%E3%81%BF%E3%82%82%E3%82%89%E3%82%8A%E3%82%8B%E3%82%8C%E3%82%92%E3%82%93%E3%82%A4%E3%82%A8%E3%82%A9%E3%82%AB%E3%82%B3%E3%82%B5%E3%82%B9%E3%82%BF%E3%83%87%E3%83%88%E3%83%89%E3%83%90%E3%83%95%E3%83%97%E3%83%99%E3%83%9B%E3%83%A1%E3%83%A2%E3%83%A9%E3%83%AB%E3%83%B3%E3%83%BB%E3%83%BC%E4%B8%8B%E4%B8%8D%E4%B8%A1%E4%B8%AD%E4%B8%BB%E4%BA%86%E4%BA%8C%E4%BB%95%E4%BB%A3%E4%BB%AE%E4%BD%8D%E4%BD%93%E4%BD%9C%E5%80%A4%E5%85%89%E5%85%A5%E5%86%99%E5%87%BA%E5%88%87%E5%88%A5%E5%88%A9%E5%89%B2%E5%8A%9B%E5%8A%9F%E5%8A%A9%E5%8B%95%E5%8D%B0%E5%8F%82%E5%8F%96%E5%8F%AF%E5%90%8C%E5%90%8D%E5%91%8A%E5%93%81%E5%A0%B1%E5%A1%97%E5%A2%83%E5%A4%89%E5%A4%95%E5%AD%97%E5%AE%8C%E5%AE%9A%E5%AF%9F%E5%AF%B8%E5%AF%BE%E5%B0%8F%E5%B0%91%E5%B8%B8%E5%BC%B7%E5%BD%A9%E5%BD%B9%E5%BE%97%E6%83%85%E6%88%90%E6%89%BF%E6%8A%9E%E6%8A%B9%E6%8A%BC%E6%8C%87%E6%8E%A1%E6%93%8D%E6%95%B0%E6%96%87%E6%96%AD%E6%96%B9%E6%98%8E%E6%98%9F%E6%9A%AE%E6%9B%B4%E6%9B%B8%E6%9B%BF%E6%9C%AC%E6%9F%94%E6%9F%BB%E6%A1%88%E6%A1%9C%E6%A4%9C%E6%A7%98%E6%AF%94%E6%B0%97%E6%B3%95%E6%B3%A8%E6%B7%BB%E6%B8%88%E7%84%A1%E7%94%A8%E7%94%BB%E7%95%8C%E7%9C%9F%E7%9F%A5%E7%A2%BA%E7%A4%BA%E7%A7%B0%E7%A7%BB%E7%B4%BA%E7%BD%AE%E8%80%83%E8%89%B2%E8%8C%B6%E8%A1%A8%E8%A3%9C%E8%A6%8B%E8%A6%B3%E8%A8%80%E8%A8%98%E8%AA%8D%E8%AA%AC%E8%AA%AD%E8%AA%BF%E8%AD%98%E8%AD%A6%E8%BC%83%E8%BC%AA%E8%BE%BC%E9%80%9A%E9%81%B8%E9%83%A8%E9%83%AD%E9%85%8D%E9%87%8D%E9%87%8F%E9%87%91%E9%96%93%E9%9D%92%E9%9D%A2%E9%AB%98"
+    />
+    <style>
+      :root {
+        --preview-ui-font: "Noto Sans JP";
+        --preview-title-font: "Noto Sans JP";
+        --preview-tracking: 0.04em;
+      }
+      .type-toolbar {
+        max-width: 1336px;
+        margin: 0 auto 24px;
+        padding: 20px;
+        background: #fafafa;
+        color: #282828;
+        border: 1px solid #b7b7b7;
+        border-radius: 8px;
+      }
+      .type-toolbar h2 {
+        font-size: 18px;
+        margin: 0 0 8px;
+      }
+      .type-toolbar p {
+        font-size: 14px;
+        margin: 8px 0;
+      }
+      .type-settings {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      .type-settings label {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .type-settings select {
+        font: inherit;
+        max-width: 100%;
+        padding: 8px;
+        background: #fff;
+        color: #282828;
+        border: 1px solid #747474;
+        border-radius: 4px;
+      }
+      .sheet {
+        font-family: var(--preview-ui-font), "Yu Gothic", sans-serif;
+      }
+      .sheet h2,
+      .sheet h3 {
+        font-family: var(--preview-title-font), "Yu Gothic", sans-serif;
+      }
+      .sheet p:not(.eyebrow):not(.reference) {
+        letter-spacing: var(--preview-tracking);
+      }
+      .sheet code {
+        font-family: "Geist Mono", ui-monospace, monospace;
+        letter-spacing: 0;
+        font-variant-numeric: tabular-nums;
+      }
+      .type-copy {
+        font-size: 16px;
+        line-height: 1.75;
+        font-weight: 400;
+      }
+      .type-spacing p {
+        font-size: 16px;
+        line-height: 1.75;
+      }
+      .type-spacing small {
+        display: inline-block;
+        min-width: 110px;
+        font-family: system-ui, sans-serif;
+        font-size: 12px;
+        color: var(--text-secondary);
+        letter-spacing: 0;
+        margin-right: 8px;
+      }
+      .type-numbers {
+        line-height: 1.8;
+      }
+      .type-numbers span {
+        font-size: 14px;
+      }
+      .type-numbers code {
+        font-size: 14px;
+      }
+      .sheet h3 {
+        font-size: 18px;
+        line-height: 1.5;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+      .sheet .sample {
+        font-weight: 500;
+        letter-spacing: 0;
+      }
+      .sheet .roles h3 {
+        font-size: 14px;
+      }
+      .sheet .accent-note {
+        font-weight: 400;
+      }
+      @media (max-width: 1399px) {
+        .type-toolbar {
+          margin-left: 32px;
+          margin-right: 32px;
+        }
+      }
+      @media (max-width: 850px) {
+        .type-toolbar {
+          margin-left: 16px;
+          margin-right: 16px;
+        }
+        .type-settings {
+          display: block;
+        }
+        .type-settings label {
+          margin: 12px 0;
+          flex-wrap: wrap;
+        }
+        .type-settings select {
+          font-size: 14px;
+        }
+        .type-spacing small {
+          min-width: 90px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="intro">
+      <h1>IroMap · 桜と夕紺</h1>
+      <p>
+        配色・Noto Sans
+        JP・本文字間0.04emは承認済み。同じデータ色と、文字の見え方を確認します。
+      </p>
+    </div>
+    <section class="type-toolbar" aria-labelledby="type-review-title">
+      <h2 id="type-review-title">
+        文字の見本 · Noto Sans JP / 本文字間0.04emを採用
+      </h2>
+      <p>
+        採用した書体と本文字間で表示します。比較用の切り替えは採用仕様を変更しません。
+      </p>
+      <div class="type-settings">
+        <label
+          >書体
+          <select id="font-choice">
+            <option value="zen">B · Zen Kaku Gothic New</option>
+            <option value="noto" selected>A · Noto Sans JP</option>
+            <option value="serif">C · 見出しだけNoto Serif JP</option>
+          </select></label
+        ><label
+          >説明文の字間
+          <select id="tracking-choice">
+            <option value="0.02em">0.02em</option>
+            <option value="0em">0em</option>
+            <option value="0.04em" selected>0.04em</option>
+          </select></label
+        >
+      </div>
+      <p id="font-status" role="status">
+        比較用フォントを読み込んでいます。読み込み完了まで代替書体が表示されます。
+      </p>
+    </section>
+    <main class="compare">
+      <article class="sheet" data-mode="light">
+        <header>
+          <p class="eyebrow">LIGHT</p>
+          <h2>桜と抹茶</h2>
+          <p>色の役割と部品の見え方を確認する案</p>
+        </header>
+        <section class="roles">
+          <div class="role-base">
+            <div class="swatch" style="background: #f6eff0"></div>
+            <h3>ベース</h3>
+            <code>#F6EFF0</code>
+          </div>
+          <div class="role-main">
+            <div class="swatch" style="background: #fce6e8"></div>
+            <h3>メイン</h3>
+            <code>#FCE6E8</code>
+          </div>
+          <div class="role-accent">
+            <div class="swatch" style="background: #e7eddf"></div>
+            <h3>添え色</h3>
+            <code>#E7EDDF</code>
+          </div>
+          <p class="reference">
+            参考 <span style="background: #fdd9d9"></span><code>#FDD9D9</code> →
+            主操作 <span style="background: #fce6e8"></span><code>#FCE6E8</code>
+          </p>
+        </section>
+        <section class="panel">
+          <h3>操作と選択</h3>
+          <p class="secondary">文字・輪郭・塗りの強さを見比べる</p>
+          <div class="samples">
+            <span class="sample primary">主操作</span
+            ><span class="sample primary hover">ホバー</span
+            ><span class="sample primary pressed">押下</span
+            ><span class="sample primary focus">フォーカス</span>
+          </div>
+          <div class="samples">
+            <span class="sample secondary-button">補助操作</span
+            ><span class="sample selected">✓ 選択中</span
+            ><span class="sample disabled">利用不可</span
+            ><span class="sample accent-note">抹茶 · 補助の注記</span>
+          </div>
+          <label class="field"
+            >値の入力
+            <input type="text" value="0.50" aria-label="桜の入力色の見本"
+          /></label>
+          <div
+            class="slider"
+            role="img"
+            aria-label="アクティブ部分とつまみの色見本"
+          >
+            <div></div>
+            <span></span>
+          </div>
+        </section>
+        <section class="panel type-specimen">
+          <h3>文字と数値</h3>
+          <p class="type-copy">
+            写真の気になる色を選び、3Dと断面で色の位置を確認します。
+          </p>
+          <div class="type-spacing">
+            <p style="letter-spacing: 0em">
+              <small>字間 0em</small>選択色の高さへ移動
+            </p>
+            <p style="letter-spacing: 0.02em">
+              <small>字間 0.02em</small>選択色の高さへ移動
+            </p>
+            <p style="letter-spacing: 0.04em">
+              <small>字間 0.04em</small>選択色の高さへ移動
+            </p>
+          </div>
+          <p class="type-numbers">
+            <span>色コードと値</span> <code>#F6EFF0 · RGB 246, 239, 240</code
+            ><br /><code>−12.50　0.00　100.00　48.2%</code><br /><code
+              >0 O　1 I l　HSL　Lab　360°</code
+            >
+          </p>
+        </section>
+        <section class="panel">
+          <h3>色の観察面</h3>
+          <p class="secondary">
+            両モードで同じRGBのサンプル。3D・断面の完成画面ではありません。
+          </p>
+          <div class="observation">
+            <p>選択色 <code>#D7868C</code></p>
+            <div class="data">
+              <span style="background: #001727"></span
+              ><span style="background: #245d78"></span
+              ><span style="background: #f1b17b"></span
+              ><span style="background: #d7868c"><i class="marker"></i></span
+              ><span style="background: #a9b18e"></span
+              ><span style="background: #e7ddd1"></span>
+            </div>
+            <p class="observation-note">無彩色の面・二重輪郭・値のラベル</p>
+            <div class="guide"></div>
+          </div>
+        </section>
+        <section class="panel">
+          <h3>通知と強調</h3>
+          <div class="feedbacks">
+            <div
+              style="
+                color: var(--feedback-success);
+                background: var(--feedback-success-surface);
+              "
+            >
+              成功 · 名称でも識別する
+            </div>
+            <div
+              style="
+                color: var(--feedback-warning);
+                background: var(--feedback-warning-surface);
+              "
+            >
+              警告 · 名称でも識別する
+            </div>
+            <div
+              style="
+                color: var(--feedback-error);
+                background: var(--feedback-error-surface);
+              "
+            >
+              エラー · 名称でも識別する
+            </div>
+            <div
+              style="
+                color: var(--feedback-info);
+                background: var(--feedback-info-surface);
+              "
+            >
+              情報 · 名称でも識別する
+            </div>
+          </div>
+        </section>
+        <footer>
+          通常文字・操作境界の指定色対を検査済み。画面配置・文言・部品寸法は確認用の仮置き。
+        </footer>
+      </article>
+      <article class="sheet" data-mode="dark">
+        <header>
+          <p class="eyebrow">DARK</p>
+          <h2>夕紺と金星</h2>
+          <p>色の役割と部品の見え方を確認する案</p>
+        </header>
+        <section class="roles">
+          <div class="role-base">
+            <div class="swatch" style="background: #041a35"></div>
+            <h3>ベース</h3>
+            <code>#041A35</code>
+          </div>
+          <div class="role-main">
+            <div class="swatch" style="background: #a6c8f0"></div>
+            <h3>メイン</h3>
+            <code>#A6C8F0</code>
+          </div>
+          <div class="role-accent">
+            <div class="swatch" style="background: #eae1c4"></div>
+            <h3>添え色</h3>
+            <code>#EAE1C4</code>
+          </div>
+          <p class="reference">青い夕暮れに、金星の柔らかな光を少量添える</p>
+        </section>
+        <section class="panel">
+          <h3>操作と選択</h3>
+          <p class="secondary">文字・輪郭・塗りの強さを見比べる</p>
+          <div class="samples">
+            <span class="sample primary">主操作</span
+            ><span class="sample primary hover">ホバー</span
+            ><span class="sample primary pressed">押下</span
+            ><span class="sample primary focus">フォーカス</span>
+          </div>
+          <div class="samples">
+            <span class="sample secondary-button">補助操作</span
+            ><span class="sample selected">✓ 選択中</span
+            ><span class="sample disabled">利用不可</span
+            ><span class="sample accent-note">金星 · 小さな印</span>
+          </div>
+          <label class="field"
+            >値の入力
+            <input type="text" value="0.50" aria-label="夕紺の入力色の見本"
+          /></label>
+          <div
+            class="slider"
+            role="img"
+            aria-label="アクティブ部分とつまみの色見本"
+          >
+            <div></div>
+            <span></span>
+          </div>
+        </section>
+        <section class="panel type-specimen">
+          <h3>文字と数値</h3>
+          <p class="type-copy">
+            写真の気になる色を選び、3Dと断面で色の位置を確認します。
+          </p>
+          <div class="type-spacing">
+            <p style="letter-spacing: 0em">
+              <small>字間 0em</small>選択色の高さへ移動
+            </p>
+            <p style="letter-spacing: 0.02em">
+              <small>字間 0.02em</small>選択色の高さへ移動
+            </p>
+            <p style="letter-spacing: 0.04em">
+              <small>字間 0.04em</small>選択色の高さへ移動
+            </p>
+          </div>
+          <p class="type-numbers">
+            <span>色コードと値</span> <code>#F6EFF0 · RGB 246, 239, 240</code
+            ><br /><code>−12.50　0.00　100.00　48.2%</code><br /><code
+              >0 O　1 I l　HSL　Lab　360°</code
+            >
+          </p>
+        </section>
+        <section class="panel">
+          <h3>色の観察面</h3>
+          <p class="secondary">
+            両モードで同じRGBのサンプル。3D・断面の完成画面ではありません。
+          </p>
+          <div class="observation">
+            <p>選択色 <code>#D7868C</code></p>
+            <div class="data">
+              <span style="background: #001727"></span
+              ><span style="background: #245d78"></span
+              ><span style="background: #f1b17b"></span
+              ><span style="background: #d7868c"><i class="marker"></i></span
+              ><span style="background: #a9b18e"></span
+              ><span style="background: #e7ddd1"></span>
+            </div>
+            <p class="observation-note">無彩色の面・二重輪郭・値のラベル</p>
+            <div class="guide"></div>
+          </div>
+        </section>
+        <section class="panel">
+          <h3>通知と強調</h3>
+          <div class="feedbacks">
+            <div
+              style="
+                color: var(--feedback-success);
+                background: var(--feedback-success-surface);
+              "
+            >
+              成功 · 名称でも識別する
+            </div>
+            <div
+              style="
+                color: var(--feedback-warning);
+                background: var(--feedback-warning-surface);
+              "
+            >
+              警告 · 名称でも識別する
+            </div>
+            <div
+              style="
+                color: var(--feedback-error);
+                background: var(--feedback-error-surface);
+              "
+            >
+              エラー · 名称でも識別する
+            </div>
+            <div
+              style="
+                color: var(--feedback-info);
+                background: var(--feedback-info-surface);
+              "
+            >
+              情報 · 名称でも識別する
+            </div>
+          </div>
+        </section>
+        <footer>
+          通常文字・操作境界の指定色対を検査済み。画面配置・文言・部品寸法は確認用の仮置き。
+        </footer>
+      </article>
+    </main>
+    <script>
+      const choices = {
+        zen: ["Zen Kaku Gothic New", "Zen Kaku Gothic New"],
+        noto: ["Noto Sans JP", "Noto Sans JP"],
+        serif: ["Noto Sans JP", "Noto Serif JP"],
+      };
+      const fontChoice = document.getElementById("font-choice");
+      const trackingChoice = document.getElementById("tracking-choice");
+      const fontStatus = document.getElementById("font-status");
+      let fontRevision = 0;
+      async function chooseFont() {
+        const revision = ++fontRevision;
+        const [ui, title] = choices[fontChoice.value];
+        document.documentElement.style.setProperty(
+          "--preview-ui-font",
+          JSON.stringify(ui),
+        );
+        document.documentElement.style.setProperty(
+          "--preview-title-font",
+          JSON.stringify(title),
+        );
+        fontStatus.textContent =
+          "比較用フォントを読み込んでいます。読み込み完了まで代替書体が表示されます。";
+        try {
+          const requests = [
+            [ui, 400],
+            [ui, 500],
+            [title, 700],
+            ["Geist Mono", 400],
+          ];
+          const results = await Promise.all(
+            requests.map(([name, weight]) =>
+              document.fonts.load(
+                weight + " 16px " + JSON.stringify(name),
+                name === "Geist Mono" ? "0123456789" : "選択色の高さへ移動",
+              ),
+            ),
+          );
+          if (revision !== fontRevision) return;
+          if (results.some((faces) => faces.length === 0))
+            throw Error("missing font");
+          fontStatus.textContent = "フォントの読み込みが完了しました。";
+        } catch (error) {
+          if (revision === fontRevision)
+            fontStatus.textContent =
+              "フォントを取得できません。代替書体で表示中です。書体の違いは確認できません。";
+        }
+      }
+      fontChoice.addEventListener("change", chooseFont);
+      trackingChoice.addEventListener("change", () =>
+        document.documentElement.style.setProperty(
+          "--preview-tracking",
+          trackingChoice.value,
+        ),
+      );
+      chooseFont();
+    </script>
+  </body>
+</html>
