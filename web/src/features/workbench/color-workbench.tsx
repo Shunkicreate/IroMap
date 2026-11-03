@@ -210,6 +210,10 @@ export function ColorWorkbench() {
     parse: parseColorSpace3d,
     serialize: String,
   });
+  const [isCubeInfoVisible, setIsCubeInfoVisible] = usePersistedBoolean({
+    storageKey: storageKeys.cubeInfoVisible,
+    defaultValue: true,
+  });
   const [isAxisGuideVisible, setIsAxisGuideVisible] = usePersistedBoolean({
     storageKey: storageKeys.cubeAxisGuideVisible,
     defaultValue: true,
@@ -826,7 +830,7 @@ export function ColorWorkbench() {
 
   return (
     <section className="workbenchRoot">
-      <div className="workbenchInteractiveGrid">
+      <div className="workbenchInteractiveGrid observationPanel">
         <div className="workbenchPreviewRegion">
           <WorkbenchPreviewPanel
             target={baselineTarget}
@@ -855,7 +859,7 @@ export function ColorWorkbench() {
         </div>
 
         <div className="workbenchCubeRegion">
-          <section className="panel">
+          <section className="panel observationPanel">
             <PanelHeader titleKey="panelRgbCube" requirementsKey="panelRgbCubeRequirements" />
 
             <Tabs
@@ -945,6 +949,14 @@ export function ColorWorkbench() {
                   </label>
                   <label className={controlStyles.toggleLabel}>
                     <Checkbox
+                      checked={isCubeInfoVisible}
+                      onCheckedChange={(checked) => setIsCubeInfoVisible(checked === true)}
+                      aria-label={t("cubeShowInfo")}
+                    />
+                    <span>{t("cubeShowInfo")}</span>
+                  </label>
+                  <label className={controlStyles.toggleLabel}>
+                    <Checkbox
                       checked={isAxisGuideVisible}
                       onCheckedChange={(checked) => setIsAxisGuideVisible(checked === true)}
                       aria-label={t("cubeShowAxisGuide")}
@@ -982,6 +994,7 @@ export function ColorWorkbench() {
               space={space}
               rotation={rotation}
               cubeSize={cubeSize}
+              isinfoVisible={isCubeInfoVisible}
               axisGuideMode={isAxisGuideVisible ? "visible" : "hidden"}
               sliceAxis={sliceAxis}
               sliceValue={sliceValue}

@@ -990,6 +990,12 @@
 - 実装キー: `spaceLab`。
 - 参照元: `web/src/features/workbench/color-workbench.tsx`。
 
+### cubeShowInfo
+
+- 文言ID: `cubeShowInfo`。
+- 実装キー: `cubeShowInfo`。
+- 参照元: `web/src/features/workbench/color-workbench.tsx`。
+
 ### cubeShowAxisGuide
 
 - 文言ID: `cubeShowAxisGuide`。

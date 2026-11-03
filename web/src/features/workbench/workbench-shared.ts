@@ -68,6 +68,7 @@ export const storageKeys = {
   cubeSpace: "iromap.workbench.cube.space",
   cubeSliceAxis: "iromap.workbench.cube.slice-axis",
   cubeSliceValue: "iromap.workbench.cube.slice-value",
+  cubeInfoVisible: "iromap.workbench.cube.info.visible",
   cubeAxisGuideVisible: "iromap.workbench.cube.axis-guide.visible",
   cubeSizeSliderVisible: "iromap.workbench.cube.size-slider.visible",
   cubeSize: "iromap.workbench.cube.size",

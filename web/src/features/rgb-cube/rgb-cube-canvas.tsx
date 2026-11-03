@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useCallback, useMemo, useRef } from "react";
+import { useObservationColors } from "@/components/use-observation-colors";
+import { selectionMarker } from "@/lib/observation-colors";
 import { clampRgb } from "@/domain/color/color-conversion";
 import {
   type ColorSpace3d,
@@ -37,6 +39,7 @@ type Props = {
   space: ColorSpace3d;
   rotation: Rotation;
   cubeSize: number;
+  isinfoVisible: boolean;
   axisGuideMode: "visible" | "hidden";
   sliceAxis: SliceAxis;
   sliceValue: number;
@@ -57,7 +60,6 @@ const overlayTextLeft = 14;
 const resolutionTextTop = 22;
 const secondOverlayTextTop = 40;
 const thirdOverlayTextTop = 58;
-const textAlpha = 0.85;
 const defaultCubeSize = 400;
 const minCubeSize = 320;
 const maxCubeSize = 900;
@@ -68,8 +70,6 @@ const imageOverlayMinRadius = 2.8;
 const imageOverlayMaxRadius = 7.2;
 const imageOverlayStrokeAlpha = 0.9;
 const imageOverlayStrokeWidth = 0.8;
-const selectionOverlayStroke = "#f97316";
-const hoverOverlayStroke = "#ffffff";
 const focusOverlayRadius = 6.5;
 
 const areSameColor = (
@@ -114,6 +114,7 @@ export function RgbCubeCanvas({
   space,
   rotation,
   cubeSize,
+  isinfoVisible,
   axisGuideMode,
   sliceAxis,
   sliceValue,
@@ -127,6 +128,7 @@ export function RgbCubeCanvas({
   onHoverColorChange,
   onColorSelect,
 }: Props) {
+  const colors = useObservationColors();
   const baseCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const focusCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvasWrapRef = useRef<HTMLDivElement | null>(null);
@@ -226,12 +228,12 @@ export function RgbCubeCanvas({
       const { context, width, height } = configuredCanvas;
 
       context.clearRect(0, 0, width, height);
-      context.fillStyle = "#0e1118";
+      context.fillStyle = colors.surface;
       context.fillRect(0, 0, width, height);
 
       const objectScale = cubeSize / defaultCubeSize;
 
-      drawGuide(context, space, rotationToDraw, width, height, objectScale);
+      drawGuide(context, space, rotationToDraw, width, height, objectScale, colors);
       drawSlicePlane(
         context,
         space,
@@ -240,7 +242,8 @@ export function RgbCubeCanvas({
         height,
         sliceAxis,
         sliceValue,
-        objectScale
+        objectScale,
+        colors
       );
 
       const projectedGrid = hasGridOverlay
@@ -302,70 +305,58 @@ export function RgbCubeCanvas({
         const intensity = point.count / maxSelectionCount;
         const radius =
           imageOverlayMinRadius + (imageOverlayMaxRadius - imageOverlayMinRadius) * intensity + 2.4;
-        const gradient = context.createRadialGradient(
-          point.x - radius * 0.35,
-          point.y - radius * 0.45,
-          radius * 0.15,
-          point.x,
-          point.y,
-          radius
-        );
-        gradient.addColorStop(0, "rgba(255, 248, 240, 0.9)");
-        gradient.addColorStop(0.2, "rgba(253, 186, 116, 0.75)");
-        gradient.addColorStop(0.7, "rgba(249, 115, 22, 0.42)");
-        gradient.addColorStop(1, "rgba(194, 65, 12, 0.18)");
-        context.fillStyle = gradient;
+        // Preserve the measured color; selection is indicated by a double outline.
+        context.fillStyle = `rgb(${point.color.r}, ${point.color.g}, ${point.color.b})`;
         context.beginPath();
         context.arc(point.x, point.y, radius, 0, fullCircleRadians);
         context.fill();
-        context.strokeStyle = "rgba(251, 146, 60, 0.82)";
+        context.strokeStyle = selectionMarker.outer;
+        context.lineWidth = 3;
+        context.stroke();
+        context.strokeStyle = selectionMarker.inner;
         context.lineWidth = 1.2;
         context.stroke();
-
-        context.fillStyle = "rgba(255, 255, 255, 0.35)";
-        context.beginPath();
-        context.arc(
-          point.x - radius * 0.3,
-          point.y - radius * 0.35,
-          Math.max(radius * 0.24, 0.8),
-          0,
-          fullCircleRadians
-        );
-        context.fill();
       }
 
       if (axisGuideMode === "visible") {
-        drawAxisGuide(context, space, rotationToDraw, width, height, objectScale);
+        drawAxisGuide(context, space, rotationToDraw, width, height, objectScale, colors);
       }
 
-      context.fillStyle = `rgba(255, 255, 255, ${textAlpha})`;
-      context.font = "0.75rem monospace";
-      context.fillText(
-        t("cubeResolutionOverlay", { levels: rgbCubeColorCount }),
-        overlayTextLeft,
-        resolutionTextTop
-      );
-      context.fillText(
-        t("cubeSliceOverlay", { axis: getSliceAxisLabel(sliceAxis), value: sliceValue }),
-        overlayTextLeft,
-        secondOverlayTextTop
-      );
-      context.fillText(
-        t("cubeOverlayStatus", {
-          mode: t(
-            overlayMode === "grid"
-              ? "cubeOverlayModeGrid"
-              : overlayMode === "image"
-                ? "cubeOverlayModeImage"
-                : "cubeOverlayModeBoth"
-          ),
-          points: imageCubePoints.length,
-        }),
-        overlayTextLeft,
-        thirdOverlayTextTop
-      );
+      if (isinfoVisible) {
+        context.font = "0.75rem " + getComputedStyle(canvas).fontFamily;
+        context.fillStyle = colors.surface;
+        // Keep the full header clear, including the strip above the first label.
+        context.fillRect(0, 0, width, 65);
+        context.fillStyle = colors.text;
+        context.fillText(
+          t("cubeResolutionOverlay", { levels: rgbCubeColorCount }),
+          overlayTextLeft,
+          resolutionTextTop
+        );
+        context.fillText(
+          t("cubeSliceOverlay", { axis: getSliceAxisLabel(sliceAxis), value: sliceValue }),
+          overlayTextLeft,
+          secondOverlayTextTop
+        );
+        context.fillText(
+          t("cubeOverlayStatus", {
+            mode: t(
+              overlayMode === "grid"
+                ? "cubeOverlayModeGrid"
+                : overlayMode === "image"
+                  ? "cubeOverlayModeImage"
+                  : "cubeOverlayModeBoth"
+            ),
+            points: imageCubePoints.length,
+          }),
+          overlayTextLeft,
+          thirdOverlayTextTop
+        );
+      }
     },
     [
+      colors,
+      isinfoVisible,
       axisGuideMode,
       cubeSize,
       hasGridOverlay,
@@ -401,22 +392,27 @@ export function RgbCubeCanvas({
 
     context.clearRect(0, 0, width, height);
 
-    const drawFocusRing = (color: RgbColor | null | undefined, strokeStyle: string): void => {
+    const drawFocusRing = (color: RgbColor | null | undefined, isselected: boolean): void => {
       if (!color) {
         return;
       }
       const point = projectColor(color, space, rotationToDraw, width, height, objectScale);
-      context.strokeStyle = strokeStyle;
-      context.lineWidth = 1.5;
+      context.strokeStyle = selectionMarker.outer;
+      context.lineWidth = 4;
+      context.setLineDash(isselected ? [] : [3, 2]);
       context.beginPath();
       context.arc(point.x, point.y, focusOverlayRadius, 0, fullCircleRadians);
       context.stroke();
+      context.strokeStyle = selectionMarker.inner;
+      context.lineWidth = 1.5;
+      context.stroke();
+      context.setLineDash([]);
     };
 
     if (isselectionMappingVisible && selectionCubePoints.length === 0) {
-      drawFocusRing(selectedColor, selectionOverlayStroke);
+      drawFocusRing(selectedColor, true);
     }
-    drawFocusRing(displayHoverColor, hoverOverlayStroke);
+    drawFocusRing(displayHoverColor, false);
   }, [
     cubeSize,
     isselectionMappingVisible,

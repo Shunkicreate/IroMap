@@ -9,7 +9,7 @@
   border: 0.0625rem solid var(--workbench-surface-border);
   border-radius: 0.75rem;
   padding: 0.75rem;
-  background: color-mix(in oklab, var(--workbench-surface) 90%, var(--background) 10%);
+  background: var(--surface-panel);
   align-content: start;
 }
 
@@ -42,7 +42,7 @@
   border: 0.0625rem solid var(--workbench-surface-border);
   border-radius: 0.625rem;
   padding: 0.625rem;
-  background: color-mix(in oklab, var(--workbench-surface) 90%, var(--background) 10%);
+  background: var(--surface-panel);
 }
 
 .analysisCard h3 {

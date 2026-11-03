@@ -15,7 +15,7 @@
     "perf:workbench:ci": "playwright test --config playwright.perf.config.ts",
     "test:perf-budget": "node --test scripts/workbench-perf-budget.test.mjs",
     "test:perf-lint": "node --test scripts/react-perf-rules.test.mjs",
-    "lint": "pnpm run lint:eslint && pnpm run lint:filenames && pnpm run lint:css",
+    "lint": "pnpm run check:theme && pnpm run lint:eslint && pnpm run lint:filenames && pnpm run lint:css",
     "lint:css": "stylelint \"src/**/*.css\"",
     "lint:css:fix": "stylelint \"src/**/*.css\" --fix",
     "lint:eslint": "eslint . --max-warnings=0",
@@ -23,7 +23,10 @@
     "lint:fix": "eslint . --fix --max-warnings=0 && pnpm run lint:css:fix",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
-    "check": "pnpm run lint && pnpm run format:check"
+    "check": "pnpm run lint && pnpm run format:check",
+    "generate:theme": "node scripts/generate-theme-colors.mjs",
+    "check:theme": "node scripts/generate-theme-colors.mjs --check",
+    "prebuild": "pnpm run check:theme"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",

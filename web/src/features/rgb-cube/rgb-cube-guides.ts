@@ -1,5 +1,5 @@
+import { observationColors, type ObservationColors } from "@/lib/observation-colors";
 import {
-  rgbaFromGray,
   fullCircleRadians,
   projectSpacePoint,
   labAxisRange,
@@ -9,8 +9,6 @@ import {
 import { type ColorSpace3d } from "@/domain/color/color-types";
 import { colorChannelMax } from "@/domain/color/color-constants";
 
-const neutralGray = 220;
-const defaultAlpha = 0.5;
 const hslGuideSegments = 12;
 
 const drawLine = (
@@ -29,7 +27,8 @@ const drawGuideRgb = (
   rotation: Rotation,
   width: number,
   height: number,
-  objectScale = 1
+  objectScale = 1,
+  colors: ObservationColors = observationColors.dark
 ): void => {
   const corners: SpacePoint[] = [
     { x: -1, y: -1, z: -1 },
@@ -61,7 +60,7 @@ const drawGuideRgb = (
   ];
 
   context.lineWidth = 1;
-  context.strokeStyle = rgbaFromGray(neutralGray, defaultAlpha);
+  context.strokeStyle = colors.guide;
 
   for (const [from, to] of edgePairs) {
     drawLine(context, projected[from], projected[to]);
@@ -73,10 +72,11 @@ const drawGuideHsl = (
   rotation: Rotation,
   width: number,
   height: number,
-  objectScale = 1
+  objectScale = 1,
+  colors: ObservationColors = observationColors.dark
 ): void => {
   context.lineWidth = 1;
-  context.strokeStyle = rgbaFromGray(neutralGray, defaultAlpha);
+  context.strokeStyle = colors.guide;
 
   const topRing: { x: number; y: number }[] = [];
   const bottomRing: { x: number; y: number }[] = [];
@@ -124,11 +124,12 @@ const drawGuideLab = (
   rotation: Rotation,
   width: number,
   height: number,
-  objectScale = 1
+  objectScale = 1,
+  colors: ObservationColors = observationColors.dark
 ): void => {
-  drawGuideRgb(context, rotation, width, height, objectScale);
+  drawGuideRgb(context, rotation, width, height, objectScale, colors);
   context.lineWidth = 1;
-  context.strokeStyle = rgbaFromGray(neutralGray, 0.35);
+  context.strokeStyle = colors.guide;
 
   const centerX = projectSpacePoint({ x: 0, y: -1, z: 0 }, rotation, width, height, objectScale);
   const centerY = projectSpacePoint({ x: 0, y: 1, z: 0 }, rotation, width, height, objectScale);
@@ -148,17 +149,18 @@ export const drawGuide = (
   rotation: Rotation,
   width: number,
   height: number,
-  objectScale = 1
+  objectScale = 1,
+  colors: ObservationColors = observationColors.dark
 ): void => {
   if (space === "rgb") {
-    drawGuideRgb(context, rotation, width, height, objectScale);
+    drawGuideRgb(context, rotation, width, height, objectScale, colors);
     return;
   }
   if (space === "hsl") {
-    drawGuideHsl(context, rotation, width, height, objectScale);
+    drawGuideHsl(context, rotation, width, height, objectScale, colors);
     return;
   }
-  drawGuideLab(context, rotation, width, height, objectScale);
+  drawGuideLab(context, rotation, width, height, objectScale, colors);
 };
 
 const getAxisLabels = (space: ColorSpace3d): { x: string; y: string; z: string } => {
@@ -173,8 +175,6 @@ const getAxisLabels = (space: ColorSpace3d): { x: string; y: string; z: string }
 
 type AxisName = "x" | "y" | "z";
 type LabelBounds = { x: number; y: number; width: number; height: number };
-
-const axisColors = { x: "#ff8080", y: "#89ebad", z: "#9cceff" };
 
 const getTickLabel = (space: ColorSpace3d, axis: AxisName, position: number): string => {
   if (space === "rgb") {
@@ -193,7 +193,8 @@ export const drawAxisGuide = (
   rotation: Rotation,
   width: number,
   height: number,
-  objectScale = 1
+  objectScale = 1,
+  colors: ObservationColors = observationColors.dark
 ): void => {
   const labels = getAxisLabels(space);
   const occupied: LabelBounds[] = [{ x: 0, y: 0, width, height: 66 }];
@@ -223,7 +224,7 @@ export const drawAxisGuide = (
     }
     occupied.push({ x: left, y: top, width: labelWidth, height: labelHeight });
     const color = context.fillStyle;
-    context.fillStyle = "rgba(14, 17, 24, 0.9)";
+    context.fillStyle = colors.surface;
     context.fillRect(left, top, labelWidth, labelHeight);
     context.fillStyle = color;
     context.fillText(text, left + labelWidth / 2, top + labelHeight / 2);
@@ -250,8 +251,8 @@ export const drawAxisGuide = (
     const midpoint = project(0);
     const direction = -dy * (midpoint.x - center.x) + dx * (midpoint.y - center.y) < 0 ? -1 : 1;
     const normal = { x: (-dy / length) * direction, y: (dx / length) * direction };
-    context.strokeStyle = axisColors[axis];
-    context.fillStyle = axisColors[axis];
+    context.strokeStyle = colors.guide;
+    context.fillStyle = colors.text;
     drawLine(context, start, end);
 
     // Draw endpoints and the midpoint before intermediate labels for small canvases.

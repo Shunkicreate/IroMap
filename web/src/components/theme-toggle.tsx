@@ -1,12 +1,22 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { t } from "@/i18n/translate";
 
+const subscribeToHydration = () => () => {};
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
+
 export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
+  const isHydrated = useSyncExternalStore(
+    subscribeToHydration,
+    getClientSnapshot,
+    getServerSnapshot
+  );
+  const isDark = isHydrated && resolvedTheme === "dark";
   const nextThemeLabel = t(isDark ? "workbenchThemeLight" : "workbenchThemeDark");
   const ThemeIcon = isDark ? Sun : Moon;
 

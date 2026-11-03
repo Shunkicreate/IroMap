@@ -2,9 +2,7 @@
   border: 0.0625rem solid var(--workbench-surface-border);
   border-radius: 0.75rem;
   padding: 0.75rem;
-  background:
-    linear-gradient(135deg, color-mix(in oklab, var(--primary) 16%, transparent), transparent 48%),
-    color-mix(in oklab, var(--workbench-surface) 90%, var(--background) 10%);
+  background: var(--surface-panel);
 }
 
 .previewCard h3 {
@@ -28,7 +26,7 @@
   width: 100%;
   border-radius: 0.625rem;
   border: 0.0625rem solid var(--workbench-surface-border);
-  background: color-mix(in oklab, var(--workbench-surface) 86%, #08111d 14%);
+  background: var(--observation-surface);
 }
 
 .previewImage {
@@ -36,6 +34,7 @@
 }
 
 .previewEmpty {
+  background: transparent;
   display: grid;
   place-items: center;
   min-block-size: 18rem;
@@ -72,7 +71,7 @@
   min-inline-size: 0;
   min-block-size: 3rem;
   padding: 0.75rem;
-  border: 0.0625rem solid var(--workbench-surface-border);
+  border: 0.0625rem solid var(--border-control);
   border-radius: 0.5rem;
   background: var(--workbench-surface);
   color: var(--workbench-text);
@@ -85,8 +84,10 @@
 }
 
 .previewPanel .uploadCta .uploadButton {
-  color: var(--workbench-text);
+  color: var(--action-on-primary);
   font-size: 1rem;
+  background: var(--action-primary);
+  border-color: var(--action-border);
 }
 
 .previewPanel .uploadButton:hover,
@@ -98,7 +99,7 @@
 .previewPanel .uploadButton:focus-within,
 .pasteInput:focus {
   border-color: var(--workbench-accent);
-  outline: 0.125rem solid color-mix(in oklab, var(--workbench-accent) 30%, transparent);
+  outline: 0.125rem solid var(--focus-ring);
   outline-offset: 0.125rem;
 }
 
@@ -134,8 +135,9 @@
   position: relative;
   display: grid;
   overflow: clip;
+  border: 0.0625rem solid var(--observation-guide);
   border-radius: 0.625rem;
-  background: color-mix(in oklab, var(--workbench-surface) 88%, #08111d 12%);
+  background: var(--observation-surface);
 }
 
 .overlay {
@@ -153,30 +155,30 @@
 .selectionBox,
 .selectionDraft {
   fill: none;
-  stroke-width: 0.7;
+  stroke-width: 1.5;
   vector-effect: non-scaling-stroke;
 }
 
 .selectionBoxActive {
-  stroke: #f97316;
+  stroke: var(--selection-marker-inner);
 }
 
 .selectionDraft {
-  stroke: #f8fafc;
+  stroke: var(--selection-marker-inner);
   stroke-dasharray: 2 1.25;
 }
 
 .hoverMarker {
-  fill: #f8fafc;
-  stroke: #0f172a;
-  stroke-width: 0.45;
+  fill: var(--selection-marker-inner);
+  stroke: var(--selection-marker-outer);
+  stroke-width: 1;
   vector-effect: non-scaling-stroke;
 }
 
 .selectedMarker {
   fill: none;
-  stroke: #f97316;
-  stroke-width: 0.55;
+  stroke: var(--selection-marker-inner);
+  stroke-width: 1.5;
   vector-effect: non-scaling-stroke;
 }
 
@@ -210,4 +212,19 @@
 
 .metaDetails[open] summary::before {
   transform: rotate(90deg);
+}
+
+.previewPanel .uploadCta .uploadButton:hover {
+  background: var(--action-primary-hover);
+}
+
+.previewPanel .uploadCta .uploadButton:active {
+  background: var(--action-primary-pressed);
+}
+
+.markerOuter {
+  fill: none;
+  stroke: var(--selection-marker-outer);
+  stroke-width: 4;
+  vector-effect: non-scaling-stroke;
 }

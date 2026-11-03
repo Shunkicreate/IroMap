@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { getCubeCanvas, getPanel } from "./helpers";
 
 type AxisLabel = { text: string; x: number; y: number; width: number };
-type AxisTestWindow = Window & { cubeAxisLabels: AxisLabel[] };
+type AxisTestWindow = Window & { cubeAxisLabels: AxisLabel[]; cubeInfoLabels: string[] };
 
 const readLabels = (page: Page) =>
   page.evaluate(() => (window as unknown as AxisTestWindow).cubeAxisLabels);
@@ -11,20 +11,22 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     const state = window as unknown as AxisTestWindow;
     state.cubeAxisLabels = [];
+    state.cubeInfoLabels = [];
     const clearRect = CanvasRenderingContext2D.prototype.clearRect;
     const fillText = CanvasRenderingContext2D.prototype.fillText;
     CanvasRenderingContext2D.prototype.clearRect = function (...args) {
       if (this.canvas.classList.contains("cubeCanvas")) {
         state.cubeAxisLabels = [];
+        state.cubeInfoLabels = [];
       }
       clearRect.apply(this, args);
     };
     CanvasRenderingContext2D.prototype.fillText = function (text, x, y, maxWidth) {
-      if (
-        this.canvas.classList.contains("cubeCanvas") &&
-        ["#ff8080", "#89ebad", "#9cceff"].includes(String(this.fillStyle))
-      ) {
+      if (this.canvas.classList.contains("cubeCanvas") && this.textAlign === "center") {
         state.cubeAxisLabels.push({ text, x, y, width: this.measureText(text).width });
+      }
+      if (this.canvas.classList.contains("cubeCanvas") && this.textAlign !== "center") {
+        state.cubeInfoLabels.push(text);
       }
       if (maxWidth === undefined) {
         fillText.call(this, text, x, y);
@@ -105,3 +107,20 @@ for (const width of [320, 375, 768, 1024, 1440]) {
     }
   });
 }
+
+test("描画情報は軸ガイドと独立して切り替え、再読込後も保持する", async ({ page }) => {
+  const panel = getPanel(page, "3Dキューブ");
+  const readInfo = () => page.evaluate(() => (window as unknown as AxisTestWindow).cubeInfoLabels);
+  await expect.poll(readInfo).toEqual(expect.arrayContaining(["解像度: 256 固定"]));
+  await panel.locator(".persistedDisclosureTrigger").click();
+  const toggle = panel.getByRole("checkbox", { name: "描画情報を表示", exact: true });
+  await expect(toggle).toBeChecked();
+  await toggle.uncheck();
+  await expect.poll(readInfo).toEqual([]);
+  await expect.poll(() => readLabels(page)).not.toEqual([]);
+  await page.reload();
+  await expect(toggle).not.toBeChecked();
+  await expect.poll(readInfo).toEqual([]);
+  await toggle.check();
+  await expect.poll(readInfo).toEqual(expect.arrayContaining(["解像度: 256 固定"]));
+});

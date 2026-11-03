@@ -11,10 +11,10 @@
 }
 
 .previewCard {
-  border: 0.0625rem solid #263a57;
+  border: 0.0625rem solid var(--border-subtle);
   border-radius: 0.625rem;
   padding: 0.625rem;
-  background: #0a1626;
+  background: var(--surface-panel);
 }
 
 .previewHeader {
@@ -37,8 +37,8 @@
   width: 100%;
   aspect-ratio: 4 / 3;
   border-radius: 0.5rem;
-  border: 0.0625rem solid #304766;
-  background: #08111d;
+  border: 0.0625rem solid var(--border-subtle);
+  background: var(--observation-surface);
 }
 
 .previewImage {
