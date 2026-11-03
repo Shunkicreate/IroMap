@@ -39,6 +39,7 @@ type Props = {
   space: ColorSpace3d;
   rotation: Rotation;
   cubeSize: number;
+  isinfoVisible: boolean;
   axisGuideMode: "visible" | "hidden";
   sliceAxis: SliceAxis;
   sliceValue: number;
@@ -113,6 +114,7 @@ export function RgbCubeCanvas({
   space,
   rotation,
   cubeSize,
+  isinfoVisible,
   axisGuideMode,
   sliceAxis,
   sliceValue,
@@ -320,38 +322,41 @@ export function RgbCubeCanvas({
         drawAxisGuide(context, space, rotationToDraw, width, height, objectScale, colors);
       }
 
-      context.font = "0.75rem " + getComputedStyle(canvas).fontFamily;
-      context.fillStyle = colors.surface;
-      // Keep the full header clear, including the strip above the first label.
-      context.fillRect(0, 0, width, 65);
-      context.fillStyle = colors.text;
-      context.fillText(
-        t("cubeResolutionOverlay", { levels: rgbCubeColorCount }),
-        overlayTextLeft,
-        resolutionTextTop
-      );
-      context.fillText(
-        t("cubeSliceOverlay", { axis: getSliceAxisLabel(sliceAxis), value: sliceValue }),
-        overlayTextLeft,
-        secondOverlayTextTop
-      );
-      context.fillText(
-        t("cubeOverlayStatus", {
-          mode: t(
-            overlayMode === "grid"
-              ? "cubeOverlayModeGrid"
-              : overlayMode === "image"
-                ? "cubeOverlayModeImage"
-                : "cubeOverlayModeBoth"
-          ),
-          points: imageCubePoints.length,
-        }),
-        overlayTextLeft,
-        thirdOverlayTextTop
-      );
+      if (isinfoVisible) {
+        context.font = "0.75rem " + getComputedStyle(canvas).fontFamily;
+        context.fillStyle = colors.surface;
+        // Keep the full header clear, including the strip above the first label.
+        context.fillRect(0, 0, width, 65);
+        context.fillStyle = colors.text;
+        context.fillText(
+          t("cubeResolutionOverlay", { levels: rgbCubeColorCount }),
+          overlayTextLeft,
+          resolutionTextTop
+        );
+        context.fillText(
+          t("cubeSliceOverlay", { axis: getSliceAxisLabel(sliceAxis), value: sliceValue }),
+          overlayTextLeft,
+          secondOverlayTextTop
+        );
+        context.fillText(
+          t("cubeOverlayStatus", {
+            mode: t(
+              overlayMode === "grid"
+                ? "cubeOverlayModeGrid"
+                : overlayMode === "image"
+                  ? "cubeOverlayModeImage"
+                  : "cubeOverlayModeBoth"
+            ),
+            points: imageCubePoints.length,
+          }),
+          overlayTextLeft,
+          thirdOverlayTextTop
+        );
+      }
     },
     [
       colors,
+      isinfoVisible,
       axisGuideMode,
       cubeSize,
       hasGridOverlay,
