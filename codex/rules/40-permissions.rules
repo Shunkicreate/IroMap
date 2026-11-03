@@ -1,7 +1,7 @@
 """IroMap command approval policy.
 
 Goal:
-- allow: read-only inspection commands
+- allow: read-only inspection commands and authorized add/commit/push
 - prompt: state-changing git/gh commands
 - forbidden: destructive commands
 """
@@ -37,12 +37,12 @@ prefix_rule(
 
 # State-changing git commands
 prefix_rule(
-    pattern=["git", ["add", "commit"]],
+    pattern=["git", ["add", "commit", "push"]],
     decision="allow",
 )
 
 prefix_rule(
-    pattern=["git", ["restore", "switch", "checkout", "push", "pull", "fetch", "merge", "rebase", "cherry-pick", "worktree"]],
+    pattern=["git", ["restore", "switch", "checkout", "pull", "fetch", "merge", "rebase", "cherry-pick", "worktree"]],
     decision="prompt",
     justification="Repository state changes require explicit confirmation.",
 )

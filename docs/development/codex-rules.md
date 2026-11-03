@@ -10,6 +10,7 @@
 - TUI で許可した内容はユーザーレイヤ（`~/.codex/rules/default.rules`）へ保存される。
 
 ## 2. このリポジトリ方針
+
 - `codex/rules/*.md` は開発ルール参照入口として維持する。
 - 実際のコマンド承認制御は `codex/rules/40-permissions.rules` で管理する。
 - 公式仕様どおり、複数ルールがマッチした場合は最も厳しい判定（`forbidden > prompt > allow`）を優先する前提で設計する。
@@ -23,9 +24,9 @@
 - 新規ルール追加時は、既存ルールと重複・矛盾がないか確認する
 - `prefix_rule` は以下の3層で分離する
   - `allow`: 読み取り専用（`status`, `diff`, `log` など）
-  - `prompt`: 状態変更（`push`, `gh pr edit`, `gh pr merge` など）
+  - `prompt`: その他の状態変更（`gh pr edit`, `gh pr merge` など）
   - `forbidden`: 破壊操作（`git reset --hard`, `git clean -fd`）
-- `git add` / `git commit` に加えて `git -C` も `allow` とする（破壊操作は `forbidden` を維持）
+- `git add` / `git commit` / `git push` はユーザーの常時承認方針に従い `allow` とする。pushごとの事前確認は求めない。これに加えて `git -C` も `allow` とする（破壊操作は `forbidden` を維持）
 - `pnpm --dir ...` は作業用 worktree を含めて一律 `allow` とし、ディレクトリ固定の個別列挙を避ける
 - ルート直下の `pnpm install/add/remove/update` と `pnpm dlx` は引き続き `prompt` とする
 - `gh pr create` は `allow` とする（PR作成を明示許可）
@@ -41,6 +42,7 @@
 - `codex/rules/40-permissions.rules`: コマンド承認ポリシー（実行制御本体）
 
 ## 5. 動作確認コマンド
+
 ルール追加・変更後は、必ず `execpolicy` で判定を確認する。
 
 ```bash
