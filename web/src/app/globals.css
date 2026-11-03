@@ -191,7 +191,7 @@
 }
 
 .panel {
-  border: 0.0625rem solid var(--workbench-surface-border);
+  border: 0.0625rem solid transparent;
   background: var(--surface-panel);
   border-radius: 0.875rem;
   padding: 0.875rem;
@@ -1212,8 +1212,8 @@
 .landingHero {
   padding: 1rem;
   border-radius: 0.875rem;
-  border: 0.0625rem solid var(--border);
-  background: var(--surface-panel);
+  border: 0.0625rem solid transparent;
+  background: transparent;
 }
 
 .landingHeroHeader {
@@ -1241,10 +1241,10 @@
 }
 
 .landingSection {
-  border: 0.0625rem solid var(--border);
+  border: 0.0625rem solid transparent;
   border-radius: 0.875rem;
-  padding: 0.75rem;
-  background: var(--surface-panel);
+  padding: 0;
+  background: transparent;
 }
 
 .landingSection h2 {
@@ -1557,4 +1557,39 @@ input[type="range"]::-moz-range-thumb {
   background: var(--disabled-surface);
   color: var(--disabled-text);
   opacity: 1;
+}
+
+/* The three observation panels share the same neutral environment as their plots. */
+.observationPanel {
+  --surface-panel: var(--observation-surface);
+  --surface-hover: var(--observation-surface);
+  --text-primary: var(--observation-text);
+  --text-secondary: var(--observation-secondary);
+  --foreground: var(--observation-text);
+  --muted: var(--observation-surface);
+  --muted-foreground: var(--observation-secondary);
+  --border-control: var(--observation-guide);
+  --workbench-surface: var(--observation-surface);
+  --workbench-text: var(--observation-text);
+  --workbench-muted: var(--observation-secondary);
+  --workbench-surface-border: transparent;
+
+  color: var(--observation-text);
+  background: var(--observation-surface);
+  border-color: transparent;
+}
+
+.observationPanel .cubeCanvas,
+.observationPanel .sliceCanvas {
+  border-color: transparent;
+}
+
+.observationPanel .spaceTabsList {
+  background: transparent;
+  border-color: transparent;
+}
+
+.workbenchInteractiveGrid.observationPanel {
+  border-radius: 0.875rem;
+  padding: 0.5rem;
 }

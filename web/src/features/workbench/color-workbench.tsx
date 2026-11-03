@@ -826,7 +826,7 @@ export function ColorWorkbench() {
 
   return (
     <section className="workbenchRoot">
-      <div className="workbenchInteractiveGrid">
+      <div className="workbenchInteractiveGrid observationPanel">
         <div className="workbenchPreviewRegion">
           <WorkbenchPreviewPanel
             target={baselineTarget}
@@ -855,7 +855,7 @@ export function ColorWorkbench() {
         </div>
 
         <div className="workbenchCubeRegion">
-          <section className="panel">
+          <section className="panel observationPanel">
             <PanelHeader titleKey="panelRgbCube" requirementsKey="panelRgbCubeRequirements" />
 
             <Tabs

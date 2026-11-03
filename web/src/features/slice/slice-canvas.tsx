@@ -640,7 +640,7 @@ export function SliceCanvas({
   };
 
   return (
-    <section className="panel">
+    <section className="panel observationPanel">
       <PanelHeader titleKey="panelSlice" requirementsKey="panelSliceRequirements" />
       <div className="sliceControls">
         <label className={controlStyles.stackedLabel}>

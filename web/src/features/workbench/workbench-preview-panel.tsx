@@ -291,7 +291,7 @@ export function WorkbenchPreviewPanel(props: Props) {
     ) : null;
 
   return (
-    <section className={`panel ${previewStyles.previewPanel}`}>
+    <section className={`panel observationPanel ${previewStyles.previewPanel}`}>
       <h2 className="srOnly">{t("photoPreviewTitle")}</h2>
       <div className={previewStyles.uploadCta}>
         <div className={previewStyles.imageActions}>

@@ -186,7 +186,7 @@ writeFileSync(
     "# Palette: 桜と夕紺",
     "",
     "- tokens.jsonから生成。意味・目的・背景・使用制約はdesign.mdを参照する。",
-    "- すべて不透明なsRGB値。配色の基礎ルールは承認済み、アプリへの適用は別に行う。",
+    "- すべて不透明なsRGB値。配色は修正提案。実画面でのユーザー承認待ち。",
     "",
     "| 意味トークン | ライト：桜 | ダーク：夕紺 |",
     "| --- | --- | --- |",
@@ -332,7 +332,7 @@ const html =
   '<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>IroMap · 桜と夕紺の配色案</title><style>' +
   cssThemes +
   css +
-  '</style></head><body><div class="intro"><h1>IroMap · 桜と夕紺</h1><p>配色・Noto Sans JP・本文字間0.04emは承認済み。同じデータ色と、文字の見え方を確認します。</p></div><main class="compare">' +
+  '</style></head><body><div class="intro"><h1>IroMap · 桜と夕紺</h1><p>配色は修正提案。Noto Sans JP・本文字間0.04emは承認済み。同じデータ色と、文字の見え方を確認します。</p></div><main class="compare">' +
   modes.map(([mode, definition]) => sheet(mode, definition)).join("") +
   "</main></body></html>";
 writeFileSync(new URL("preview.html", root), withTypographyPreview(html));
