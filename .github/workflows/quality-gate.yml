@@ -137,6 +137,7 @@ jobs:
           name: workbench-performance
           path: web/performance-results/
           if-no-files-found: ignore
+          retention-days: 1
 
   e2e:
     runs-on: ubuntu-latest
