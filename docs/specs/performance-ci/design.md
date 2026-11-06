@@ -6,5 +6,6 @@
 - FR-3: 平均・中央値・最小・最大・件数を保持し、計測値を捨てて欠落を隠さない
 - FR-3: 選択操作の source が一致するトレースだけを評価する
 - FR-3: 判定結果と設定を JSON 保存後に失敗させ、Actions の artifact に保存する
+- FR-3: `workbench-performance` は `retention-days: 1` で保存し、`if: always()` と `if-no-files-found: ignore` を維持する
 
 閾値・ローカル実行方法は `docs/development/performance-benchmark.md` を参照する。
