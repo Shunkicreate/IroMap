@@ -1,5 +1,6 @@
 import { observationColors, type ObservationColors } from "@/lib/observation-colors";
 import { colorChannelMax, colorChannelMin } from "@/domain/color/color-constants";
+import { buildLabSliceGeometry, type LabSliceGeometry } from "@/domain/color/lab-slice";
 import {
   isHslSliceAxis,
   isLabSliceAxis,
@@ -7,6 +8,7 @@ import {
   toRgbColor,
   type ColorSpace3d,
   type SliceAxis,
+  type LabSliceAxis,
 } from "@/domain/color/color-types";
 import {
   clampUnit,
@@ -19,6 +21,19 @@ import {
 } from "@/features/rgb-cube/rgb-cube-projection";
 
 const sliceSurfaceSegments = 24;
+const labGeometryCache = new Map<string, LabSliceGeometry>();
+
+const getLabGeometry = (axis: LabSliceAxis, value: number): LabSliceGeometry => {
+  const key = `${axis}:${value}`;
+  const cached = labGeometryCache.get(key);
+  if (cached) return cached;
+  const geometry = buildLabSliceGeometry(axis, value);
+  if (labGeometryCache.size >= 3) {
+    labGeometryCache.delete(labGeometryCache.keys().next().value!);
+  }
+  labGeometryCache.set(key, geometry);
+  return geometry;
+};
 
 const drawLine = (
   context: CanvasRenderingContext2D,
@@ -171,31 +186,40 @@ export const drawSlicePlane = (
   }
 
   if (space === "lab" && isLabSliceAxis(axis)) {
-    const corners: SpacePoint[] =
-      axis === "lab-l"
-        ? [
-            { x: -1, y: toLabHeight(value), z: -1 },
-            { x: 1, y: toLabHeight(value), z: -1 },
-            { x: 1, y: toLabHeight(value), z: 1 },
-            { x: -1, y: toLabHeight(value), z: 1 },
-          ]
-        : axis === "lab-a"
-          ? [
-              { x: toLabChannel(value), y: -1, z: -1 },
-              { x: toLabChannel(value), y: -1, z: 1 },
-              { x: toLabChannel(value), y: 1, z: 1 },
-              { x: toLabChannel(value), y: 1, z: -1 },
-            ]
-          : [
-              { x: -1, y: -1, z: toLabChannel(value) },
-              { x: 1, y: -1, z: toLabChannel(value) },
-              { x: 1, y: 1, z: toLabChannel(value) },
-              { x: -1, y: 1, z: toLabChannel(value) },
-            ];
-
-    const projected = corners.map((point) =>
-      projectSpacePoint(point, rotation, width, height, objectScale)
-    );
-    drawProjectedPolygon(context, projected, colors);
+    const geometry = getLabGeometry(axis, value);
+    const projectGridPoint = (x: number, y: number) => {
+      const horizontal = toLabChannel(x - 128.5);
+      const point: SpacePoint =
+        axis === "lab-l"
+          ? { x: horizontal, y: toLabHeight(value), z: toLabChannel(127.5 - y) }
+          : axis === "lab-a"
+            ? { x: toLabChannel(value), y: toLabHeight(((255.5 - y) / 255) * 100), z: horizontal }
+            : { x: horizontal, y: toLabHeight(((255.5 - y) / 255) * 100), z: toLabChannel(value) };
+      return projectSpacePoint(point, rotation, width, height, objectScale);
+    };
+    context.beginPath();
+    for (const { row, start, end } of geometry.runs) {
+      const corners = [
+        projectGridPoint(start, row),
+        projectGridPoint(end, row),
+        projectGridPoint(end, row + 1),
+        projectGridPoint(start, row + 1),
+      ];
+      context.moveTo(corners[0].x, corners[0].y);
+      for (const corner of corners.slice(1)) context.lineTo(corner.x, corner.y);
+      context.closePath();
+    }
+    context.fillStyle = colors.guide + "16";
+    context.fill();
+    context.beginPath();
+    for (const { from, to } of geometry.boundary) {
+      const start = projectGridPoint(from.x, from.y);
+      const end = projectGridPoint(to.x, to.y);
+      context.moveTo(start.x, start.y);
+      context.lineTo(end.x, end.y);
+    }
+    context.strokeStyle = colors.guide;
+    context.lineWidth = 1.5;
+    context.stroke();
   }
 };
