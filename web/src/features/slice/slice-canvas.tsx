@@ -16,7 +16,7 @@ import {
   type SliceAxis,
 } from "@/domain/color/color-types";
 import { hslToRgb, rgbToHsl, rgbToLab } from "@/domain/color/color-conversion";
-import { getLabSliceColor } from "@/domain/color/lab-slice";
+import { buildLabSliceGeometry, getLabSliceColor } from "@/domain/color/lab-slice";
 import {
   colorChannelLevels,
   colorChannelMax,
@@ -385,6 +385,31 @@ export function SliceCanvas({
   onMappedSamplesVisibilityChange,
   onSelectedSamplesVisibilityChange,
 }: Props) {
+  const sliceCanvasStyle = useMemo(() => {
+    if (axis !== "lab-l") return undefined;
+    const { runs } = buildLabSliceGeometry(axis, value);
+    if (runs.length === 0) return undefined;
+    const left = Math.min(...runs.map((run) => run.start));
+    const right = Math.max(...runs.map((run) => run.end));
+    const top = runs[0].row;
+    const bottom = runs[runs.length - 1].row + 1;
+    const scale = Math.max(1, Math.min(8, 240 / Math.max(right - left, bottom - top)));
+    const x = ((128 - ((left + right) / 2) * scale) / colorChannelLevels) * 100;
+    const y = ((128 - ((top + bottom) / 2) * scale) / colorChannelLevels) * 100;
+    return {
+      transform: `translate(${x}%, ${y}%) scale(${scale})`,
+      transformOrigin: "top left",
+    };
+  }, [axis, value]);
+
+  const canvasStackRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    canvasStackRef.current?.style.setProperty(
+      "--slice-transform",
+      sliceCanvasStyle?.transform ?? "none"
+    );
+  }, [sliceCanvasStyle]);
+
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const mappingCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const cursorCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -727,7 +752,7 @@ export function SliceCanvas({
           xLabel={t("sliceAxisXLabel", { axis: labels.x })}
           yLabel={t("sliceAxisYLabel", { axis: labels.y })}
         >
-          <div className="sliceCanvasStack">
+          <div className="sliceCanvasStack" ref={canvasStackRef} data-fit-gamut={axis === "lab-l"}>
             <canvas
               ref={canvasRef}
               width={colorChannelLevels}
