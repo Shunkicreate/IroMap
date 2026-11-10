@@ -1,5 +1,7 @@
 "use client";
 
+import { ColorSwatch } from "@/components/workbench/color-swatch";
+
 import { getClipboardImageFile } from "@/features/workbench/clipboard-image";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -830,6 +832,17 @@ export function ColorWorkbench() {
 
   return (
     <section className="workbenchRoot">
+      <div className="colorRow" data-testid="selected-color-summary">
+        <span>{t("inspectorSelected")}</span>
+        {selectedColor ? (
+          <>
+            <ColorSwatch color={selectedColor} />
+            <span className="sr-only">{rgbToHex(selectedColor)}</span>
+          </>
+        ) : (
+          <span>{t("inspectorNoSelected")}</span>
+        )}
+      </div>
       <div className="workbenchInteractiveGrid observationPanel">
         <div className="workbenchPreviewRegion">
           <WorkbenchPreviewPanel
