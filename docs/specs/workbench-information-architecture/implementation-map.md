@@ -24,7 +24,7 @@
 
 ### W-03
 
-- 参照元: `web/src/features/inspector/color-inspector.tsx`。
+- 参照元: `web/src/features/workbench/color-workbench.tsx`。
 
 ### P-00
 
@@ -1072,7 +1072,7 @@
 
 - 文言ID: `inspectorNoSelected`。
 - 実装キー: `inspectorNoSelected`。
-- 参照元: `web/src/features/inspector/color-inspector.tsx`。
+- 参照元: `web/src/features/workbench/color-workbench.tsx`。
 
 ### copyFormatHex
 
