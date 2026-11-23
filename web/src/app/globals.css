@@ -965,6 +965,18 @@
   position: relative;
 }
 
+.sliceCanvasStack[data-fit-gamut="true"] {
+  overflow: hidden;
+  border: 0.0625rem solid var(--border-subtle);
+  border-radius: 0.625rem;
+}
+
+.sliceCanvasStack[data-fit-gamut="true"] > .sliceCanvas {
+  border: 0;
+  transform: var(--slice-transform, none);
+  transform-origin: top left;
+}
+
 .sliceCanvasOverlay {
   position: absolute;
   inset: 0;

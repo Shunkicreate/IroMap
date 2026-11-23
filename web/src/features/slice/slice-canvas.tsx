@@ -10,11 +10,13 @@ import {
   toHueDegree,
   toPercentage,
   toRgbColor,
+  isLabSliceAxis,
   type ColorSpace3d,
   type RgbColor,
   type SliceAxis,
 } from "@/domain/color/color-types";
-import { hslToRgb, labToRgb, rgbToHsl, rgbToLab } from "@/domain/color/color-conversion";
+import { hslToRgb, rgbToHsl, rgbToLab } from "@/domain/color/color-conversion";
+import { buildLabSliceGeometry, getLabSliceColor } from "@/domain/color/lab-slice";
 import {
   colorChannelLevels,
   colorChannelMax,
@@ -72,10 +74,6 @@ const toScaledValue = (value: number, max: number): number => {
   return Math.round((value / colorChannelMax) * max);
 };
 
-const toScaledRangeValue = (value: number, min: number, max: number): number => {
-  return min + Math.round((value / colorChannelMax) * (max - min));
-};
-
 const clamp = (value: number, min: number, max: number): number => {
   return Math.min(max, Math.max(min, value));
 };
@@ -110,7 +108,12 @@ const getColorAxisValue = (color: RgbColor, axis: SliceAxis): number => {
   return axis === "lab-a" ? lab.a : lab.b;
 };
 
-const buildColorFromPixel = (axis: SliceAxis, value: number, x: number, y: number): RgbColor => {
+const buildColorFromPixel = (
+  axis: SliceAxis,
+  value: number,
+  x: number,
+  y: number
+): RgbColor | null => {
   if (axis === "r") {
     return toRgbColor(value, x, colorChannelMax - y);
   }
@@ -137,26 +140,8 @@ const buildColorFromPixel = (axis: SliceAxis, value: number, x: number, y: numbe
       l: toPercentage(toScaledValue(colorChannelMax - y, 100)),
     });
   }
-  if (axis === "lab-l") {
-    return labToRgb({
-      l: clamp(value, 0, 100),
-      a: toScaledRangeValue(x, -128, 127),
-      b: toScaledRangeValue(colorChannelMax - y, -128, 127),
-    });
-  }
-  if (axis === "lab-a") {
-    return labToRgb({
-      l: toScaledValue(colorChannelMax - y, 100),
-      a: clamp(value, -128, 127),
-      b: toScaledRangeValue(x, -128, 127),
-    });
-  }
-  if (axis === "lab-b") {
-    return labToRgb({
-      l: toScaledValue(colorChannelMax - y, 100),
-      a: toScaledRangeValue(x, -128, 127),
-      b: clamp(value, -128, 127),
-    });
+  if (isLabSliceAxis(axis)) {
+    return getLabSliceColor(axis, value, x, y);
   }
 
   const safeLightness = clamp(value, 0, 100);
@@ -400,6 +385,31 @@ export function SliceCanvas({
   onMappedSamplesVisibilityChange,
   onSelectedSamplesVisibilityChange,
 }: Props) {
+  const sliceCanvasStyle = useMemo(() => {
+    if (axis !== "lab-l") return undefined;
+    const { runs } = buildLabSliceGeometry(axis, value);
+    if (runs.length === 0) return undefined;
+    const left = Math.min(...runs.map((run) => run.start));
+    const right = Math.max(...runs.map((run) => run.end));
+    const top = runs[0].row;
+    const bottom = runs[runs.length - 1].row + 1;
+    const scale = Math.max(1, Math.min(8, 240 / Math.max(right - left, bottom - top)));
+    const x = ((128 - ((left + right) / 2) * scale) / colorChannelLevels) * 100;
+    const y = ((128 - ((top + bottom) / 2) * scale) / colorChannelLevels) * 100;
+    return {
+      transform: `translate(${x}%, ${y}%) scale(${scale})`,
+      transformOrigin: "top left",
+    };
+  }, [axis, value]);
+
+  const canvasStackRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    canvasStackRef.current?.style.setProperty(
+      "--slice-transform",
+      sliceCanvasStyle?.transform ?? "none"
+    );
+  }, [sliceCanvasStyle]);
+
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const mappingCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const cursorCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -433,7 +443,7 @@ export function SliceCanvas({
       sharedHoverPipeline.schedule(nextHoverColor);
     },
     resolve: (point) => {
-      if (!point) {
+      if (!point || (isLabSliceAxis(axis) && !getLabSliceColor(axis, value, point.x, point.y))) {
         return null;
       }
       if (analysisId) {
@@ -470,6 +480,9 @@ export function SliceCanvas({
     for (let y = colorChannelMin; y < colorChannelLevels; y += 1) {
       for (let x = colorChannelMin; x < colorChannelLevels; x += 1) {
         const color = buildColorFromPixel(axis, value, x, y);
+        if (!color) {
+          continue;
+        }
         const offset = (y * colorChannelLevels + x) * rgbaStride;
         imageData.data[offset + redOffset] = color.r;
         imageData.data[offset + greenOffset] = color.g;
@@ -626,14 +639,15 @@ export function SliceCanvas({
 
   const handleClick = (event: React.MouseEvent<HTMLCanvasElement>): void => {
     const point = mapPointerToCanvasPoint(event);
-    const color = point
-      ? findNearestMappedHoverColor(
-          projectedMappedSamples,
-          point.x,
-          point.y,
-          mappedSampleHitRadius ** 2
-        )
-      : null;
+    const color =
+      point && (!isLabSliceAxis(axis) || getLabSliceColor(axis, value, point.x, point.y))
+        ? findNearestMappedHoverColor(
+            projectedMappedSamples,
+            point.x,
+            point.y,
+            mappedSampleHitRadius ** 2
+          )
+        : null;
     if (color) {
       onColorSelect(color);
     }
@@ -738,7 +752,7 @@ export function SliceCanvas({
           xLabel={t("sliceAxisXLabel", { axis: labels.x })}
           yLabel={t("sliceAxisYLabel", { axis: labels.y })}
         >
-          <div className="sliceCanvasStack">
+          <div className="sliceCanvasStack" ref={canvasStackRef} data-fit-gamut={axis === "lab-l"}>
             <canvas
               ref={canvasRef}
               width={colorChannelLevels}
