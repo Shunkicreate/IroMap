@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { startAnalyticsOperation, trackFeature } from "@/lib/analytics";
 import type { FormEvent } from "react";
 import type {
   AnalyzeErrorResponse,
@@ -41,6 +42,7 @@ export function AgentAnalyzePage() {
     }
 
     setIsSubmitting(true);
+    const finishAnalysis = startAnalyticsOperation("api-submit");
     setError(null);
     setResult(null);
 
@@ -57,12 +59,15 @@ export function AgentAnalyzePage() {
 
       const payload = (await response.json()) as AnalyzeSuccessResponse | AnalyzeErrorResponse;
       if (!response.ok || "error" in payload) {
+        finishAnalysis("failed");
         setError(payload as AnalyzeErrorResponse);
         return;
       }
 
       setResult(payload as AnalyzeSuccessResponse);
+      finishAnalysis("succeeded");
     } catch {
+      finishAnalysis("failed");
       setError({
         error: {
           code: "INTERNAL_ERROR",
@@ -92,7 +97,10 @@ export function AgentAnalyzePage() {
           isSubmitting={isSubmitting}
           previewUrl={previewUrl}
           supportedTypes={supportedTypes}
-          onFileChange={setFile}
+          onFileChange={(nextFile) => {
+            setFile(nextFile);
+            if (nextFile) trackFeature("api-file", "input");
+          }}
         />
         <AgentAnalyzeResultCard error={error} result={result} />
       </form>

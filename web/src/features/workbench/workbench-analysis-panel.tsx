@@ -79,6 +79,7 @@ export function WorkbenchAnalysisPanel({
 
       <div className={panelStyles.controls}>
         <button
+          data-analytics-id="histogram-copy"
           type="button"
           className={controlStyles.actionButton}
           onClick={() => void onCopyHistogram()}

@@ -17,6 +17,7 @@ export function AgentAnalyzeInputCard(props: Props) {
       <h2 className={styles.titleReset}>Input</h2>
       <p className={styles.muted}>Supported types: {supportedTypes.join(", ")}</p>
       <input
+        data-analytics-id="api-file"
         type="file"
         accept={supportedTypes.join(",")}
         onChange={(event) => {
@@ -24,7 +25,12 @@ export function AgentAnalyzeInputCard(props: Props) {
         }}
       />
       <div className={styles.buttonRow}>
-        <button type="submit" disabled={!file || isSubmitting} className={styles.button}>
+        <button
+          data-analytics-id="api-submit"
+          type="submit"
+          disabled={!file || isSubmitting}
+          className={styles.button}
+        >
           {isSubmitting ? "Analyzing..." : "Analyze image"}
         </button>
       </div>

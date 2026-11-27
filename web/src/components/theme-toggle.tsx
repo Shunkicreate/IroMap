@@ -22,6 +22,7 @@ export function ThemeToggle() {
 
   return (
     <button
+      data-analytics-id="theme-toggle"
       type="button"
       className="themeToggleButton"
       aria-label={`${t("workbenchThemeLabel")}: ${nextThemeLabel}`}

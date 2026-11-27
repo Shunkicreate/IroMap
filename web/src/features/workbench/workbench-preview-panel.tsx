@@ -1,4 +1,5 @@
 "use client";
+import { trackFeature } from "@/lib/analytics";
 
 import NextImage from "next/image";
 import { ImageIcon } from "lucide-react";
@@ -83,6 +84,7 @@ export function WorkbenchPreviewPanel(props: Props) {
   const commitSamplingDensity = (value: number): void => {
     setSamplingDensityDraft(null);
     if (value !== samplingDensityPercent) {
+      trackFeature("preview-density", "change");
       onSamplingDensityPercentChange(value);
     }
   };
@@ -295,9 +297,13 @@ export function WorkbenchPreviewPanel(props: Props) {
       <h2 className="srOnly">{t("photoPreviewTitle")}</h2>
       <div className={previewStyles.uploadCta}>
         <div className={previewStyles.imageActions}>
-          <label className={`photoUploadButton ${previewStyles.uploadButton}`}>
+          <label
+            data-analytics-id="photo-choose"
+            className={`photoUploadButton ${previewStyles.uploadButton}`}
+          >
             <span>{t("photoChooseAction")}</span>
             <input
+              data-analytics-id="photo-file"
               type="file"
               accept="image/*"
               aria-label={t("photoUploadLabel")}
@@ -307,6 +313,8 @@ export function WorkbenchPreviewPanel(props: Props) {
           </label>
           <div
             ref={pasteInputRef}
+            data-analytics-id="photo-paste"
+            data-analytics-mode="manual"
             contentEditable
             suppressContentEditableWarning
             role="textbox"
@@ -423,6 +431,7 @@ export function WorkbenchPreviewPanel(props: Props) {
       </div>
 
       <PersistedDisclosure
+        analyticsId="preview-options"
         storageKey={optionsDisclosureStorageKey}
         defaultOpen={false}
         summary={t("workbenchDisplayOptionsDisclosure")}
@@ -433,6 +442,7 @@ export function WorkbenchPreviewPanel(props: Props) {
           <div className={controlStyles.toggleRow}>
             <label className={controlStyles.toggleLabel}>
               <Checkbox
+                data-analytics-id="preview-grid"
                 checked={isSamplingGridVisible}
                 onCheckedChange={(checked) => onSamplingGridVisibleChange(checked === true)}
               />
@@ -445,16 +455,27 @@ export function WorkbenchPreviewPanel(props: Props) {
             </span>
             <Tabs
               value={samplingGridColor}
-              onValueChange={(value) =>
-                onSamplingGridColorChange(value as PreviewSamplingGridColor)
-              }
+              onValueChange={(value) => {
+                onSamplingGridColorChange(value as PreviewSamplingGridColor);
+                trackFeature(value === "white" ? "preview-grid-white" : "preview-grid-black");
+              }}
               className={controlStyles.spaceTabs}
             >
               <TabsList className={controlStyles.twoOptionTabsList}>
-                <TabsTrigger value="white" className={controlStyles.spaceTabTrigger}>
+                <TabsTrigger
+                  data-analytics-id="preview-grid-white"
+                  data-analytics-mode="manual"
+                  value="white"
+                  className={controlStyles.spaceTabTrigger}
+                >
                   {t("previewSamplingGridColorWhite")}
                 </TabsTrigger>
-                <TabsTrigger value="black" className={controlStyles.spaceTabTrigger}>
+                <TabsTrigger
+                  data-analytics-id="preview-grid-black"
+                  data-analytics-mode="manual"
+                  value="black"
+                  className={controlStyles.spaceTabTrigger}
+                >
                   {t("previewSamplingGridColorBlack")}
                 </TabsTrigger>
               </TabsList>
@@ -466,6 +487,8 @@ export function WorkbenchPreviewPanel(props: Props) {
               sampleCount: sampledPixels.toLocaleString(),
             })}
             <input
+              data-analytics-id="preview-density"
+              data-analytics-mode="manual"
               className={controlStyles.rangeControl}
               type="range"
               min={1}
@@ -507,7 +530,7 @@ export function WorkbenchPreviewPanel(props: Props) {
         </div>
       </PersistedDisclosure>
 
-      <details className={previewStyles.metaDetails}>
+      <details data-analytics-id="preview-metadata" className={previewStyles.metaDetails}>
         <summary>{t("photoMetaSummary")}</summary>
         {target.file ? (
           <p className={`muted ${previewStyles.statusLine} previewStatusLine`}>

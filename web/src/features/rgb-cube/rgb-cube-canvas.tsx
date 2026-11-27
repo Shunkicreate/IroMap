@@ -1,4 +1,5 @@
 "use client";
+import { trackFeature } from "@/lib/analytics";
 
 import { useEffect, useCallback, useMemo, useRef } from "react";
 import { useObservationColors } from "@/components/use-observation-colors";
@@ -644,6 +645,12 @@ export function RgbCubeCanvas({
     }
     if (dragRef.current.isDragging) {
       onRotationChange(displayRotationRef.current);
+      if (
+        displayRotationRef.current.x !== rotation.x ||
+        displayRotationRef.current.y !== rotation.y
+      ) {
+        trackFeature("cube-rotate", "rotate");
+      }
     }
 
     dragRef.current.isDragging = false;
