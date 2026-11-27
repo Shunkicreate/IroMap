@@ -1759,3 +1759,38 @@
   - 現行の共通メタデータを基準。
 - 根拠区分: 既存要素・補助画面として継承。
 - 補助文言ID: `metadata.title`、`metadata.description`。
+
+## N-00 アクセス解析への同意
+
+- 目的: 利用者がアクセス解析の利用を選択・変更できるようにする。
+- 背景: 解析の開始には最新版の説明への明示的な同意を必要とする。
+- 重要度: P2。
+- 開示区分: 初回・旧版・期限切れ、設定を開いたとき。
+- 内容:
+  - 取得情報と送信の実装を確認できる公開リポジトリへの案内。
+  - 目的・取得情報・説明バージョン・同意・拒否・保存失敗の案内。
+- 根拠区分: 本人の依頼に基づくアクセス解析同意の追加。
+- 文言ID: `consentSource`、`consentSourceLink`、`consentTitle`、`consentPurpose`、`consentData`、`consentChoice`、`consentVersion`、`consentAccept`、`consentReject`、`consentClose`、`consentStorageError`。
+
+## N-01 Cookie設定
+
+- 目的: 利用者がアクセス解析の利用を選択・変更できるようにする。
+- 背景: 解析の開始には最新版の説明への明示的な同意を必要とする。
+- 重要度: P2。
+- 開示区分: 常設の設定入口。
+- 内容:
+  - アクセス解析への同意を変更・撤回する入口。
+- 根拠区分: 本人の依頼に基づくアクセス解析同意の追加。
+- 文言ID: `consentSettings`。
+
+## N-02 アクセス解析の詳細説明
+
+- 目的: 利用者がアクセス解析の利用を選択・変更できるようにする。
+- 背景: 解析の開始には最新版の説明への明示的な同意を必要とする。
+- 重要度: P2。
+- 開示区分: 詳細画面。
+- 内容:
+  - 同意済み範囲内の機能・操作・イベント変更では再同意せず、送信先追加など範囲外の変更は事前に再同意する方針。
+  - 送信先・取得対象・保存期間・撤回方法・外部説明・主画面への導線。
+- 根拠区分: 本人の依頼に基づくアクセス解析同意の追加。
+- 文言ID: `privacyChangesTitle`、`privacyChanges`、`consentDetails`、`privacyPurposeTitle`、`privacyDataTitle`、`privacyDataDetails`、`privacyStorageTitle`、`privacyStorage`、`privacyGoogleRetention`、`privacyWithdrawalTitle`、`privacyWithdrawal`、`privacyPreferencesTitle`、`privacyPreferences`、`privacyGoogleTitle`、`privacyGoogleUsage`、`privacyGooglePolicy`、`privacyBack`。

@@ -15,6 +15,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
         with:
@@ -62,6 +64,10 @@ jobs:
       - name: Test information validation
         run: pnpm run test:information
 
+      - name: Test analytics contract and UI coverage
+        run: pnpm run test:analytics
+        working-directory: web
+
       - name: Report design and implementation differences
         id: information-implementation
         run: |
@@ -100,7 +106,8 @@ jobs:
         working-directory: web
 
   performance:
-    runs-on: ubuntu-latest
+    # Match the operating systems supported by the pinned Playwright version.
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -140,7 +147,8 @@ jobs:
           retention-days: 1
 
   e2e:
-    runs-on: ubuntu-latest
+    # Keep browser dependencies stable when ubuntu-latest changes release.
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
 
     steps:
@@ -166,4 +174,8 @@ jobs:
 
       - name: Run E2E tests
         run: pnpm run test:e2e
+        working-directory: web
+
+      - name: Test production analytics with isolated measurement ID
+        run: pnpm run test:analytics:e2e
         working-directory: web

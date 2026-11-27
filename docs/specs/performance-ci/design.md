@@ -1,5 +1,14 @@
 # Performance CI Design
 
+## 実行環境
+
+ブラウザーを使用する性能検証とE2Eのrunnerは `ubuntu-24.04` に固定する。
+固定中のPlaywright 1.51.1はUbuntu 26.04に対応しておらず、
+`ubuntu-latest` の更新で `install --with-deps chromium` が失敗したため。
+実際のGitHub Actionsでブラウザーの導入からテスト完了までを確認する。
+
+## 要求への対応
+
 - FR-1: 既存 ESLint に react-perf のオブジェクト・配列・関数ルールを限定適用する
 - FR-2: 独立した Playwright 設定で production server のライフサイクルを管理し、既存ベンチマークを子プロセスとして実行する
 - FR-2: 閾値は `web/scripts/workbench-perf-budgets.json`、判定は `workbench-perf-budget.mjs` に分離する

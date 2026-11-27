@@ -12,6 +12,7 @@
 - `docs/development/branch-rules.md`: ブランチ運用ルールと GitHub 品質ゲート
 - `docs/development/codex-rules.md`: Codex Rules の設計・運用方針
 - `docs/development/performance-benchmark.md`: ローカル性能計測手順と基準値
+- [利用状況・導線・時系列の計測](usage-analytics.md): GA4 の設定、イベント追加、CI、BigQuery の操作ログ
 
 ## 2. 基本原則
 

@@ -646,6 +646,7 @@ export function SliceCanvas({
         <label className={controlStyles.stackedLabel}>
           {t("sliceAxisLabel")}
           <select
+            data-analytics-id="slice-axis"
             className={controlStyles.fieldControl}
             value={axis}
             onChange={(event) => onAxisChange(event.target.value as SliceAxis)}
@@ -674,6 +675,7 @@ export function SliceCanvas({
         <label className={controlStyles.stackedLabel}>
           {t("sliceValueLabel", { value })}
           <input
+            data-analytics-id="slice-value"
             className={controlStyles.rangeControl}
             type="range"
             min={axisRange.min}
@@ -684,6 +686,7 @@ export function SliceCanvas({
           />
         </label>
         <Button
+          data-analytics-id="slice-follow-color"
           type="button"
           variant="outline"
           size="sm"
@@ -704,6 +707,7 @@ export function SliceCanvas({
         </Button>
       </div>
       <PersistedDisclosure
+        analyticsId="slice-options"
         storageKey={displayOptionsStorageKey}
         defaultOpen={false}
         summary={t("workbenchDisplayOptionsDisclosure")}
@@ -713,6 +717,7 @@ export function SliceCanvas({
         <div className={controlStyles.toggleRow}>
           <label className={controlStyles.toggleLabel}>
             <Checkbox
+              data-analytics-id="slice-mapping"
               checked={ismappedSamplesVisible}
               onCheckedChange={(checked) => onMappedSamplesVisibilityChange(checked === true)}
               aria-label={t("workbenchShowWhiteMappingSlice")}
@@ -721,6 +726,7 @@ export function SliceCanvas({
           </label>
           <label className={controlStyles.toggleLabel}>
             <Checkbox
+              data-analytics-id="slice-selection"
               checked={isselectedSamplesVisible}
               onCheckedChange={(checked) => onSelectedSamplesVisibilityChange(checked === true)}
               aria-label={t("workbenchShowSelectedMappingSlice")}

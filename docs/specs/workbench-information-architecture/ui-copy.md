@@ -2756,3 +2756,267 @@
 - レスポンス例の識別子: input、mimeType、width、height、pixelCount、colorSpace、summary、dominantColors、hex、ratio、rgb、r、g、b、avgBrightness、avgSaturation、description。
 - 既存の例の値と文字列を維持する。
 - APIのキー・MIME・HTTPコード・error.codeは翻訳しない。
+
+## アクセス解析への同意と説明
+
+### privacyChangesTitle
+
+- 区分: 画面表示の標準案。
+- 対応要素: N-02。
+- 標準 ja: 計測内容の変更と再同意
+- 標準 en: Measurement changes and renewed consent
+- 目的: 再同意が必要となる変更の範囲を明確にする。
+- 背景: 同意済み範囲内のイベント追加では再同意を求めないという本人の方針に基づく。
+
+### privacyChanges
+
+- 区分: 画面表示の標準案。
+- 対応要素: N-02。
+- 標準 ja: サービス改善という目的、取得する情報の種類、送信先がこの説明の範囲内であれば、計測対象の機能・操作・イベントを追加・変更することがあります。こうした変更のたびに再同意をお願いすることはありません。新たな送信先への提供、利用目的の変更、取得する情報の種類や保存期間の拡大など、この説明の範囲を超える変更を行う場合は、説明を更新し、変更後の取扱いを始める前に改めて同意を確認します。
+- 標準 en: We may add or change measured features, interactions, and events within the service-improvement purpose, data categories, and recipients described here, without asking for consent each time. If we go beyond this scope, for example by adding recipients, changing purposes, or expanding data categories or retention periods, we will update this notice and obtain renewed consent before applying the change.
+- 目的: 通常の機能計測の更新と、同意範囲を超える取扱いの変更を区別する。
+- 背景: イベント単位の追加許可を避けながら、新しい送信先や取得情報への拡大は明示同意を得る。
+
+### consentSource
+
+- 区分: 画面表示の標準案。
+- 対応要素: N-00。
+- 標準 ja: 取得する情報や送信の仕組みは、公開リポジトリで確認できます。
+- 標準 en: You can review the information we collect and how it is sent in our public source code.
+- 目的: 気になる取得情報と送信の実装を確認できることを伝える。
+- 背景: 本人の公開リポジトリへの案内追加の依頼に基づく。
+
+### consentSourceLink
+
+- 区分: 画面表示の標準案。
+- 対応要素: N-00。
+- 標準 ja: 公開リポジトリ（GitHub）
+- 標準 en: Public repository (GitHub)
+- 目的: 公開されている実装へ移動できるようにする。
+- 背景: 説明を検証したい利用者のために実装への導線を設ける。
+
+### consentTitle
+
+- 区分: 画面表示の標準案。
+- 対応要素: N-00。
+- 標準 ja: アクセス解析へのご協力のお願い
+- 標準 en: Help us improve IroMap
+- 目的: アクセス解析の選択と説明を明確にする。
+- 背景: 最新の説明への明示同意を必要とし、拒否・撤回の選択を保証する。
+
+### consentPurpose
+
+- 区分: 画面表示の標準案。
+- 対応要素: N-00。
+- 標準 ja: 同意いただいた場合に限り、Google アナリティクス（GA4）を使用し、当サイト内での操作や機能の利用状況を取得します。これには、ボタンクリック、スクロール、操作の順序や所要時間などが含まれます。取得したデータは、IroMapのサービス改善に利用します。
+- 標準 en: With your consent, we use Google Analytics (GA4) to collect interactions and feature usage on this site, including button clicks, scroll milestones, and the order and timing of actions. We use this data to improve IroMap.
+- 目的: アクセス解析の選択と説明を明確にする。
+- 背景: 最新の説明への明示同意を必要とし、拒否・撤回の選択を保証する。
+
+### consentData
+
+- 区分: 画面表示の標準案。
+- 対応要素: N-00。
+- 標準 ja: アクセス解析では、氏名・メールアドレスなど、ご本人を直接特定する個人情報は取得しません。画像データも送信しません。GA4では、Cookieによる識別情報や、ご利用の端末・ブラウザーに関する情報を利用し、Googleに送信します。
+- 標準 en: Our analytics does not collect personal information that directly identifies you, such as your name or email address, and we do not send image data. GA4 uses cookie identifiers and information about your device and browser and sends this information to Google.
+- 目的: アクセス解析の選択と説明を明確にする。
+- 背景: 最新の説明への明示同意を必要とし、拒否・撤回の選択を保証する。
+
+### consentChoice
+
+- 区分: 画面表示の標準案。
+- 対応要素: N-00。
+- 標準 ja: 同意しなくても、すべての機能をご利用いただけます。同意は「Cookie設定」からいつでも撤回できます。
+- 標準 en: You can use all features without consenting. You can withdraw your consent at any time in Cookie settings.
+- 目的: アクセス解析の選択と説明を明確にする。
+- 背景: 最新の説明への明示同意を必要とし、拒否・撤回の選択を保証する。
+
+### consentVersion
+
+- 区分: 画面表示の標準案。
+- 対応要素: N-00。
+- 標準 ja: 同意内容のバージョン: {version}
+- 標準 en: Consent version: {version}
+- 目的: アクセス解析の選択と説明を明確にする。
+- 背景: 最新の説明への明示同意を必要とし、拒否・撤回の選択を保証する。
+- 変数: `{version}`。
+
+### consentAccept
+
+- 区分: 画面表示の標準案。
+- 対応要素: N-00。
+- 標準 ja: 同意する
+- 標準 en: Accept
+- 目的: アクセス解析の選択と説明を明確にする。
+- 背景: 最新の説明への明示同意を必要とし、拒否・撤回の選択を保証する。
+
+### consentReject
+
+- 区分: 画面表示の標準案。
+- 対応要素: N-00。
+- 標準 ja: 同意しない
+- 標準 en: Reject
+- 目的: アクセス解析の選択と説明を明確にする。
+- 背景: 最新の説明への明示同意を必要とし、拒否・撤回の選択を保証する。
+
+### consentSettings
+
+- 区分: 画面表示の標準案。
+- 対応要素: N-01。
+- 標準 ja: Cookie設定
+- 標準 en: Cookie settings
+- 目的: アクセス解析の選択と説明を明確にする。
+- 背景: 最新の説明への明示同意を必要とし、拒否・撤回の選択を保証する。
+
+### consentDetails
+
+- 区分: 画面表示の標準案。
+- 対応要素: N-02。
+- 標準 ja: アクセス解析と保存期間について
+- 標準 en: Analytics and storage details
+- 目的: アクセス解析の選択と説明を明確にする。
+- 背景: 最新の説明への明示同意を必要とし、拒否・撤回の選択を保証する。
+
+### consentClose
+
+- 区分: 画面表示の標準案。
+- 対応要素: N-00。
+- 標準 ja: 閉じる
+- 標準 en: Close
+- 目的: アクセス解析の選択と説明を明確にする。
+- 背景: 最新の説明への明示同意を必要とし、拒否・撤回の選択を保証する。
+
+### consentStorageError
+
+- 区分: 画面表示の標準案。
+- 対応要素: N-00。
+- 標準 ja: 設定を保存できないため、アクセス解析は無効のままです。ブラウザーの保存設定をご確認ください。
+- 標準 en: Your choice could not be saved, so analytics remains disabled. Check your browser storage settings.
+- 目的: アクセス解析の選択と説明を明確にする。
+- 背景: 最新の説明への明示同意を必要とし、拒否・撤回の選択を保証する。
+
+### privacyPurposeTitle
+
+- 区分: 画面表示の標準案。
+- 対応要素: N-02。
+- 標準 ja: 利用目的とサービス
+- 標準 en: Purpose and service
+- 目的: アクセス解析の選択と説明を明確にする。
+- 背景: 最新の説明への明示同意を必要とし、拒否・撤回の選択を保証する。
+
+### privacyDataTitle
+
+- 区分: 画面表示の標準案。
+- 対応要素: N-02。
+- 標準 ja: 取得する情報・送信しない情報
+- 標準 en: Information collected and excluded
+- 目的: アクセス解析の選択と説明を明確にする。
+- 背景: 最新の説明への明示同意を必要とし、拒否・撤回の選択を保証する。
+
+### privacyDataDetails
+
+- 区分: 画面表示の標準案。
+- 対応要素: N-02。
+- 標準 ja: 閲覧ページ、操作の発生時刻、Cookie識別情報、端末・ブラウザーの情報をGoogleに送信します。Googleへの通信時にはIPアドレスなどの通信情報も送信されます。画像データ・ファイル名・色値・クリップボードの内容はアクセス解析イベントに含めません。この説明はアクセス解析についてのもので、画像分析APIを利用する際の画像送信とは別です。
+- 標準 en: We send visited pages, action timestamps, cookie identifiers, and device and browser information to Google. Network information, including your IP address, is also transmitted when communicating with Google. Analytics events exclude image data, filenames, color values, and clipboard contents. This notice concerns analytics; sending an image to the image analysis API is separate.
+- 目的: アクセス解析の選択と説明を明確にする。
+- 背景: 最新の説明への明示同意を必要とし、拒否・撤回の選択を保証する。
+
+### privacyStorageTitle
+
+- 区分: 画面表示の標準案。
+- 対応要素: N-02。
+- 標準 ja: 保存期間
+- 標準 en: Storage periods
+- 目的: アクセス解析の選択と説明を明確にする。
+- 背景: 最新の説明への明示同意を必要とし、拒否・撤回の選択を保証する。
+
+### privacyStorage
+
+- 区分: 画面表示の標準案。
+- 対応要素: N-02。
+- 標準 ja: 同意・拒否の選択、説明のバージョン、選択日時を、このブラウザーのローカルストレージに365日間（1年）保存します。GAのCookieの有効期間は最長365日（1年）で、自動延長しません。操作順の一時記録は同じタブ内に保存し、最後の計測から30分で新しい記録に切り替えます。同意内容の範囲が変わった場合や期限切れの場合は、改めて同意を確認します。
+- 標準 en: Your choice, notice version, and decision time are stored in this browser's local storage for 365 days (one year). GA cookies expire within 365 days (one year) without automatic renewal. Action sequences are temporarily stored in the same tab, with a new sequence after 30 minutes of inactivity. We ask again if the scope of consent changes or your choice expires.
+- 目的: アクセス解析の選択と説明を明確にする。
+- 背景: 最新の説明への明示同意を必要とし、拒否・撤回の選択を保証する。
+
+### privacyGoogleRetention
+
+- 区分: 画面表示の標準案。
+- 対応要素: N-02。
+- 標準 ja: Google側での解析データの保持期間は、IroMapのGA4プロパティの設定に従います。Cookieの有効期間とは異なります。
+- 標準 en: Google retains analytics data according to IroMap's GA4 property settings. This period is separate from cookie expiry.
+- 目的: アクセス解析の選択と説明を明確にする。
+- 背景: 最新の説明への明示同意を必要とし、拒否・撤回の選択を保証する。
+
+### privacyWithdrawalTitle
+
+- 区分: 画面表示の標準案。
+- 対応要素: N-02。
+- 標準 ja: 拒否・撤回と変更
+- 標準 en: Refusing, withdrawing, and changing consent
+- 目的: アクセス解析の選択と説明を明確にする。
+- 背景: 最新の説明への明示同意を必要とし、拒否・撤回の選択を保証する。
+
+### privacyWithdrawal
+
+- 区分: 画面表示の標準案。
+- 対応要素: N-02。
+- 標準 ja: 「Cookie設定」で「同意しない」を選ぶと、以後の解析データの送信を停止し、このサイトで削除できるGAのCookieと操作順の一時記録を削除します。撤回しても、すでにGoogleへ送信されたデータが削除されるわけではありません。
+- 標準 en: Select Reject in Cookie settings to stop further analytics transmission and remove GA cookies that this site can delete, along with the temporary action sequence. Withdrawing consent does not delete data already sent to Google.
+- 目的: アクセス解析の選択と説明を明確にする。
+- 背景: 最新の説明への明示同意を必要とし、拒否・撤回の選択を保証する。
+
+### privacyPreferencesTitle
+
+- 区分: 画面表示の標準案。
+- 対応要素: N-02。
+- 標準 ja: 表示設定の保存
+- 標準 en: Display preferences
+- 目的: アクセス解析の選択と説明を明確にする。
+- 背景: 最新の説明への明示同意を必要とし、拒否・撤回の選択を保証する。
+
+### privacyPreferences
+
+- 区分: 画面表示の標準案。
+- 対応要素: N-02。
+- 標準 ja: テーマやパネルの開閉など、ご自身で選んだ表示設定は、アクセス解析への同意とは別にブラウザーに保存します。ブラウザーの保存データを削除すると、同意・拒否の選択や表示設定も消去されます。
+- 標準 en: Preferences you choose, such as theme and panel visibility, are saved separately from analytics consent. Clearing browser storage also removes your consent choice and display preferences.
+- 目的: アクセス解析の選択と説明を明確にする。
+- 背景: 最新の説明への明示同意を必要とし、拒否・撤回の選択を保証する。
+
+### privacyGoogleTitle
+
+- 区分: 画面表示の標準案。
+- 対応要素: N-02。
+- 標準 ja: Googleによる情報の利用
+- 標準 en: How Google uses information
+- 目的: アクセス解析の選択と説明を明確にする。
+- 背景: 最新の説明への明示同意を必要とし、拒否・撤回の選択を保証する。
+
+### privacyGoogleUsage
+
+- 区分: 画面表示の標準案。
+- 対応要素: N-02。
+- 標準 ja: Googleのサービスを使用するサイトやアプリから収集した情報のGoogleによる使用
+- 標準 en: How Google uses information from sites or apps that use its services
+- 目的: アクセス解析の選択と説明を明確にする。
+- 背景: 最新の説明への明示同意を必要とし、拒否・撤回の選択を保証する。
+
+### privacyGooglePolicy
+
+- 区分: 画面表示の標準案。
+- 対応要素: N-02。
+- 標準 ja: Googleプライバシーポリシー
+- 標準 en: Google Privacy Policy
+- 目的: アクセス解析の選択と説明を明確にする。
+- 背景: 最新の説明への明示同意を必要とし、拒否・撤回の選択を保証する。
+
+### privacyBack
+
+- 区分: 画面表示の標準案。
+- 対応要素: N-02。
+- 標準 ja: 画像分析に戻る
+- 標準 en: Back to image analysis
+- 目的: アクセス解析の選択と説明を明確にする。
+- 背景: 最新の説明への明示同意を必要とし、拒否・撤回の選択を保証する。

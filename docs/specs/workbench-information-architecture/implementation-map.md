@@ -2201,3 +2201,191 @@
 - 文言ID: `api.error.REQUEST_FAILED`。
 - 実装キー: 未対応。
 - 参照元: `web/src/features/agent-api/agent-analyze-page.tsx`。
+
+## アクセス解析同意の実装対応
+
+### privacyChangesTitle
+
+- 文言ID: `privacyChangesTitle`。
+- 実装キー: `privacyChangesTitle`。
+- 参照元: `web/src/app/privacy/page.tsx`。
+
+### privacyChanges
+
+- 文言ID: `privacyChanges`。
+- 実装キー: `privacyChanges`。
+- 参照元: `web/src/app/privacy/page.tsx`。
+
+### consentSource
+
+- 文言ID: `consentSource`。
+- 実装キー: `consentSource`。
+- 参照元: `web/src/components/cookie-consent.tsx`、`web/src/app/privacy/page.tsx`。
+
+### consentSourceLink
+
+- 文言ID: `consentSourceLink`。
+- 実装キー: `consentSourceLink`。
+- 参照元: `web/src/components/cookie-consent.tsx`、`web/src/app/privacy/page.tsx`。
+
+### N-00
+
+- 参照元: `web/src/components/cookie-consent.tsx`。
+
+### N-01
+
+- 参照元: `web/src/components/cookie-consent.tsx`。
+
+### N-02
+
+- 参照元: `web/src/app/privacy/page.tsx`。
+
+### consentTitle
+
+- 文言ID: `consentTitle`。
+- 実装キー: `consentTitle`。
+- 参照元: `web/src/components/cookie-consent.tsx`。
+
+### consentPurpose
+
+- 文言ID: `consentPurpose`。
+- 実装キー: `consentPurpose`。
+- 参照元: `web/src/components/cookie-consent.tsx`。
+
+### consentData
+
+- 文言ID: `consentData`。
+- 実装キー: `consentData`。
+- 参照元: `web/src/components/cookie-consent.tsx`。
+
+### consentChoice
+
+- 文言ID: `consentChoice`。
+- 実装キー: `consentChoice`。
+- 参照元: `web/src/components/cookie-consent.tsx`。
+
+### consentVersion
+
+- 文言ID: `consentVersion`。
+- 実装キー: `consentVersion`。
+- 参照元: `web/src/components/cookie-consent.tsx`。
+
+### consentAccept
+
+- 文言ID: `consentAccept`。
+- 実装キー: `consentAccept`。
+- 参照元: `web/src/components/cookie-consent.tsx`。
+
+### consentReject
+
+- 文言ID: `consentReject`。
+- 実装キー: `consentReject`。
+- 参照元: `web/src/components/cookie-consent.tsx`。
+
+### consentSettings
+
+- 文言ID: `consentSettings`。
+- 実装キー: `consentSettings`。
+- 参照元: `web/src/components/cookie-consent.tsx`。
+
+### consentDetails
+
+- 文言ID: `consentDetails`。
+- 実装キー: `consentDetails`。
+- 参照元: `web/src/app/privacy/page.tsx`。
+
+### consentClose
+
+- 文言ID: `consentClose`。
+- 実装キー: `consentClose`。
+- 参照元: `web/src/components/cookie-consent.tsx`。
+
+### consentStorageError
+
+- 文言ID: `consentStorageError`。
+- 実装キー: `consentStorageError`。
+- 参照元: `web/src/components/cookie-consent.tsx`。
+
+### privacyPurposeTitle
+
+- 文言ID: `privacyPurposeTitle`。
+- 実装キー: `privacyPurposeTitle`。
+- 参照元: `web/src/app/privacy/page.tsx`。
+
+### privacyDataTitle
+
+- 文言ID: `privacyDataTitle`。
+- 実装キー: `privacyDataTitle`。
+- 参照元: `web/src/app/privacy/page.tsx`。
+
+### privacyDataDetails
+
+- 文言ID: `privacyDataDetails`。
+- 実装キー: `privacyDataDetails`。
+- 参照元: `web/src/app/privacy/page.tsx`。
+
+### privacyStorageTitle
+
+- 文言ID: `privacyStorageTitle`。
+- 実装キー: `privacyStorageTitle`。
+- 参照元: `web/src/app/privacy/page.tsx`。
+
+### privacyStorage
+
+- 文言ID: `privacyStorage`。
+- 実装キー: `privacyStorage`。
+- 参照元: `web/src/app/privacy/page.tsx`。
+
+### privacyGoogleRetention
+
+- 文言ID: `privacyGoogleRetention`。
+- 実装キー: `privacyGoogleRetention`。
+- 参照元: `web/src/app/privacy/page.tsx`。
+
+### privacyWithdrawalTitle
+
+- 文言ID: `privacyWithdrawalTitle`。
+- 実装キー: `privacyWithdrawalTitle`。
+- 参照元: `web/src/app/privacy/page.tsx`。
+
+### privacyWithdrawal
+
+- 文言ID: `privacyWithdrawal`。
+- 実装キー: `privacyWithdrawal`。
+- 参照元: `web/src/app/privacy/page.tsx`。
+
+### privacyPreferencesTitle
+
+- 文言ID: `privacyPreferencesTitle`。
+- 実装キー: `privacyPreferencesTitle`。
+- 参照元: `web/src/app/privacy/page.tsx`。
+
+### privacyPreferences
+
+- 文言ID: `privacyPreferences`。
+- 実装キー: `privacyPreferences`。
+- 参照元: `web/src/app/privacy/page.tsx`。
+
+### privacyGoogleTitle
+
+- 文言ID: `privacyGoogleTitle`。
+- 実装キー: `privacyGoogleTitle`。
+- 参照元: `web/src/app/privacy/page.tsx`。
+
+### privacyGoogleUsage
+
+- 文言ID: `privacyGoogleUsage`。
+- 実装キー: `privacyGoogleUsage`。
+- 参照元: `web/src/app/privacy/page.tsx`。
+
+### privacyGooglePolicy
+
+- 文言ID: `privacyGooglePolicy`。
+- 実装キー: `privacyGooglePolicy`。
+- 参照元: `web/src/app/privacy/page.tsx`。
+
+### privacyBack
+
+- 文言ID: `privacyBack`。
+- 実装キー: `privacyBack`。
+- 参照元: `web/src/app/privacy/page.tsx`。

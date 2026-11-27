@@ -28,7 +28,21 @@ Set the GA4 Measurement ID with a public env var:
 NEXT_PUBLIC_GA_MEASUREMENT_ID=G-C80RCZLC71
 ```
 
-The Google Analytics script is rendered only in production builds. It is not injected in local development.
+The Google Analytics script loads only in production after valid consent to the current notice version.
+Consent choices and their version, time, and expiry are saved in localStorage for 365 days (one year).
+Consent covers the declared purpose, data categories, recipients, and storage periods. Adding events
+within that scope does not require renewed consent; expanding the scope requires a new consent version.
+Visitors can reject analytics or withdraw consent using Cookie settings. The script is not injected in local development.
+
+Feature use, button actions, navigation context, and ordered operation results are tracked with fixed IDs.
+See [the analytics guide](../docs/development/usage-analytics.md) for GA4 setup, event parameters,
+BigQuery timeline queries, and CI checks. Production collection requires the measurement ID at build time
+and a deployment; preview environments should not use the production measurement ID.
+
+```bash
+pnpm run test:analytics
+pnpm run test:analytics:e2e
+```
 
 ## UI Test (Playwright)
 

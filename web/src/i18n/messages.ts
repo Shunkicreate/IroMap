@@ -4,6 +4,46 @@ export const i18nDefaultLocale: I18nLocale = "ja";
 
 export const i18nMessages = {
   ja: {
+    consentTitle: "アクセス解析へのご協力のお願い",
+    consentSource: "取得する情報や送信の仕組みは、公開リポジトリで確認できます。",
+    consentSourceLink: "公開リポジトリ（GitHub）",
+    consentPurpose:
+      "同意いただいた場合に限り、Google アナリティクス（GA4）を使用し、当サイト内での操作や機能の利用状況を取得します。これには、ボタンクリック、スクロール、操作の順序や所要時間などが含まれます。取得したデータは、IroMapのサービス改善に利用します。",
+    consentData:
+      "アクセス解析では、氏名・メールアドレスなど、ご本人を直接特定する個人情報は取得しません。画像データも送信しません。GA4では、Cookieによる識別情報や、ご利用の端末・ブラウザーに関する情報を利用し、Googleに送信します。",
+    consentChoice:
+      "同意しなくても、すべての機能をご利用いただけます。同意は「Cookie設定」からいつでも撤回できます。",
+    consentVersion: "同意内容のバージョン: {version}",
+    consentAccept: "同意する",
+    consentReject: "同意しない",
+    consentSettings: "Cookie設定",
+    consentDetails: "アクセス解析と保存期間について",
+    consentClose: "閉じる",
+    consentStorageError:
+      "設定を保存できないため、アクセス解析は無効のままです。ブラウザーの保存設定をご確認ください。",
+    privacyPurposeTitle: "利用目的とサービス",
+    privacyChangesTitle: "計測内容の変更と再同意",
+    privacyChanges:
+      "サービス改善という目的、取得する情報の種類、送信先がこの説明の範囲内であれば、計測対象の機能・操作・イベントを追加・変更することがあります。こうした変更のたびに再同意をお願いすることはありません。新たな送信先への提供、利用目的の変更、取得する情報の種類や保存期間の拡大など、この説明の範囲を超える変更を行う場合は、説明を更新し、変更後の取扱いを始める前に改めて同意を確認します。",
+    privacyDataTitle: "取得する情報・送信しない情報",
+    privacyDataDetails:
+      "閲覧ページ、操作の発生時刻、Cookie識別情報、端末・ブラウザーの情報をGoogleに送信します。Googleへの通信時にはIPアドレスなどの通信情報も送信されます。画像データ・ファイル名・色値・クリップボードの内容はアクセス解析イベントに含めません。この説明はアクセス解析についてのもので、画像分析APIを利用する際の画像送信とは別です。",
+    privacyStorageTitle: "保存期間",
+    privacyStorage:
+      "同意・拒否の選択、説明のバージョン、選択日時を、このブラウザーのローカルストレージに365日間（1年）保存します。GAのCookieの有効期間は最長365日（1年）で、自動延長しません。操作順の一時記録は同じタブ内に保存し、最後の計測から30分で新しい記録に切り替えます。同意内容の範囲が変わった場合や期限切れの場合は、改めて同意を確認します。",
+    privacyGoogleRetention:
+      "Google側での解析データの保持期間は、IroMapのGA4プロパティの設定に従います。Cookieの有効期間とは異なります。",
+    privacyWithdrawalTitle: "拒否・撤回と変更",
+    privacyWithdrawal:
+      "「Cookie設定」で「同意しない」を選ぶと、以後の解析データの送信を停止し、このサイトで削除できるGAのCookieと操作順の一時記録を削除します。撤回しても、すでにGoogleへ送信されたデータが削除されるわけではありません。",
+    privacyPreferencesTitle: "表示設定の保存",
+    privacyPreferences:
+      "テーマやパネルの開閉など、ご自身で選んだ表示設定は、アクセス解析への同意とは別にブラウザーに保存します。ブラウザーの保存データを削除すると、同意・拒否の選択や表示設定も消去されます。",
+    privacyGoogleTitle: "Googleによる情報の利用",
+    privacyGoogleUsage:
+      "Googleのサービスを使用するサイトやアプリから収集した情報のGoogleによる使用",
+    privacyGooglePolicy: "Googleプライバシーポリシー",
+    privacyBack: "画像分析に戻る",
     heroTitle: "画像の色構造を一目で理解する",
     heroDescription:
       "IroMap は RGB / HSL / Lab 可視化と画像分析を1画面で往復できる Image Color Analyzer です。",
@@ -212,6 +252,46 @@ export const i18nMessages = {
     cubeSpaceOverlay: "色空間: {space}",
   },
   en: {
+    consentTitle: "Help us improve IroMap",
+    consentSource:
+      "You can review the information we collect and how it is sent in our public source code.",
+    consentSourceLink: "Public repository (GitHub)",
+    consentPurpose:
+      "With your consent, we use Google Analytics (GA4) to collect interactions and feature usage on this site, including button clicks, scroll milestones, and the order and timing of actions. We use this data to improve IroMap.",
+    consentData:
+      "Our analytics does not collect personal information that directly identifies you, such as your name or email address, and we do not send image data. GA4 uses cookie identifiers and information about your device and browser and sends this information to Google.",
+    consentChoice:
+      "You can use all features without consenting. You can withdraw your consent at any time in Cookie settings.",
+    consentVersion: "Consent version: {version}",
+    consentAccept: "Accept",
+    consentReject: "Reject",
+    consentSettings: "Cookie settings",
+    consentDetails: "Analytics and storage details",
+    consentClose: "Close",
+    consentStorageError:
+      "Your choice could not be saved, so analytics remains disabled. Check your browser storage settings.",
+    privacyPurposeTitle: "Purpose and service",
+    privacyChangesTitle: "Measurement changes and renewed consent",
+    privacyChanges:
+      "We may add or change measured features, interactions, and events within the service-improvement purpose, data categories, and recipients described here, without asking for consent each time. If we go beyond this scope, for example by adding recipients, changing purposes, or expanding data categories or retention periods, we will update this notice and obtain renewed consent before applying the change.",
+    privacyDataTitle: "Information collected and excluded",
+    privacyDataDetails:
+      "We send visited pages, action timestamps, cookie identifiers, and device and browser information to Google. Network information, including your IP address, is also transmitted when communicating with Google. Analytics events exclude image data, filenames, color values, and clipboard contents. This notice concerns analytics; sending an image to the image analysis API is separate.",
+    privacyStorageTitle: "Storage periods",
+    privacyStorage:
+      "Your choice, notice version, and decision time are stored in this browser's local storage for 365 days (one year). GA cookies expire within 365 days (one year) without automatic renewal. Action sequences are temporarily stored in the same tab, with a new sequence after 30 minutes of inactivity. We ask again if the scope of consent changes or your choice expires.",
+    privacyGoogleRetention:
+      "Google retains analytics data according to IroMap's GA4 property settings. This period is separate from cookie expiry.",
+    privacyWithdrawalTitle: "Refusing, withdrawing, and changing consent",
+    privacyWithdrawal:
+      "Select Reject in Cookie settings to stop further analytics transmission and remove GA cookies that this site can delete, along with the temporary action sequence. Withdrawing consent does not delete data already sent to Google.",
+    privacyPreferencesTitle: "Display preferences",
+    privacyPreferences:
+      "Preferences you choose, such as theme and panel visibility, are saved separately from analytics consent. Clearing browser storage also removes your consent choice and display preferences.",
+    privacyGoogleTitle: "How Google uses information",
+    privacyGoogleUsage: "How Google uses information from sites or apps that use its services",
+    privacyGooglePolicy: "Google Privacy Policy",
+    privacyBack: "Back to image analysis",
     heroTitle: "Understand your image color structure at a glance",
     heroDescription:
       "IroMap is an Image Color Analyzer where RGB / HSL / Lab visualization and image analysis stay in one workflow.",

@@ -3,6 +3,8 @@
 import { ClipboardPaste, Copy } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { startAnalyticsOperation } from "@/lib/analytics";
+import type { AnalyticsControlId } from "@/lib/analytics-catalog";
 import { ColorSwatch } from "@/components/workbench/color-swatch";
 import { PanelHeader } from "@/components/workbench/panel-header";
 import { PersistedDisclosure } from "@/components/workbench/persisted-disclosure";
@@ -20,6 +22,7 @@ type Props = {
 };
 
 const PLACEHOLDER = "--";
+const colorCopyIds = ["color-copy-hex", "color-copy-rgb", "color-copy-hsl"] as const;
 const hexRegex = /^#?([\da-f]{3}|[\da-f]{6})$/i;
 const rgbRegex = /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/i;
 const hslRegex = /^hsl\(\s*(\d{1,3})\s*,\s*(\d{1,3})%\s*,\s*(\d{1,3})%\s*\)$/i;
@@ -103,21 +106,24 @@ export function ColorInspector({
     ];
   }, [selectedColor]);
 
-  const copyValue = async (value: string): Promise<void> => {
+  const copyValue = async (value: string, id: AnalyticsControlId): Promise<void> => {
     if (!selectedColor) {
       return;
     }
 
+    const finishCopy = startAnalyticsOperation(id);
     try {
       if (!navigator.clipboard?.writeText) {
         throw new Error("Clipboard API unavailable");
       }
       await navigator.clipboard.writeText(value);
+      finishCopy("succeeded");
       const success = t("copyCopied", { value });
       setMessage(success);
       onStatusChange?.(success);
       toast.success(success);
     } catch {
+      finishCopy("failed");
       const failed = t("copyFailed", { value });
       setMessage(failed);
       onStatusChange?.(failed);
@@ -126,7 +132,9 @@ export function ColorInspector({
   };
 
   const pasteFromClipboard = async (): Promise<void> => {
+    const finishPaste = startAnalyticsOperation("color-paste");
     if (!navigator.clipboard?.readText) {
+      finishPaste("failed");
       const failed = t("copyPasteFailed");
       setMessage(failed);
       onStatusChange?.(failed);
@@ -138,6 +146,7 @@ export function ColorInspector({
       const text = await navigator.clipboard.readText();
       const parsed = parsePastedColor(text);
       if (!parsed) {
+        finishPaste("failed");
         const unsupported = t("copyPasteUnsupported", { value: text || "(empty)" });
         setMessage(unsupported);
         onStatusChange?.(unsupported);
@@ -146,11 +155,13 @@ export function ColorInspector({
       }
 
       onColorPasted?.(parsed);
+      finishPaste("succeeded");
       const applied = t("copyPasteApplied", { value: rgbToHex(parsed) });
       setMessage(applied);
       onStatusChange?.(applied);
       toast.success(applied);
     } catch {
+      finishPaste("failed");
       const failed = t("copyPasteFailed");
       setMessage(failed);
       onStatusChange?.(failed);
@@ -162,6 +173,7 @@ export function ColorInspector({
     <section className="panel">
       <PanelHeader titleKey="panelInspector" requirementsKey="panelInspectorRequirements" />
       <PersistedDisclosure
+        analyticsId="inspector-open"
         storageKey={contentStorageKey}
         defaultOpen={false}
         summary={t("workbenchInspectorDisclosure")}
@@ -186,6 +198,7 @@ export function ColorInspector({
             <div className="copyValueRow">
               <small>{t("inspectorPasteSection")}</small>
               <button
+                data-analytics-id="color-paste"
                 type="button"
                 className="inspectorPasteButton"
                 onClick={() => void pasteFromClipboard()}
@@ -197,14 +210,15 @@ export function ColorInspector({
             <p className="muted">{t("inspectorPasteHint")}</p>
             <div className="colorRow colorRowSelected">
               <span>{t("inspectorSelectedLabel")}</span>
-              {selectedFormats.map((item) => (
+              {selectedFormats.map((item, index) => (
                 <div key={item.label} className="copyValueRow">
                   <small>{item.label}</small>
                   <code>{item.value}</code>
                   <button
+                    data-analytics-id={colorCopyIds[index]}
                     type="button"
                     className="iconButton"
-                    onClick={() => void copyValue(item.value)}
+                    onClick={() => void copyValue(item.value, colorCopyIds[index])}
                     disabled={!selectedColor}
                     aria-label={`${t("copyButton")}: ${item.label}`}
                     title={`${t("copyButton")}: ${item.label}`}

@@ -58,6 +58,7 @@ export function WorkbenchMetricsPanel({
         <label className={controlStyles.stackedLabel}>
           {t("workbenchCopyFormatWorkbenchLabel")}
           <select
+            data-analytics-id="metrics-format"
             className={controlStyles.fieldControl}
             value={copyFormat}
             onChange={(event) => onCopyFormatChange(event.target.value as ExportFormat)}
@@ -68,6 +69,7 @@ export function WorkbenchMetricsPanel({
           </select>
         </label>
         <button
+          data-analytics-id="metrics-copy"
           type="button"
           className={controlStyles.actionButton}
           onClick={() => void onCopyMetricTable()}

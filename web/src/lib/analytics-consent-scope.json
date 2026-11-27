@@ -1,0 +1,29 @@
+{
+  "version": "3",
+  "purposes": ["iromap-service-improvement"],
+  "dataCategories": [
+    "on-site-interactions",
+    "feature-usage",
+    "page-views",
+    "operation-order-and-timing",
+    "cookie-identifiers",
+    "device-and-browser-information",
+    "network-connection-metadata"
+  ],
+  "excludedData": [
+    "image-data",
+    "filenames",
+    "selected-color-values",
+    "clipboard-contents",
+    "direct-personal-identifiers",
+    "free-text-input",
+    "url-query-and-fragment"
+  ],
+  "recipients": ["Google Analytics (GA4)"],
+  "consentRetentionDays": 365,
+  "cookieRetentionDays": 365,
+  "cookieExpiryRenews": false,
+  "advertisingAllowed": false,
+  "googleDataRetention": "property-settings",
+  "withdrawal": "stop-collection-and-clear-ga-cookies-and-journey"
+}

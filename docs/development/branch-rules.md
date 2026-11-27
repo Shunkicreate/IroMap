@@ -39,6 +39,10 @@ Codexアプリの管理worktreeも使用できる。配置パスによらず、G
   - `quality-gate`: e2e (Playwright)
   - `branch-name`: `feature/*` または `main` を検証
 
+ブラウザーを使う `e2e` と `performance` は `ubuntu-24.04` に固定する。
+Playwright 1.51.1 が対応しない Ubuntu 26.04 へ `ubuntu-latest` が更新されたため、
+ブラウザー導入前に失敗しないようにする。OSの更新はPlaywrightの対応確認と併せて行う。
+
 ## 5. GitHub 推奨設定
 
 - Branch protection 対象: `main`

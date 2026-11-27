@@ -73,6 +73,7 @@ import {
 } from "@/features/workbench/hover-search-client";
 import { setSharedHoverState as setSharedHoverStateStore } from "@/features/workbench/shared-hover-store";
 import { t } from "@/i18n/translate";
+import { startAnalyticsOperation, trackFeature } from "@/lib/analytics";
 
 const emptyCubePoints: NonNullable<WorkbenchTarget["result"]>["cubePoints"] = [];
 
@@ -334,6 +335,7 @@ export function ColorWorkbench() {
   useEffect(() => {
     const file = baselineTarget.file;
     let isStale = false;
+    const finishAnalysis = file ? startAnalyticsOperation("photo-analysis") : null;
     const loadTarget = async (): Promise<void> => {
       if (!file) {
         analyzedFileRef.current = null;
@@ -393,6 +395,7 @@ export function ColorWorkbench() {
           return;
         }
         analyzedFileRef.current = file;
+        finishAnalysis?.("succeeded");
         recordPerformanceEntry("workbench.photo-analysis.total", startedAt, {
           fileName: file.name,
           decodeMs,
@@ -422,6 +425,7 @@ export function ColorWorkbench() {
         if (isStale) {
           return;
         }
+        finishAnalysis?.("failed");
         setBaselineTarget((current) => ({
           ...current,
           file,
@@ -435,6 +439,7 @@ export function ColorWorkbench() {
     void loadTarget();
     return () => {
       isStale = true;
+      finishAnalysis?.("cancelled");
     };
   }, [baselineTarget.file, samplingDensityPercent]);
 
@@ -511,6 +516,7 @@ export function ColorWorkbench() {
   };
 
   const handleSpaceChange = (nextSpace: ColorSpace3d): void => {
+    trackFeature(nextSpace === "rgb" ? "cube-rgb" : nextSpace === "hsl" ? "cube-hsl" : "cube-lab");
     setSpace(nextSpace);
     const nextAxis: SliceAxis = nextSpace === "rgb" ? "r" : nextSpace === "hsl" ? "h" : "lab-l";
     setSliceAxis(nextAxis);
@@ -552,6 +558,7 @@ export function ColorWorkbench() {
         bounds,
       })
     );
+    trackFeature("preview-region");
     setLiveMessage(t("workbenchSelectionUpdated"));
   };
 
@@ -675,7 +682,10 @@ export function ColorWorkbench() {
 
   const handleColorSelect = (
     color: RgbColor,
-    source: "color-space-pick" | "slice-pick" = "color-space-pick"
+    source: "color-space-pick" | "slice-pick" = "color-space-pick",
+    analyticsId: "cube-pick" | "slice-pick" | "color-paste" = source === "slice-pick"
+      ? "slice-pick"
+      : "cube-pick"
   ): void => {
     if (!baselineTarget.result) {
       return;
@@ -693,10 +703,12 @@ export function ColorWorkbench() {
         source,
       })
     );
+    trackFeature(analyticsId);
     setLiveMessage(t("workbenchSelectedColorUpdated", { value: rgbToHex(color) }));
   };
 
   const handlePreviewSampleSelect = (sample: PhotoSample): void => {
+    trackFeature("preview-point");
     setSelectedColor(sample.color);
     setActiveSelection(() =>
       buildPointSelection({
@@ -713,7 +725,11 @@ export function ColorWorkbench() {
     setLiveMessage(message);
   };
 
-  const handleSourceFileSelected = (file: File | null): void => {
+  const handleSourceFileSelected = (
+    file: File | null,
+    source: "photo-file" | "photo-paste" = "photo-file"
+  ): void => {
+    if (file) trackFeature(source, "input");
     setPhotoPasteRecoveryMessage(null);
     const previewUrl = file ? URL.createObjectURL(file) : "";
     const previousPreviewUrl = previewUrlRef.current;
@@ -732,6 +748,7 @@ export function ColorWorkbench() {
   };
 
   const applyPastedImageFile = (file: File): void => {
+    const finishPaste = startAnalyticsOperation("photo-paste");
     const pastedFile = new File([file], file.name || clipboardImageFileName, {
       type: file.type || "image/png",
       lastModified: Date.now(),
@@ -739,7 +756,8 @@ export function ColorWorkbench() {
     const message = t("photoPasteApplied");
     setLiveMessage(message);
     toast.success(message);
-    handleSourceFileSelected(pastedFile);
+    handleSourceFileSelected(pastedFile, "photo-paste");
+    finishPaste("succeeded");
   };
 
   const handlePhotoPaste = (event: React.ClipboardEvent<HTMLDivElement>): void => {
@@ -747,6 +765,7 @@ export function ColorWorkbench() {
     event.stopPropagation();
     const file = getClipboardImageFile(event.clipboardData);
     if (!file) {
+      startAnalyticsOperation("photo-paste")("failed");
       const message = t("photoPasteNoImage");
       setLiveMessage(message);
       setPhotoPasteRecoveryMessage(message);
@@ -780,7 +799,9 @@ export function ColorWorkbench() {
       const message = t("photoPasteApplied");
       setLiveMessage(message);
       toast.success(message);
-      handleSourceFileSelected(pastedFile);
+      const finishPaste = startAnalyticsOperation("photo-paste");
+      handleSourceFileSelected(pastedFile, "photo-paste");
+      finishPaste("succeeded");
     };
 
     window.addEventListener("paste", handleWindowPaste);
@@ -790,44 +811,58 @@ export function ColorWorkbench() {
   }, []);
 
   const copyMetricTable = async (): Promise<void> => {
-    const payload = serializeMetricRows(localizedBaselineMetricRows, copyFormat, {
-      headerLabels: {
-        group: t("workbenchTableGroup"),
-        key: t("workbenchTableKey"),
-        label: t("workbenchTableMetric"),
-        value: t("workbenchTableValue"),
-        unit: t("workbenchTableUnit"),
-        description: t("workbenchTableDescription"),
-      },
-    });
-    await navigator.clipboard.writeText(payload);
-    handleStatusChange(t("workbenchMetricTableCopied", { format: copyFormat }));
-    toast.success(t("workbenchMetricTableCopied", { format: copyFormat }));
+    const finishCopy = startAnalyticsOperation("metrics-copy");
+    try {
+      const payload = serializeMetricRows(localizedBaselineMetricRows, copyFormat, {
+        headerLabels: {
+          group: t("workbenchTableGroup"),
+          key: t("workbenchTableKey"),
+          label: t("workbenchTableMetric"),
+          value: t("workbenchTableValue"),
+          unit: t("workbenchTableUnit"),
+          description: t("workbenchTableDescription"),
+        },
+      });
+      await navigator.clipboard.writeText(payload);
+      handleStatusChange(t("workbenchMetricTableCopied", { format: copyFormat }));
+      toast.success(t("workbenchMetricTableCopied", { format: copyFormat }));
+      finishCopy("succeeded");
+    } catch {
+      finishCopy("failed");
+      toast.error(t("copyFailed", { value: "" }));
+    }
   };
 
   const copyHistogram = async (): Promise<void> => {
-    const payload = serializeHistogramBins(
-      [...baselineLuminanceHistogram, ...baselineHueHistogram, ...baselineSaturationHistogram],
-      copyFormat,
-      {
-        headerLabels: {
-          metric: t("workbenchTableMetric"),
-          binIndex: t("graphAxisBin"),
-          start: t("graphAxisStart"),
-          end: t("graphAxisEnd"),
-          count: t("graphAxisCount"),
-          ratio: t("graphAxisRatio"),
-        },
-        metricLabels: {
-          luminance: t("workbenchHistogramCardTitle"),
-          hue: t("photoHueHistogram"),
-          saturation: t("photoSaturationHistogram"),
-        },
-      }
-    );
-    await navigator.clipboard.writeText(payload);
-    handleStatusChange(t("workbenchHistogramCopied", { format: copyFormat }));
-    toast.success(t("workbenchHistogramCopied", { format: copyFormat }));
+    const finishCopy = startAnalyticsOperation("histogram-copy");
+    try {
+      const payload = serializeHistogramBins(
+        [...baselineLuminanceHistogram, ...baselineHueHistogram, ...baselineSaturationHistogram],
+        copyFormat,
+        {
+          headerLabels: {
+            metric: t("workbenchTableMetric"),
+            binIndex: t("graphAxisBin"),
+            start: t("graphAxisStart"),
+            end: t("graphAxisEnd"),
+            count: t("graphAxisCount"),
+            ratio: t("graphAxisRatio"),
+          },
+          metricLabels: {
+            luminance: t("workbenchHistogramCardTitle"),
+            hue: t("photoHueHistogram"),
+            saturation: t("photoSaturationHistogram"),
+          },
+        }
+      );
+      await navigator.clipboard.writeText(payload);
+      handleStatusChange(t("workbenchHistogramCopied", { format: copyFormat }));
+      toast.success(t("workbenchHistogramCopied", { format: copyFormat }));
+      finishCopy("succeeded");
+    } catch {
+      finishCopy("failed");
+      toast.error(t("copyFailed", { value: "" }));
+    }
   };
 
   return (
@@ -882,18 +917,24 @@ export function ColorWorkbench() {
             >
               <TabsList className={controlStyles.spaceTabsList}>
                 <TabsTrigger
+                  data-analytics-id="cube-rgb"
+                  data-analytics-mode="manual"
                   value="rgb"
                   className={`${controlStyles.spaceTabTrigger} ${controlStyles.spaceTabTriggerRgb}`}
                 >
                   {t("spaceRgb")}
                 </TabsTrigger>
                 <TabsTrigger
+                  data-analytics-id="cube-hsl"
+                  data-analytics-mode="manual"
                   value="hsl"
                   className={`${controlStyles.spaceTabTrigger} ${controlStyles.spaceTabTriggerHsl}`}
                 >
                   {t("spaceHsl")}
                 </TabsTrigger>
                 <TabsTrigger
+                  data-analytics-id="cube-lab"
+                  data-analytics-mode="manual"
                   value="lab"
                   className={`${controlStyles.spaceTabTrigger} ${controlStyles.spaceTabTriggerLab}`}
                 >
@@ -903,6 +944,7 @@ export function ColorWorkbench() {
             </Tabs>
 
             <PersistedDisclosure
+              analyticsId="cube-options"
               storageKey={storageKeys.cubeOptionsPanel}
               defaultOpen={false}
               summary={t("workbenchDisplayOptionsDisclosure")}
@@ -916,23 +958,38 @@ export function ColorWorkbench() {
                   </span>
                   <Tabs
                     value={cubeOverlayMode}
-                    onValueChange={(value) => setCubeOverlayMode(value as RgbCubeOverlayMode)}
+                    onValueChange={(value) => {
+                      setCubeOverlayMode(value as RgbCubeOverlayMode);
+                      trackFeature(
+                        value === "grid"
+                          ? "cube-grid"
+                          : value === "image"
+                            ? "cube-image"
+                            : "cube-both"
+                      );
+                    }}
                     className={controlStyles.spaceTabs}
                   >
                     <TabsList className={controlStyles.spaceTabsList}>
                       <TabsTrigger
+                        data-analytics-id="cube-grid"
+                        data-analytics-mode="manual"
                         value="grid"
                         className={`${controlStyles.spaceTabTrigger} ${controlStyles.overlayTabTriggerGrid}`}
                       >
                         {t("cubeOverlayModeGrid")}
                       </TabsTrigger>
                       <TabsTrigger
+                        data-analytics-id="cube-image"
+                        data-analytics-mode="manual"
                         value="image"
                         className={`${controlStyles.spaceTabTrigger} ${controlStyles.overlayTabTriggerImage}`}
                       >
                         {t("cubeOverlayModeImage")}
                       </TabsTrigger>
                       <TabsTrigger
+                        data-analytics-id="cube-both"
+                        data-analytics-mode="manual"
                         value="both"
                         className={`${controlStyles.spaceTabTrigger} ${controlStyles.overlayTabTriggerBoth}`}
                       >
@@ -944,6 +1001,7 @@ export function ColorWorkbench() {
                 <div className={controlStyles.toggleRow}>
                   <label className={controlStyles.toggleLabel}>
                     <Checkbox
+                      data-analytics-id="cube-mapping"
                       checked={isCubeImageMappingVisible}
                       onCheckedChange={(checked) => setIsCubeImageMappingVisible(checked === true)}
                       aria-label={t("workbenchShowWhiteMappingCube")}
@@ -952,6 +1010,7 @@ export function ColorWorkbench() {
                   </label>
                   <label className={controlStyles.toggleLabel}>
                     <Checkbox
+                      data-analytics-id="cube-selection"
                       checked={isCubeSelectionMappingVisible}
                       onCheckedChange={(checked) =>
                         setIsCubeSelectionMappingVisible(checked === true)
@@ -962,6 +1021,7 @@ export function ColorWorkbench() {
                   </label>
                   <label className={controlStyles.toggleLabel}>
                     <Checkbox
+                      data-analytics-id="cube-info"
                       checked={isCubeInfoVisible}
                       onCheckedChange={(checked) => setIsCubeInfoVisible(checked === true)}
                       aria-label={t("cubeShowInfo")}
@@ -970,6 +1030,7 @@ export function ColorWorkbench() {
                   </label>
                   <label className={controlStyles.toggleLabel}>
                     <Checkbox
+                      data-analytics-id="cube-guides"
                       checked={isAxisGuideVisible}
                       onCheckedChange={(checked) => setIsAxisGuideVisible(checked === true)}
                       aria-label={t("cubeShowAxisGuide")}
@@ -978,6 +1039,7 @@ export function ColorWorkbench() {
                   </label>
                   <label className={controlStyles.toggleLabel}>
                     <Checkbox
+                      data-analytics-id="cube-size-visible"
                       checked={isCubeSizeSliderVisible}
                       onCheckedChange={(checked) => setIsCubeSizeSliderVisible(checked === true)}
                       aria-label={t("cubeShowSizeSlider")}
@@ -989,6 +1051,7 @@ export function ColorWorkbench() {
                   <label className={controlStyles.stackedLabel}>
                     {t("cubeSizeLabel", { size: cubeSize })}
                     <input
+                      data-analytics-id="cube-size"
                       className={controlStyles.rangeControl}
                       type="range"
                       min={320}
@@ -1068,7 +1131,7 @@ export function ColorWorkbench() {
         contentStorageKey={storageKeys.inspectorPanel}
         onColorPasted={(color) => {
           setSelectedColor(color);
-          handleColorSelect(color);
+          handleColorSelect(color, "color-space-pick", "color-paste");
         }}
         onStatusChange={handleStatusChange}
       />

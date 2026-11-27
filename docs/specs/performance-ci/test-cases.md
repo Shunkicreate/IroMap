@@ -7,3 +7,4 @@
 - TC-005: 欠落・非有限値・負値・回数不足・サイズ不足・不正設定は失敗する（FR-3）
 - TC-006: production build で両サイズの画像解析・点選択・矩形選択を実行し JSON を保存する（FR-2, FR-3）
 - TC-007: workflow の `workbench-performance` が `retention-days: 1`、`if: always()`、`if-no-files-found: ignore` を指定する（FR-3）
+- TC-008: Ubuntu 24.04のrunnerでPlaywrightのブラウザー・依存パッケージ導入が成功し、E2E・性能検証が開始・完了できる（FR-2）

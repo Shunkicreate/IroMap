@@ -14,6 +14,7 @@ export function InfoTooltip({ label, content }: Props) {
   return (
     <span className="infoTooltip">
       <button
+        data-analytics-id="metric-help"
         type="button"
         className="infoTooltipTrigger"
         aria-label={label}
