@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { deniedConsentStorageState } from "./tests/consent-storage-state";
 
 const hasExternalBaseUrl = Boolean(process.env.PLAYWRIGHT_BASE_URL);
 const isCI = Boolean(process.env.CI);
@@ -14,6 +15,7 @@ export default defineConfig({
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? localBaseUrl,
+    storageState: deniedConsentStorageState(process.env.PLAYWRIGHT_BASE_URL ?? localBaseUrl),
     trace: "on-first-retry",
   },
   webServer: hasExternalBaseUrl

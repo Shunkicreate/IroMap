@@ -245,6 +245,8 @@ try {
     for (let index = 0; index < iterations + warmupIterations; index += 1) {
       if (index === 0 || index % reloadEvery === 0) {
         await page.goto(appUrl);
+        const rejectAnalytics = page.getByRole("button", { name: "同意しない", exact: true });
+        if (await rejectAnalytics.isVisible()) await rejectAnalytics.click();
       }
 
       await clearPerfEntries(page);
